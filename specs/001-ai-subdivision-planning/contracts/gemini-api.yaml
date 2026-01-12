@@ -1,0 +1,525 @@
+openapi: 3.0.3
+info:
+  title: Google Gemini API - Structured Output for Subdivision Planning
+  description: |
+    OpenAPI specification for Google Gemini 2.5 Flash API with JSON Schema structured output.
+    Used for generating subdivision plans with guaranteed JSON response format.
+
+    **Authentication**: API Key via header or query parameter
+    **Base URL**: https://generativelanguage.googleapis.com/v1
+    **Free Tier Limits**: 10 RPM, 250,000 TPM, 250 RPD (as of Dec 2025)
+  version: 1.0.0
+  contact:
+    name: Google AI Developer Platform
+    url: https://ai.google.dev/gemini-api/docs
+  license:
+    name: Google API Terms of Service
+    url: https://developers.google.com/terms
+
+servers:
+  - url: https://generativelanguage.googleapis.com/v1
+    description: Production API
+
+security:
+  - ApiKeyHeader: []
+  - ApiKeyQuery: []
+
+paths:
+  /models/{model}:generateContent:
+    post:
+      summary: Generate content with structured JSON output
+      description: |
+        Generates a subdivision plan using Gemini 2.5 Flash with JSON Schema structured output.
+        The response is guaranteed to match the provided schema.
+      operationId: generateContent
+      tags:
+        - Text Generation
+      parameters:
+        - name: model
+          in: path
+          required: true
+          description: Model identifier (e.g., gemini-2.5-flash)
+          schema:
+            type: string
+            enum:
+              - gemini-2.5-flash
+              - gemini-2.5-flash-lite
+              - gemini-2.5-pro
+          example: gemini-2.5-flash
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateContentRequest'
+            examples:
+              subdivisionPlanRequest:
+                summary: Subdivision plan generation request
+                value:
+                  contents:
+                    - parts:
+                        - text: |
+                            You are an expert urban planner specializing in micro-villa subdivisions in the Dominican Republic.
+
+                            TASK: Generate a detailed subdivision plan for a rectangular land parcel.
+
+                            LAND SPECIFICATIONS:
+                            - Dimensions: 100m × 80m
+                            - Total Area: 8000 sqm
+                            - Location: Santo Domingo, Dominican Republic
+
+                            REQUIREMENTS:
+                            1. Lot Sizing: Every lot MUST be at least 90 sqm (minimum legal requirement)
+                            2. Social Club Area: MUST occupy 20% of total land area
+                            3. Road Configuration: 6 meters width, grid layout
+                            4. Layout Optimization: Maximize number of viable lots (≥90 sqm each)
+
+                            Generate the plan now.
+                  generationConfig:
+                    responseMimeType: application/json
+                    responseSchema:
+                      type: object
+                      properties:
+                        lotLayout:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              lotNumber:
+                                type: integer
+                              dimensions:
+                                type: object
+                                properties:
+                                  widthMeters:
+                                    type: number
+                                  lengthMeters:
+                                    type: number
+                                  areaSqm:
+                                    type: number
+                                required:
+                                  - widthMeters
+                                  - lengthMeters
+                                  - areaSqm
+                              position:
+                                type: object
+                                properties:
+                                  x:
+                                    type: number
+                                  y:
+                                    type: number
+                                required:
+                                  - x
+                                  - y
+                            required:
+                              - lotNumber
+                              - dimensions
+                              - position
+                        roadConfiguration:
+                          type: object
+                          properties:
+                            widthMeters:
+                              type: number
+                            totalAreaSqm:
+                              type: number
+                            layout:
+                              type: string
+                              enum:
+                                - grid
+                                - perimeter
+                                - central-spine
+                                - loop
+                          required:
+                            - widthMeters
+                            - totalAreaSqm
+                            - layout
+                        amenityAreas:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                                enum:
+                                  - social-club
+                                  - parking
+                                  - green-space
+                              areaSqm:
+                                type: number
+                              position:
+                                type: object
+                                properties:
+                                  x:
+                                    type: number
+                                  y:
+                                    type: number
+                        metrics:
+                          type: object
+                          properties:
+                            totalLots:
+                              type: integer
+                            viableLots:
+                              type: integer
+                            invalidLots:
+                              type: array
+                              items:
+                                type: integer
+                              description: Lot numbers that are below 90 sqm minimum
+                            averageLotSizeSqm:
+                              type: number
+                            landUtilizationPercent:
+                              type: number
+                          required:
+                            - totalLots
+                            - viableLots
+                            - averageLotSizeSqm
+                            - landUtilizationPercent
+                      required:
+                        - lotLayout
+                        - roadConfiguration
+                        - amenityAreas
+                        - metrics
+                    temperature: 0.2
+                    maxOutputTokens: 8192
+      responses:
+        '200':
+          description: Successful generation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateContentResponse'
+              examples:
+                subdivisionPlanResponse:
+                  summary: Subdivision plan response
+                  value:
+                    candidates:
+                      - content:
+                          parts:
+                            - text: |
+                                {
+                                  "lotLayout": [
+                                    {
+                                      "lotNumber": 1,
+                                      "dimensions": {
+                                        "widthMeters": 9.0,
+                                        "lengthMeters": 10.0,
+                                        "areaSqm": 90.0
+                                      },
+                                      "position": { "x": 0, "y": 0 }
+                                    },
+                                    {
+                                      "lotNumber": 2,
+                                      "dimensions": {
+                                        "widthMeters": 9.0,
+                                        "lengthMeters": 10.0,
+                                        "areaSqm": 90.0
+                                      },
+                                      "position": { "x": 9, "y": 0 }
+                                    }
+                                  ],
+                                  "roadConfiguration": {
+                                    "widthMeters": 6.0,
+                                    "totalAreaSqm": 450.0,
+                                    "layout": "grid"
+                                  },
+                                  "amenityAreas": [
+                                    {
+                                      "type": "social-club",
+                                      "areaSqm": 1600.0,
+                                      "position": { "x": 40, "y": 30 }
+                                    }
+                                  ],
+                                  "metrics": {
+                                    "totalLots": 21,
+                                    "viableLots": 21,
+                                    "invalidLots": [],
+                                    "averageLotSizeSqm": 92.5,
+                                    "landUtilizationPercent": 85.0
+                                  }
+                                }
+                        finishReason: STOP
+                    usageMetadata:
+                      promptTokenCount: 823
+                      candidatesTokenCount: 1947
+                      totalTokenCount: 2770
+        '400':
+          description: Bad request (invalid parameters or schema)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 400
+                  message: 'Invalid request: responseSchema must be a valid JSON Schema'
+                  status: INVALID_ARGUMENT
+        '401':
+          description: Unauthorized (invalid or missing API key)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 401
+                  message: 'API key not valid. Please pass a valid API key.'
+                  status: UNAUTHENTICATED
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 429
+                  message: 'Resource has been exhausted (e.g. check quota).'
+                  status: RESOURCE_EXHAUSTED
+                  details:
+                    - reason: RATE_LIMIT_EXCEEDED
+                      domain: googleapis.com
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 500
+                  message: 'An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting'
+                  status: INTERNAL
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 503
+                  message: 'The service is currently unavailable.'
+                  status: UNAVAILABLE
+
+components:
+  securitySchemes:
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: x-goog-api-key
+      description: API key in header (preferred method)
+    ApiKeyQuery:
+      type: apiKey
+      in: query
+      name: key
+      description: API key in query parameter (less secure)
+
+  schemas:
+    GenerateContentRequest:
+      type: object
+      required:
+        - contents
+      properties:
+        contents:
+          type: array
+          description: The content to send to the model
+          items:
+            $ref: '#/components/schemas/Content'
+        generationConfig:
+          $ref: '#/components/schemas/GenerationConfig'
+        safetySettings:
+          type: array
+          description: Safety filter settings
+          items:
+            $ref: '#/components/schemas/SafetySetting'
+
+    Content:
+      type: object
+      required:
+        - parts
+      properties:
+        parts:
+          type: array
+          description: Ordered parts that make up the content
+          items:
+            $ref: '#/components/schemas/Part'
+        role:
+          type: string
+          description: Producer of the content (user or model)
+          enum:
+            - user
+            - model
+
+    Part:
+      type: object
+      description: Content part (text, inline data, etc.)
+      properties:
+        text:
+          type: string
+          description: Text content
+        inlineData:
+          type: object
+          description: Inline media data
+          properties:
+            mimeType:
+              type: string
+            data:
+              type: string
+              format: byte
+
+    GenerationConfig:
+      type: object
+      description: Configuration for content generation
+      properties:
+        temperature:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 2.0
+          description: |
+            Controls randomness. Lower values (0.0-0.5) for deterministic output.
+            For subdivision planning, use 0.2 for consistent geometric calculations.
+          default: 1.0
+        topP:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Nucleus sampling parameter
+          default: 0.95
+        topK:
+          type: integer
+          minimum: 1
+          description: Top-k sampling parameter
+        maxOutputTokens:
+          type: integer
+          minimum: 1
+          maximum: 8192
+          description: Maximum tokens in response (subdivision plans ~2000 tokens)
+        responseMimeType:
+          type: string
+          description: Response format
+          enum:
+            - text/plain
+            - application/json
+          default: text/plain
+        responseSchema:
+          type: object
+          description: |
+            JSON Schema defining the structure of the response.
+            Required when responseMimeType is application/json.
+            See https://json-schema.org/draft/2020-12/schema for schema format.
+        stopSequences:
+          type: array
+          items:
+            type: string
+          description: Stop sequences for generation
+
+    SafetySetting:
+      type: object
+      required:
+        - category
+        - threshold
+      properties:
+        category:
+          type: string
+          enum:
+            - HARM_CATEGORY_HATE_SPEECH
+            - HARM_CATEGORY_SEXUALLY_EXPLICIT
+            - HARM_CATEGORY_DANGEROUS_CONTENT
+            - HARM_CATEGORY_HARASSMENT
+        threshold:
+          type: string
+          enum:
+            - BLOCK_NONE
+            - BLOCK_ONLY_HIGH
+            - BLOCK_MEDIUM_AND_ABOVE
+            - BLOCK_LOW_AND_ABOVE
+
+    GenerateContentResponse:
+      type: object
+      properties:
+        candidates:
+          type: array
+          description: Generated content candidates
+          items:
+            $ref: '#/components/schemas/Candidate'
+        usageMetadata:
+          $ref: '#/components/schemas/UsageMetadata'
+        promptFeedback:
+          type: object
+          description: Feedback about the prompt
+
+    Candidate:
+      type: object
+      properties:
+        content:
+          $ref: '#/components/schemas/Content'
+        finishReason:
+          type: string
+          description: Reason generation stopped
+          enum:
+            - STOP
+            - MAX_TOKENS
+            - SAFETY
+            - RECITATION
+            - OTHER
+        safetyRatings:
+          type: array
+          items:
+            type: object
+        citationMetadata:
+          type: object
+        tokenCount:
+          type: integer
+
+    UsageMetadata:
+      type: object
+      description: Token usage statistics
+      properties:
+        promptTokenCount:
+          type: integer
+          description: Tokens in the prompt
+        candidatesTokenCount:
+          type: integer
+          description: Tokens in all generated candidates
+        totalTokenCount:
+          type: integer
+          description: Total tokens (prompt + candidates)
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - status
+          properties:
+            code:
+              type: integer
+              description: HTTP status code
+            message:
+              type: string
+              description: Human-readable error message
+            status:
+              type: string
+              description: gRPC status code
+              enum:
+                - INVALID_ARGUMENT
+                - UNAUTHENTICATED
+                - PERMISSION_DENIED
+                - RESOURCE_EXHAUSTED
+                - INTERNAL
+                - UNAVAILABLE
+            details:
+              type: array
+              description: Additional error details
+              items:
+                type: object
+
+tags:
+  - name: Text Generation
+    description: Generate text content with Gemini models

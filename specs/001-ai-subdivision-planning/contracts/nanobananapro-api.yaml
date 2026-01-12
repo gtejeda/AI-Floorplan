@@ -1,0 +1,494 @@
+openapi: 3.0.3
+info:
+  title: Image Generation API - Architectural Visualization Pattern
+  description: |
+    Generic OpenAPI specification for architectural image generation APIs.
+    This specification documents industry-standard patterns based on DALL-E 3,
+    Stable Diffusion, and Midjourney APIs.
+
+    **Note**: Nano Banana Pro appears to be a placeholder service. This contract
+    documents a generic architectural image API that could be implemented by:
+    - OpenAI DALL-E 3 (https://platform.openai.com/docs/api-reference/images)
+    - Stability AI Stable Diffusion (https://platform.stability.ai/docs/api-reference)
+    - Midjourney API (via third-party wrappers)
+
+    **Authentication**: Bearer token
+    **Generation Pattern**: Async (polling) for images >30 seconds
+  version: 1.0.0
+  contact:
+    name: API Documentation
+    url: https://example.com/docs
+
+servers:
+  - url: https://api.nanobananapro.ai/v1
+    description: Hypothetical production API
+  - url: https://api.openai.com/v1
+    description: DALL-E 3 alternative
+  - url: https://api.stability.ai/v2beta
+    description: Stability AI alternative
+
+security:
+  - BearerAuth: []
+
+paths:
+  /generate:
+    post:
+      summary: Initiate image generation
+      description: |
+        Starts an asynchronous image generation job. Returns a generation ID
+        that can be polled for completion status.
+
+        **Generation Times**:
+        - Site plan view: 20-40 seconds
+        - Aerial view: 30-60 seconds
+        - Context view: 40-90 seconds
+      operationId: initiateGeneration
+      tags:
+        - Image Generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageGenerationRequest'
+            examples:
+              sitePlanRequest:
+                summary: Site plan generation request
+                value:
+                  prompt: |
+                    Professional architectural site plan, top-down 2D view.
+                    100m × 80m rectangular plot. 21 micro-villa lots (9m × 10m each)
+                    arranged in organized grid. Central social club building (40m × 40m)
+                    with pool and amenities. Grid road pattern, 6-meter width.
+                    Clean line work, measured dimensions labeled, property boundaries marked.
+                    Green landscaping between lots. Parking areas indicated.
+                    Professional CAD-style drawing. Black lines on white background.
+                    Scale bar included. North arrow. High detail, architectural precision.
+                  negativePrompt: '3D, perspective, people, cars, shadows, photorealistic, blurry'
+                  model: architectural-v1
+                  resolution: '1792x1024'
+                  outputFormat: png
+                  guidanceScale: 12
+                  steps: 30
+                  metadata:
+                    projectId: proj-123
+                    viewType: site-plan
+                    landDimensions: 100m x 80m
+              aerialRequest:
+                summary: Aerial view request
+                value:
+                  prompt: |
+                    Aerial view photograph, 45-degree angle, Santo Domingo, Dominican Republic.
+                    100m × 80m rectangular plot. 21 micro-villa lots with small modern houses.
+                    Central social club (40m × 40m) with blue swimming pool visible.
+                    Grid roads with light gray paving. Green grass and tropical landscaping.
+                    Surrounded by residential area. Clear sky, daytime, drone photography style.
+                    Photorealistic, high resolution.
+                  negativePrompt: 'night, rain, people, vehicles, blurry, low quality'
+                  model: aerial-v1
+                  resolution: '1024x1024'
+                  outputFormat: png
+                  guidanceScale: 10
+                  steps: 40
+                  metadata:
+                    projectId: proj-123
+                    viewType: aerial
+                    landDimensions: 100m x 80m
+      responses:
+        '202':
+          description: Generation initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationInitResponse'
+              example:
+                generationId: gen_abc123xyz
+                status: queued
+                estimatedTimeSeconds: 35
+                pollUrl: https://api.nanobananapro.ai/v1/status/gen_abc123xyz
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: INVALID_REQUEST
+                  message: 'Prompt exceeds maximum length of 4000 characters'
+        '401':
+          description: Unauthorized (invalid API key)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: UNAUTHORIZED
+                  message: 'Invalid or missing API key'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: RATE_LIMIT_EXCEEDED
+                  message: 'Too many requests. Please wait 60 seconds before retrying.'
+                  retryAfter: 60
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: SERVICE_UNAVAILABLE
+                  message: 'Image generation service is temporarily down. Please try again later.'
+
+  /status/{generationId}:
+    get:
+      summary: Poll generation status
+      description: |
+        Checks the status of an ongoing image generation job.
+
+        **Polling Strategy**:
+        - Poll every 2 seconds initially
+        - Use exponential backoff up to 10 seconds max
+        - Stop polling after 20 attempts (timeout)
+      operationId: getGenerationStatus
+      tags:
+        - Image Generation
+      parameters:
+        - name: generationId
+          in: path
+          required: true
+          description: Generation ID from initiate response
+          schema:
+            type: string
+          example: gen_abc123xyz
+      responses:
+        '200':
+          description: Status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationStatusResponse'
+              examples:
+                queued:
+                  summary: Generation queued
+                  value:
+                    generationId: gen_abc123xyz
+                    status: queued
+                    progress: 0
+                processing:
+                  summary: Generation in progress
+                  value:
+                    generationId: gen_abc123xyz
+                    status: processing
+                    progress: 45
+                completed:
+                  summary: Generation completed
+                  value:
+                    generationId: gen_abc123xyz
+                    status: completed
+                    progress: 100
+                    imageUrl: https://cdn.nanobananapro.ai/images/gen_abc123xyz.png
+                    metadata:
+                      seed: 42
+                      timeTaken: 38
+                      modelVersion: architectural-v1.2
+                failed:
+                  summary: Generation failed
+                  value:
+                    generationId: gen_abc123xyz
+                    status: failed
+                    progress: 0
+                    error:
+                      code: GENERATION_ERROR
+                      message: 'Failed to generate image due to content policy violation'
+        '404':
+          description: Generation ID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: NOT_FOUND
+                  message: 'Generation ID not found or expired'
+
+  /download/{generationId}:
+    get:
+      summary: Download generated image
+      description: |
+        Downloads the generated image file. Available only after status is 'completed'.
+
+        **Image Expiration**: Generated images expire after 24 hours. Download immediately.
+      operationId: downloadImage
+      tags:
+        - Image Generation
+      parameters:
+        - name: generationId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: gen_abc123xyz
+      responses:
+        '200':
+          description: Image file
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Image not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token for API authentication
+
+  schemas:
+    ImageGenerationRequest:
+      type: object
+      required:
+        - prompt
+        - model
+        - resolution
+        - outputFormat
+      properties:
+        prompt:
+          type: string
+          maxLength: 4000
+          description: |
+            Text description of the image to generate.
+            For best results:
+            - Be specific about architectural style
+            - Include dimensions and layout details
+            - Specify view angle and perspective
+            - Mention location for context (e.g., "Dominican Republic")
+          example: |
+            Professional architectural site plan, top-down 2D view.
+            100m × 80m plot with 21 micro-villa lots arranged in grid.
+        negativePrompt:
+          type: string
+          maxLength: 2000
+          description: |
+            Things to avoid in the generated image.
+            Helps refine output by excluding unwanted elements.
+          example: '3D, perspective, people, cars, blurry, low quality'
+        model:
+          type: string
+          enum:
+            - architectural-v1
+            - site-plan-v1
+            - aerial-v1
+            - photorealistic-v1
+          description: |
+            Model specialized for different view types:
+            - architectural-v1: Technical drawings, site plans
+            - site-plan-v1: Optimized for top-down layouts
+            - aerial-v1: Drone-style aerial photography
+            - photorealistic-v1: Realistic 3D renders
+          example: site-plan-v1
+        resolution:
+          type: string
+          enum:
+            - '1024x1024'
+            - '1792x1024'
+            - '1024x1792'
+          description: Output image resolution
+          example: '1792x1024'
+        outputFormat:
+          type: string
+          enum:
+            - png
+            - jpeg
+            - webp
+          default: png
+          description: Image file format
+        seed:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+          description: |
+            Random seed for reproducible results.
+            Same prompt + same seed = similar output.
+          example: 42
+        guidanceScale:
+          type: number
+          format: float
+          minimum: 1.0
+          maximum: 20.0
+          default: 7.5
+          description: |
+            How closely to follow the prompt (CFG scale).
+            - 7-10: Balanced (recommended)
+            - 10-15: Strict adherence to prompt
+            - 15-20: Very strict (may reduce quality)
+          example: 12
+        steps:
+          type: integer
+          minimum: 10
+          maximum: 100
+          default: 30
+          description: |
+            Number of diffusion steps (affects quality and time).
+            - 20-30: Good quality, faster
+            - 30-50: High quality, slower
+            - 50+: Diminishing returns
+          example: 30
+        metadata:
+          type: object
+          description: Optional metadata to attach to generation
+          properties:
+            projectId:
+              type: string
+            viewType:
+              type: string
+              enum:
+                - site-plan
+                - aerial
+                - context
+            landDimensions:
+              type: string
+
+    GenerationInitResponse:
+      type: object
+      required:
+        - generationId
+        - status
+        - estimatedTimeSeconds
+        - pollUrl
+      properties:
+        generationId:
+          type: string
+          description: Unique identifier for this generation job
+          example: gen_abc123xyz
+        status:
+          type: string
+          enum:
+            - queued
+            - processing
+          description: Initial status (usually 'queued')
+          example: queued
+        estimatedTimeSeconds:
+          type: integer
+          description: Estimated time to completion (seconds)
+          example: 35
+        pollUrl:
+          type: string
+          format: uri
+          description: URL to poll for status updates
+          example: https://api.nanobananapro.ai/v1/status/gen_abc123xyz
+
+    GenerationStatusResponse:
+      type: object
+      required:
+        - generationId
+        - status
+      properties:
+        generationId:
+          type: string
+          example: gen_abc123xyz
+        status:
+          type: string
+          enum:
+            - queued
+            - processing
+            - completed
+            - failed
+          description: Current generation status
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Generation progress percentage
+        imageUrl:
+          type: string
+          format: uri
+          description: |
+            Temporary URL to download the image (expires in 24 hours).
+            Only present when status is 'completed'.
+          example: https://cdn.nanobananapro.ai/images/gen_abc123xyz.png
+        imageBase64:
+          type: string
+          description: |
+            Base64-encoded image data (alternative to imageUrl).
+            Useful for immediate embedding without separate download.
+        error:
+          type: object
+          description: Error details if status is 'failed'
+          properties:
+            code:
+              type: string
+              example: GENERATION_ERROR
+            message:
+              type: string
+              example: Failed to generate image due to content policy violation
+        metadata:
+          type: object
+          description: Generation metadata (only on completion)
+          properties:
+            seed:
+              type: integer
+              description: Actual seed used (if not provided in request)
+            timeTaken:
+              type: integer
+              description: Actual generation time in seconds
+            modelVersion:
+              type: string
+              description: Specific model version used
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              enum:
+                - INVALID_REQUEST
+                - UNAUTHORIZED
+                - RATE_LIMIT_EXCEEDED
+                - SERVICE_UNAVAILABLE
+                - NOT_FOUND
+                - GENERATION_ERROR
+                - CONTENT_POLICY_VIOLATION
+            message:
+              type: string
+              description: Human-readable error message
+            retryAfter:
+              type: integer
+              description: Seconds to wait before retrying (for rate limits)
+
+tags:
+  - name: Image Generation
+    description: Generate architectural visualization images

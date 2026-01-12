@@ -52,3 +52,13 @@ tmpclaude-*
 
 # Local settings
 .claude/settings.local.json
+
+# AI-generated content
+/project-data/*/images/ai-generated/
+/temp-ai-images/
+*.ai-temp.png
+*.ai-temp.jpg
+
+# Build artifacts
+/.forge/
+/package-lock.json

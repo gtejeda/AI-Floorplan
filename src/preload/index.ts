@@ -4,6 +4,29 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
+import type {
+  GenerateSubdivisionPlanRequest,
+  GenerateSubdivisionPlanResponse,
+  GenerateSitePlanImageRequest,
+  GenerateSitePlanImageResponse,
+  ApprovePlanRequest,
+  ApprovePlanResponse,
+  RejectPlanRequest,
+  RejectPlanResponse,
+  GetGenerationHistoryRequest,
+  GetGenerationHistoryResponse,
+  GetSessionCostRequest,
+  GetSessionCostResponse,
+  GetAISettingsRequest,
+  GetAISettingsResponse,
+  UpdateAISettingsRequest,
+  UpdateAISettingsResponse,
+  SetAPIKeyRequest,
+  SetAPIKeyResponse,
+  TestAPIKeyRequest,
+  TestAPIKeyResponse,
+  AIGenerationProgressEvent
+} from '../shared/ai-contracts';
 
 /**
  * Electron API exposed to renderer process
@@ -93,6 +116,63 @@ const electronAPI = {
   }
 };
 
+/**
+ * AI Service API exposed to renderer process
+ * Provides type-safe access to AI subdivision planning features
+ */
+const aiServiceAPI = {
+  // Subdivision plan generation
+  generateSubdivisionPlan: (request: GenerateSubdivisionPlanRequest): Promise<GenerateSubdivisionPlanResponse> =>
+    ipcRenderer.invoke('ai:generate-subdivision-plan', request),
+
+  // Image generation
+  generateSitePlanImage: (request: GenerateSitePlanImageRequest): Promise<GenerateSitePlanImageResponse> =>
+    ipcRenderer.invoke('ai:generate-site-plan-image', request),
+
+  // Plan management
+  approvePlan: (request: ApprovePlanRequest): Promise<ApprovePlanResponse> =>
+    ipcRenderer.invoke('ai:approve-plan', request),
+
+  rejectPlan: (request: RejectPlanRequest): Promise<RejectPlanResponse> =>
+    ipcRenderer.invoke('ai:reject-plan', request),
+
+  // History and tracking
+  getGenerationHistory: (request: GetGenerationHistoryRequest): Promise<GetGenerationHistoryResponse> =>
+    ipcRenderer.invoke('ai:get-generation-history', request),
+
+  getSessionCost: (request: GetSessionCostRequest): Promise<GetSessionCostResponse> =>
+    ipcRenderer.invoke('ai:get-session-cost', request),
+
+  // Settings
+  getSettings: (request: GetAISettingsRequest): Promise<GetAISettingsResponse> =>
+    ipcRenderer.invoke('ai:get-settings', request),
+
+  updateSettings: (request: UpdateAISettingsRequest): Promise<UpdateAISettingsResponse> =>
+    ipcRenderer.invoke('ai:update-settings', request),
+
+  // API key management
+  setAPIKey: (request: SetAPIKeyRequest): Promise<SetAPIKeyResponse> =>
+    ipcRenderer.invoke('ai:set-api-key', request),
+
+  testAPIKey: (request: TestAPIKeyRequest): Promise<TestAPIKeyResponse> =>
+    ipcRenderer.invoke('ai:test-api-key', request),
+
+  // Event listeners (for progress updates)
+  onGenerationProgress: (callback: (event: AIGenerationProgressEvent) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: AIGenerationProgressEvent) => {
+      callback(data);
+    };
+    ipcRenderer.on('ai:generation-progress', listener);
+
+    // Return unsubscribe function
+    return () => {
+      ipcRenderer.removeListener('ai:generation-progress', listener);
+    };
+  }
+};
+
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
+contextBridge.exposeInMainWorld('aiService', aiServiceAPI);
 
 export type ElectronAPI = typeof electronAPI;
+export type AIServiceAPI = typeof aiServiceAPI;

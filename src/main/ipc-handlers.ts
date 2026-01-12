@@ -3,9 +3,32 @@
  * Registers all IPC communication handlers between main and renderer processes
  */
 
-import { ipcMain, dialog } from 'electron';
+import { ipcMain, dialog, BrowserWindow } from 'electron';
 import { getDatabase } from './storage';
 import { logger } from './logger';
+import { validateIPCRequest } from '../shared/ai-contracts';
+import type {
+  GenerateSubdivisionPlanRequest,
+  GenerateSubdivisionPlanRequestSchema,
+  GenerateSitePlanImageRequest,
+  GenerateSitePlanImageRequestSchema,
+  ApprovePlanRequest,
+  ApprovePlanRequestSchema,
+  RejectPlanRequest,
+  RejectPlanRequestSchema,
+  GetGenerationHistoryRequest,
+  GetGenerationHistoryRequestSchema,
+  GetSessionCostRequest,
+  GetSessionCostRequestSchema,
+  GetAISettingsRequest,
+  GetAISettingsRequestSchema,
+  UpdateAISettingsRequest,
+  UpdateAISettingsRequestSchema,
+  SetAPIKeyRequest,
+  SetAPIKeyRequestSchema,
+  TestAPIKeyRequest,
+  TestAPIKeyRequestSchema
+} from '../shared/ai-contracts';
 
 // Global flag to track if handlers have been registered (for hot reload)
 declare global {
@@ -26,7 +49,12 @@ function removeAllHandlers() {
     'file:saveImage', 'file:getImagePath',
     'export:project', 'import:project',
     'telemetry:isEnabled', 'telemetry:enable', 'telemetry:disable',
-    'telemetry:getStatistics', 'telemetry:getRecentEvents', 'telemetry:clearData', 'telemetry:trackEvent'
+    'telemetry:getStatistics', 'telemetry:getRecentEvents', 'telemetry:clearData', 'telemetry:trackEvent',
+    // AI subdivision planning channels
+    'ai:generate-subdivision-plan', 'ai:generate-site-plan-image',
+    'ai:approve-plan', 'ai:reject-plan', 'ai:get-generation-history',
+    'ai:get-session-cost', 'ai:get-settings', 'ai:update-settings',
+    'ai:set-api-key', 'ai:test-api-key'
   ];
 
   channels.forEach(channel => {
@@ -3436,6 +3464,423 @@ ipcMain.handle('telemetry:trackEvent', async (event, eventType: string, eventNam
   const { telemetry } = await import('./telemetry');
   telemetry.trackEvent(eventType as any, eventName, data);
   return { success: true };
+});
+
+// ============================================================================
+// AI SUBDIVISION PLANNING HANDLERS
+// ============================================================================
+
+/**
+ * Generate AI subdivision plan
+ * Channel: 'ai:generate-subdivision-plan'
+ */
+ipcMain.handle('ai:generate-subdivision-plan', async (event, request: GenerateSubdivisionPlanRequest) => {
+  console.log('[IPC] ai:generate-subdivision-plan called', { projectId: request.projectId });
+
+  try {
+    // Validate request
+    const validatedRequest = validateIPCRequest(request, GenerateSubdivisionPlanRequestSchema);
+
+    // Import AI services dynamically
+    const { generateSubdivisionPlan } = await import('./ai-services/gemini-client');
+    const { createAISubdivisionPlan } = await import('./storage');
+
+    // Generate plan using Gemini
+    const startTime = Date.now();
+    const result = await generateSubdivisionPlan({
+      landWidth: validatedRequest.landWidth,
+      landLength: validatedRequest.landLength,
+      landArea: validatedRequest.landArea,
+      socialClubPercent: validatedRequest.socialClubPercent,
+      targetLotCount: validatedRequest.targetLotCount,
+      province: validatedRequest.province
+    });
+
+    // Validate the generated plan (basic validation)
+    const isValid = result.plan.metrics.viableLots > 0;
+    const validationStatus = isValid ? 'valid' : 'invalid';
+    const validationErrors = isValid ? [] : ['No viable lots generated (all below 90 sqm minimum)'];
+
+    // Save to database
+    const planId = await createAISubdivisionPlan({
+      projectId: validatedRequest.projectId,
+      landParcelId: validatedRequest.landParcelId,
+      inputLandWidth: validatedRequest.landWidth,
+      inputLandLength: validatedRequest.landLength,
+      inputLandArea: validatedRequest.landArea,
+      inputSocialClubPercent: validatedRequest.socialClubPercent,
+      inputTargetLotCount: validatedRequest.targetLotCount,
+      planJson: JSON.stringify(result.plan),
+      validationStatus,
+      validationErrors: validationErrors.length > 0 ? JSON.stringify(validationErrors) : undefined,
+      aiModel: 'gemini-2.5-flash',
+      promptTokens: Math.floor(result.tokensUsed * 0.7),
+      completionTokens: Math.floor(result.tokensUsed * 0.3),
+      totalTokens: result.tokensUsed,
+      generationTimeMs: result.generationTimeMs
+    });
+
+    return {
+      planId,
+      status: 'completed' as const,
+      plan: result.plan,
+      validationStatus,
+      validationErrors: validationErrors.length > 0 ? validationErrors : undefined,
+      tokensUsed: result.tokensUsed,
+      generationTimeMs: result.generationTimeMs
+    };
+
+  } catch (error: any) {
+    console.error('[IPC] Error generating subdivision plan:', error);
+
+    // Create failed request record
+    const planId = crypto.randomUUID();
+    return {
+      planId,
+      status: 'failed' as const,
+      errorMessage: error.message || 'Failed to generate subdivision plan'
+    };
+  }
+});
+
+/**
+ * Generate site plan image
+ * Channel: 'ai:generate-site-plan-image'
+ */
+ipcMain.handle('ai:generate-site-plan-image', async (event, request: GenerateSitePlanImageRequest) => {
+  console.log('[IPC] ai:generate-site-plan-image called', {
+    projectId: request.projectId,
+    viewType: request.viewType
+  });
+
+  try {
+    // Validate request
+    const validatedRequest = validateIPCRequest(request, GenerateSitePlanImageRequestSchema);
+
+    // Import services
+    const { generateProjectImage } = await import('./ai-services/image-client');
+    const { getAISubdivisionPlanById, createProjectVisualization } = await import('./storage');
+
+    // Get the approved subdivision plan
+    const plan = await getAISubdivisionPlanById(validatedRequest.subdivisionPlanId);
+    if (!plan || !plan.approvedByUser) {
+      throw new Error('Subdivision plan must be approved before generating images');
+    }
+
+    const subdivisionPlan = JSON.parse(plan.planJson);
+
+    // Determine output directory (project-specific)
+    const outputDir = `D:\\fast2ai\\AI-Floorplan\\project-data\\${validatedRequest.projectId}\\images\\ai-generated`;
+
+    // Generate image
+    const result = await generateProjectImage({
+      projectName: validatedRequest.projectId,
+      subdivisionPlan,
+      viewType: validatedRequest.viewType,
+      resolution: validatedRequest.resolution || '1024x1024',
+      customPromptAdditions: validatedRequest.customPromptAdditions,
+      landDimensions: {
+        width: plan.inputLandWidth,
+        length: plan.inputLandLength
+      },
+      province: 'Dominican Republic',
+      nearbyLandmarks: []
+    }, outputDir);
+
+    // Save to database
+    const visualizationId = await createProjectVisualization({
+      projectId: validatedRequest.projectId,
+      aiSubdivisionPlanId: validatedRequest.subdivisionPlanId,
+      viewType: validatedRequest.viewType,
+      filename: result.filename,
+      format: result.format,
+      sizeBytes: require('fs').statSync(result.localPath).size,
+      widthPixels: result.widthPixels,
+      heightPixels: result.heightPixels,
+      localPath: result.localPath,
+      aiModel: result.aiModel,
+      promptText: result.promptText
+    });
+
+    return {
+      visualizationId,
+      status: 'completed' as const,
+      localPath: result.localPath,
+      filename: result.filename,
+      format: result.format,
+      widthPixels: result.widthPixels,
+      heightPixels: result.heightPixels,
+      generationTimeMs: result.generationTimeMs
+    };
+
+  } catch (error: any) {
+    console.error('[IPC] Error generating image:', error);
+
+    const visualizationId = crypto.randomUUID();
+    return {
+      visualizationId,
+      status: 'failed' as const,
+      errorMessage: error.message || 'Failed to generate image'
+    };
+  }
+});
+
+/**
+ * Approve subdivision plan
+ * Channel: 'ai:approve-plan'
+ */
+ipcMain.handle('ai:approve-plan', async (event, request: ApprovePlanRequest) => {
+  console.log('[IPC] ai:approve-plan called', { planId: request.planId });
+
+  try {
+    const validatedRequest = validateIPCRequest(request, ApprovePlanRequestSchema);
+    const { approveAISubdivisionPlan } = await import('./storage');
+
+    await approveAISubdivisionPlan(validatedRequest.planId);
+    const approvedAt = new Date().toISOString();
+
+    return {
+      success: true,
+      planId: validatedRequest.planId,
+      approvedAt
+    };
+
+  } catch (error: any) {
+    console.error('[IPC] Error approving plan:', error);
+    return {
+      success: false,
+      planId: request.planId,
+      errorMessage: error.message || 'Failed to approve plan'
+    };
+  }
+});
+
+/**
+ * Reject subdivision plan
+ * Channel: 'ai:reject-plan'
+ */
+ipcMain.handle('ai:reject-plan', async (event, request: RejectPlanRequest) => {
+  console.log('[IPC] ai:reject-plan called', { planId: request.planId });
+
+  try {
+    const validatedRequest = validateIPCRequest(request, RejectPlanRequestSchema);
+    const { rejectAISubdivisionPlan } = await import('./storage');
+
+    await rejectAISubdivisionPlan(validatedRequest.planId, validatedRequest.reason);
+
+    return {
+      success: true,
+      planId: validatedRequest.planId
+    };
+
+  } catch (error: any) {
+    console.error('[IPC] Error rejecting plan:', error);
+    return {
+      success: false,
+      planId: request.planId,
+      errorMessage: error.message || 'Failed to reject plan'
+    };
+  }
+});
+
+/**
+ * Get generation history
+ * Channel: 'ai:get-generation-history'
+ */
+ipcMain.handle('ai:get-generation-history', async (event, request: GetGenerationHistoryRequest) => {
+  console.log('[IPC] ai:get-generation-history called', { projectId: request.projectId });
+
+  try {
+    const validatedRequest = validateIPCRequest(request, GetGenerationHistoryRequestSchema);
+    const { getAISubdivisionPlansByProject } = await import('./storage');
+
+    const plans = await getAISubdivisionPlansByProject(
+      validatedRequest.projectId,
+      validatedRequest.limit,
+      validatedRequest.offset,
+      validatedRequest.includeRejected
+    );
+
+    return {
+      plans: plans.map(plan => ({
+        id: plan.id,
+        generatedAt: plan.generatedAt,
+        generationStatus: plan.generationStatus,
+        validationStatus: plan.validationStatus,
+        approvedByUser: plan.approvedByUser,
+        viableLots: JSON.parse(plan.planJson).metrics.viableLots,
+        totalLots: JSON.parse(plan.planJson).metrics.totalLots,
+        landUtilizationPercent: JSON.parse(plan.planJson).metrics.landUtilizationPercent
+      })),
+      total: plans.length
+    };
+
+  } catch (error: any) {
+    console.error('[IPC] Error getting generation history:', error);
+    return {
+      plans: [],
+      total: 0
+    };
+  }
+});
+
+/**
+ * Get session cost
+ * Channel: 'ai:get-session-cost'
+ */
+ipcMain.handle('ai:get-session-cost', async (event, request: GetSessionCostRequest) => {
+  console.log('[IPC] ai:get-session-cost called', { projectId: request.projectId });
+
+  try {
+    const validatedRequest = validateIPCRequest(request, GetSessionCostRequestSchema);
+    const { getSessionCost } = await import('./storage');
+
+    const cost = await getSessionCost(validatedRequest.projectId);
+
+    return cost;
+
+  } catch (error: any) {
+    console.error('[IPC] Error getting session cost:', error);
+    return {
+      sessionStartDate: new Date().toISOString(),
+      geminiCalls: 0,
+      imageCalls: 0,
+      totalTokensUsed: 0,
+      estimatedCostUsd: 0
+    };
+  }
+});
+
+/**
+ * Get AI settings
+ * Channel: 'ai:get-settings'
+ */
+ipcMain.handle('ai:get-settings', async (event, request: GetAISettingsRequest) => {
+  console.log('[IPC] ai:get-settings called', { projectId: request.projectId });
+
+  try {
+    const validatedRequest = validateIPCRequest(request, GetAISettingsRequestSchema);
+    const { getAISettings } = await import('./storage');
+
+    const settings = await getAISettings(validatedRequest.projectId);
+
+    return { settings };
+
+  } catch (error: any) {
+    console.error('[IPC] Error getting AI settings:', error);
+    throw error;
+  }
+});
+
+/**
+ * Update AI settings
+ * Channel: 'ai:update-settings'
+ */
+ipcMain.handle('ai:update-settings', async (event, request: UpdateAISettingsRequest) => {
+  console.log('[IPC] ai:update-settings called', { projectId: request.projectId });
+
+  try {
+    const validatedRequest = validateIPCRequest(request, UpdateAISettingsRequestSchema);
+    const { updateAISettings } = await import('./storage');
+
+    const settings = await updateAISettings(validatedRequest.projectId, validatedRequest.settings);
+
+    return {
+      success: true,
+      settings
+    };
+
+  } catch (error: any) {
+    console.error('[IPC] Error updating AI settings:', error);
+    return {
+      success: false,
+      errorMessage: error.message || 'Failed to update settings'
+    };
+  }
+});
+
+/**
+ * Set API key
+ * Channel: 'ai:set-api-key'
+ */
+ipcMain.handle('ai:set-api-key', async (event, request: SetAPIKeyRequest) => {
+  console.log('[IPC] ai:set-api-key called', { service: request.service });
+
+  try {
+    const validatedRequest = validateIPCRequest(request, SetAPIKeyRequestSchema);
+    const { encryptString } = await import('./utils/crypto');
+
+    // Encrypt the API key
+    const encryptedKey = encryptString(validatedRequest.apiKey);
+
+    // Store in AI settings
+    const { updateAISettings } = await import('./storage');
+    const field = validatedRequest.service === 'gemini' ? 'geminiApiKeyEncrypted' : 'imageApiKeyEncrypted';
+
+    await updateAISettings(undefined, { [field]: encryptedKey });
+
+    return {
+      success: true
+    };
+
+  } catch (error: any) {
+    console.error('[IPC] Error setting API key:', error);
+    return {
+      success: false,
+      errorMessage: error.message || 'Failed to set API key'
+    };
+  }
+});
+
+/**
+ * Test API key
+ * Channel: 'ai:test-api-key'
+ */
+ipcMain.handle('ai:test-api-key', async (event, request: TestAPIKeyRequest) => {
+  console.log('[IPC] ai:test-api-key called', { service: request.service });
+
+  try {
+    const validatedRequest = validateIPCRequest(request, TestAPIKeyRequestSchema);
+
+    if (validatedRequest.service === 'gemini') {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const apiKey = process.env.GEMINI_API_KEY;
+
+      if (!apiKey) {
+        return { valid: false, errorMessage: 'API key not configured' };
+      }
+
+      // Test with a simple request
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      await model.generateContent('Test');
+
+      return { valid: true };
+
+    } else {
+      // Test image API key
+      const apiKey = process.env.OPENAI_API_KEY || process.env.IMAGE_API_KEY;
+
+      if (!apiKey) {
+        return { valid: false, errorMessage: 'API key not configured' };
+      }
+
+      // Simple validation - just check if it's formatted correctly
+      const isValid = apiKey.startsWith('sk-') && apiKey.length >= 48;
+
+      return {
+        valid: isValid,
+        errorMessage: isValid ? undefined : 'Invalid API key format'
+      };
+    }
+
+  } catch (error: any) {
+    console.error('[IPC] Error testing API key:', error);
+    return {
+      valid: false,
+      errorMessage: error.message || 'API key test failed'
+    };
+  }
 });
 
 logger.info('IPC handlers registered successfully');
