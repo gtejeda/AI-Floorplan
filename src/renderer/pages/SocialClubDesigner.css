@@ -1,0 +1,89 @@
+/**
+ * SocialClubDesigner Page Styles
+ */
+
+.social-club-designer {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.page-header {
+  background-color: white;
+  padding: 30px;
+  border-bottom: 2px solid #e0e0e0;
+  text-align: center;
+}
+
+.page-header h1 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 32px;
+}
+
+.page-header .subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 16px;
+}
+
+/* Not Ready State */
+.not-ready {
+  padding: 40px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.not-ready h2 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.message {
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  border: 2px solid #ffc107;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.message p {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.message ol {
+  margin: 20px 0;
+  padding-left: 20px;
+  color: #555;
+  font-size: 16px;
+}
+
+.message li {
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .page-header {
+    padding: 20px;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+  }
+
+  .page-header .subtitle {
+    font-size: 14px;
+  }
+
+  .not-ready {
+    padding: 20px;
+  }
+
+  .message {
+    padding: 20px;
+  }
+}

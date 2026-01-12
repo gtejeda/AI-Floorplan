@@ -8,28 +8,37 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
 # production
 /build
+/dist
+/out
+
+# Electron-specific
+*.db
+*.db-shm
+*.db-wal
+.electron-builder.yml
 
 # misc
 .DS_Store
 *.pem
+Thumbs.db
+*.tmp
+*.swp
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # local env files
 .env*.local
-.env
+.env*
 
-# vercel
-.vercel
+# IDE
+.vscode/
+.idea/
 
 # typescript
 *.tsbuildinfo

@@ -55,23 +55,23 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T016 Create SQLite database schema in src/main/db-schema.sql with all tables from data-model.md
-- [ ] T017 Implement database initialization in src/main/storage.ts with schema migration on first launch
-- [ ] T018 [P] Create Money interface and validation in src/renderer/models/Money.ts
-- [ ] T019 [P] Create DominicanRepublicProvince type in src/renderer/models/Province.ts with all 32 provinces
-- [ ] T020 [P] Create Landmark interface in src/renderer/models/Landmark.ts
-- [ ] T021 Implement unit conversion utilities in src/renderer/utils/unit-converter.ts (sqm ↔ sqft with exact factors)
-- [ ] T022 [P] Implement currency conversion utilities in src/renderer/utils/currency-converter.ts (DOP ↔ USD)
-- [ ] T023 Create Electron main process entry point in src/main/index.ts with BrowserWindow configuration
-- [ ] T024 Create preload script skeleton in src/preload/index.ts with contextBridge.exposeInMainWorld setup
-- [ ] T025 [P] Create main IPC handlers file in src/main/ipc-handlers.ts with handler registration structure
-- [ ] T026 Create amenities catalog JSON in public/assets/amenities-catalog.json with default costs per data-model.md
-- [ ] T027 [P] Setup electron-store for application settings in src/main/settings-store.ts
-- [ ] T028 Create main renderer HTML entry point in src/index.html
-- [ ] T029 [P] Create main React/Vue app component in src/renderer/App.tsx (or .vue)
-- [ ] T030 [P] Setup React Router or Vue Router for multi-page navigation in src/renderer/router.tsx
-- [ ] T031 Implement error handling middleware in src/main/error-handler.ts for IPC failures
-- [ ] T032 [P] Implement logging infrastructure in src/main/logger.ts and src/renderer/logger.ts
+- [X] T016 Create SQLite database schema in src/main/db-schema.sql with all tables from data-model.md
+- [X] T017 Implement database initialization in src/main/storage.ts with schema migration on first launch
+- [X] T018 [P] Create Money interface and validation in src/renderer/models/Money.ts
+- [X] T019 [P] Create DominicanRepublicProvince type in src/renderer/models/Province.ts with all 32 provinces
+- [X] T020 [P] Create Landmark interface in src/renderer/models/Landmark.ts
+- [X] T021 Implement unit conversion utilities in src/renderer/utils/unit-converter.ts (sqm ↔ sqft with exact factors)
+- [X] T022 [P] Implement currency conversion utilities in src/renderer/utils/currency-converter.ts (DOP ↔ USD)
+- [X] T023 Create Electron main process entry point in src/main/index.ts with BrowserWindow configuration
+- [X] T024 Create preload script skeleton in src/preload/index.ts with contextBridge.exposeInMainWorld setup
+- [X] T025 [P] Create main IPC handlers file in src/main/ipc-handlers.ts with handler registration structure
+- [X] T026 Create amenities catalog JSON in public/assets/amenities-catalog.json with default costs per data-model.md
+- [X] T027 [P] Setup electron-store for application settings in src/main/settings-store.ts
+- [X] T028 Create main renderer HTML entry point in src/index.html
+- [X] T029 [P] Create main React/Vue app component in src/renderer/App.tsx (or .vue)
+- [X] T030 [P] Setup React Router or Vue Router for multi-page navigation in src/renderer/router.tsx
+- [X] T031 Implement error handling middleware in src/main/error-handler.ts for IPC failures
+- [X] T032 [P] Implement logging infrastructure in src/main/logger.ts and src/renderer/logger.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -85,25 +85,25 @@
 
 ### Implementation for User Story 1
 
-- [ ] T033 [P] [US1] Create LandParcel TypeScript interface in src/renderer/models/LandParcel.ts per data-model.md
-- [ ] T034 [P] [US1] Create Project TypeScript interface in src/renderer/models/Project.ts
-- [ ] T035 [P] [US1] Create Zod validation schema for LandParcelInput in src/renderer/models/LandParcel.ts
-- [ ] T036 [P] [US1] Create Zod validation schema for CreateProjectInput in src/renderer/models/Project.ts
-- [ ] T037 [US1] Implement IPC handler for 'project:create' in src/main/ipc-handlers.ts with SQLite INSERT
-- [ ] T038 [US1] Implement IPC handler for 'land:save' in src/main/ipc-handlers.ts with validation and SQLite INSERT
-- [ ] T039 [US1] Implement IPC handler for 'land:update' in src/main/ipc-handlers.ts with SQLite UPDATE
-- [ ] T040 [P] [US1] Expose 'createProject', 'saveLandParcel', 'updateLandParcel' in src/preload/index.ts contextBridge
-- [ ] T041 [P] [US1] Create LandConfig UI component in src/renderer/components/LandConfig/LandConfig.tsx with form inputs
-- [ ] T042 [US1] Add land dimensions inputs (length/width OR total area) with unit selector (sqm/sqft) to LandConfig component
-- [ ] T043 [US1] Add province dropdown with all 32 Dominican Republic provinces to LandConfig component
-- [ ] T044 [US1] Add acquisition cost input with currency selector (DOP/USD) to LandConfig component
-- [ ] T045 [US1] Add optional target number of Micro-Villas input field to LandConfig component per FR-007
-- [ ] T046 [US1] Add urbanization status checkbox and landmarks list (add/remove) to LandConfig component
-- [ ] T047 [US1] Implement auto-save on change in LandConfig component calling window.electronAPI.saveLandParcel per FR-026
-- [ ] T048 [US1] Add visual auto-save indicator to LandConfig component per FR-029
-- [ ] T049 [P] [US1] Create ProjectSetup page in src/renderer/pages/ProjectSetup.tsx integrating LandConfig component
-- [ ] T050 [US1] Implement project load on app launch in src/renderer/App.tsx calling window.electronAPI.loadProject
-- [ ] T051 [US1] Add validation feedback for land dimensions (must be > 0) and acquisition cost (must be ≥ 0) in LandConfig component
+- [X] T033 [P] [US1] Create LandParcel TypeScript interface in src/renderer/models/LandParcel.ts per data-model.md
+- [X] T034 [P] [US1] Create Project TypeScript interface in src/renderer/models/Project.ts
+- [X] T035 [P] [US1] Create Zod validation schema for LandParcelInput in src/renderer/models/LandParcel.ts
+- [X] T036 [P] [US1] Create Zod validation schema for CreateProjectInput in src/renderer/models/Project.ts
+- [X] T037 [US1] Implement IPC handler for 'project:create' in src/main/ipc-handlers.ts with SQLite INSERT
+- [X] T038 [US1] Implement IPC handler for 'land:save' in src/main/ipc-handlers.ts with validation and SQLite INSERT
+- [X] T039 [US1] Implement IPC handler for 'land:update' in src/main/ipc-handlers.ts with SQLite UPDATE
+- [X] T040 [P] [US1] Expose 'createProject', 'saveLandParcel', 'updateLandParcel' in src/preload/index.ts contextBridge
+- [X] T041 [P] [US1] Create LandConfig UI component in src/renderer/components/LandConfig/LandConfig.tsx with form inputs
+- [X] T042 [US1] Add land dimensions inputs (length/width OR total area) with unit selector (sqm/sqft) to LandConfig component
+- [X] T043 [US1] Add province dropdown with all 32 Dominican Republic provinces to LandConfig component
+- [X] T044 [US1] Add acquisition cost input with currency selector (DOP/USD) to LandConfig component
+- [X] T045 [US1] Add optional target number of Micro-Villas input field to LandConfig component per FR-007
+- [X] T046 [US1] Add urbanization status checkbox and landmarks list (add/remove) to LandConfig component
+- [X] T047 [US1] Implement auto-save on change in LandConfig component calling window.electronAPI.saveLandParcel per FR-026
+- [X] T048 [US1] Add visual auto-save indicator to LandConfig component per FR-029
+- [X] T049 [P] [US1] Create ProjectSetup page in src/renderer/pages/ProjectSetup.tsx integrating LandConfig component
+- [X] T050 [US1] Implement project load on app launch in src/renderer/App.tsx calling window.electronAPI.loadProject
+- [X] T051 [US1] Add validation feedback for land dimensions (must be > 0) and acquisition cost (must be ≥ 0) in LandConfig component
 
 **Checkpoint**: User Story 1 complete - developers can configure and save land parameters independently
 
@@ -117,20 +117,20 @@
 
 ### Implementation for User Story 2
 
-- [ ] T052 [P] [US2] Create SubdivisionScenario TypeScript interface in src/renderer/models/SubdivisionScenario.ts per data-model.md
-- [ ] T053 [P] [US2] Create MicroVillaLot TypeScript interface in src/renderer/models/MicroVillaLot.ts
-- [ ] T054 [P] [US2] Create ParkingArea TypeScript interface in src/renderer/models/ParkingArea.ts per updated spec
-- [ ] T055 [P] [US2] Create MaintenanceRoom TypeScript interface in src/renderer/models/MaintenanceRoom.ts per updated spec
-- [ ] T056 [US2] Implement SubdivisionCalculator class in src/renderer/services/subdivision-calculator.ts with grid-based algorithm per research.md
-- [ ] T057 [US2] Implement calculateSubdivision method for single scenario (social club %, lot dimensions, social club position) in SubdivisionCalculator
-- [ ] T058 [US2] Implement calculateAllScenarios method (10-30% in 1% increments, filter lots < 90 sqm) in SubdivisionCalculator per FR-009, FR-023
-- [ ] T059 [US2] Add parking area calculation (2 spaces per villa, centralized) to SubdivisionCalculator per FR-015
-- [ ] T060 [US2] Add walkway and landscaping area estimation to SubdivisionCalculator per FR-017
-- [ ] T061 [US2] Add common area ownership percentage calculation (social club + parking + walkways) divided by lot sqm per FR-018, FR-019
-- [ ] T062 [US2] Add target Micro-Villas validation logic - highlight scenarios matching target per FR-025
-- [ ] T063 [US2] Implement IPC handler for 'subdivision:calculate' in src/main/ipc-handlers.ts calling SubdivisionCalculator and storing results in SQLite
-- [ ] T064 [US2] Implement IPC handler for 'subdivision:select' in src/main/ipc-handlers.ts updating selected_scenario_id per FR-020
-- [ ] T065 [P] [US2] Expose 'calculateSubdivisions', 'selectScenario' in src/preload/index.ts
+- [X] T052 [P] [US2] Create SubdivisionScenario TypeScript interface in src/renderer/models/SubdivisionScenario.ts per data-model.md
+- [X] T053 [P] [US2] Create MicroVillaLot TypeScript interface in src/renderer/models/MicroVillaLot.ts
+- [X] T054 [P] [US2] Create ParkingArea TypeScript interface in src/renderer/models/ParkingArea.ts per updated spec
+- [X] T055 [P] [US2] Create MaintenanceRoom TypeScript interface in src/renderer/models/MaintenanceRoom.ts per updated spec
+- [X] T056 [US2] Implement SubdivisionCalculator class in src/renderer/services/subdivision-calculator.ts with grid-based algorithm per research.md
+- [X] T057 [US2] Implement calculateSubdivision method for single scenario (social club %, lot dimensions, social club position) in SubdivisionCalculator
+- [X] T058 [US2] Implement calculateAllScenarios method (10-30% in 1% increments, filter lots < 90 sqm) in SubdivisionCalculator per FR-009, FR-023
+- [X] T059 [US2] Add parking area calculation (2 spaces per villa, centralized) to SubdivisionCalculator per FR-015
+- [X] T060 [US2] Add walkway and landscaping area estimation to SubdivisionCalculator per FR-017
+- [X] T061 [US2] Add common area ownership percentage calculation (social club + parking + walkways) divided by lot sqm per FR-018, FR-019
+- [X] T062 [US2] Add target Micro-Villas validation logic - highlight scenarios matching target per FR-025
+- [X] T063 [US2] Implement IPC handler for 'subdivision:calculate' in src/main/ipc-handlers.ts calling SubdivisionCalculator and storing results in SQLite
+- [X] T064 [US2] Implement IPC handler for 'subdivision:select' in src/main/ipc-handlers.ts updating selected_scenario_id per FR-020
+- [X] T065 [P] [US2] Expose 'calculateSubdivisions', 'selectScenario' in src/preload/index.ts
 - [ ] T066 [P] [US2] Create SubdivisionView UI component in src/renderer/components/SubdivisionView/SubdivisionView.tsx with 2D schematic visualization using Fabric.js
 - [ ] T067 [US2] Render subdivision scenarios as 2D top-down diagrams showing lots, social club, parking area, maintenance room, walkways per FR-024
 - [ ] T068 [US2] Add scenario selector (dropdown or list) showing social club % and lot count for each scenario
@@ -153,24 +153,24 @@
 
 ### Implementation for User Story 3
 
-- [ ] T075 [P] [US3] Create Amenity TypeScript interface in src/renderer/models/Amenity.ts per data-model.md
-- [ ] T076 [P] [US3] Create SocialClubDesign TypeScript interface in src/renderer/models/SocialClubDesign.ts
-- [ ] T077 [P] [US3] Create StorageUnit TypeScript interface in src/renderer/models/StorageUnit.ts per updated spec
-- [ ] T078 [P] [US3] Create Zod validation schema for SocialClubDesignInput in src/renderer/models/SocialClubDesign.ts
-- [ ] T079 [US3] Implement IPC handler for 'amenities:catalog' in src/main/ipc-handlers.ts loading from public/assets/amenities-catalog.json per FR-031
-- [ ] T080 [US3] Implement IPC handler for 'socialclub:save' in src/main/ipc-handlers.ts with validation and SQLite INSERT/UPDATE
-- [ ] T081 [P] [US3] Expose 'getAmenitiesCatalog', 'saveSocialClubDesign' in src/preload/index.ts
-- [ ] T082 [P] [US3] Create AmenitiesCatalog UI component in src/renderer/components/AmenitiesCatalog/AmenitiesCatalog.tsx with categorized list
-- [ ] T083 [US3] Display amenities organized by category (aquatic, dining, recreation, furniture, landscaping, utilities, storage) in AmenitiesCatalog per FR-031
-- [ ] T084 [US3] Implement amenity selection (checkbox per item) with cost display (default or custom) in AmenitiesCatalog per FR-032, FR-039
-- [ ] T085 [US3] Add storage unit configuration section: radio buttons for "Social Club Storage" vs "Individual Patio Storage" per FR-033
-- [ ] T086 [US3] Add maintenance room configuration section: size input (sqm) and location radio buttons ("In Social Club" vs "Separate Area") per FR-034
-- [ ] T087 [US3] Display parking configuration (read-only): "Centralized Parking - 2 spaces per villa × [lot count] = [total spaces]" per FR-035
-- [ ] T088 [US3] Implement custom cost override for any amenity in AmenitiesCatalog per FR-039
-- [ ] T089 [US3] Add auto-save on amenity selection/deselection and configuration changes per FR-037
-- [ ] T090 [P] [US3] Create SocialClubDesigner page in src/renderer/pages/SocialClubDesigner.tsx integrating AmenitiesCatalog component
-- [ ] T091 [US3] Load and display selected amenities list with total cost in SocialClubDesigner page
-- [ ] T092 [US3] Validate mandatory fields: storage location selected, maintenance room size > 0 and location selected
+- [X] T075 [P] [US3] Create Amenity TypeScript interface in src/renderer/models/Amenity.ts per data-model.md
+- [X] T076 [P] [US3] Create SocialClubDesign TypeScript interface in src/renderer/models/SocialClubDesign.ts
+- [X] T077 [P] [US3] Create StorageUnit TypeScript interface in src/renderer/models/StorageUnit.ts per updated spec
+- [X] T078 [P] [US3] Create Zod validation schema for SocialClubDesignInput in src/renderer/models/SocialClubDesign.ts
+- [X] T079 [US3] Implement IPC handler for 'amenities:catalog' in src/main/ipc-handlers.ts loading from public/assets/amenities-catalog.json per FR-031
+- [X] T080 [US3] Implement IPC handler for 'socialclub:save' in src/main/ipc-handlers.ts with validation and SQLite INSERT/UPDATE
+- [X] T081 [P] [US3] Expose 'getAmenitiesCatalog', 'saveSocialClubDesign' in src/preload/index.ts
+- [X] T082 [P] [US3] Create AmenitiesCatalog UI component in src/renderer/components/AmenitiesCatalog/AmenitiesCatalog.tsx with categorized list
+- [X] T083 [US3] Display amenities organized by category (aquatic, dining, recreation, furniture, landscaping, utilities, storage) in AmenitiesCatalog per FR-031
+- [X] T084 [US3] Implement amenity selection (checkbox per item) with cost display (default or custom) in AmenitiesCatalog per FR-032, FR-039
+- [X] T085 [US3] Add storage unit configuration section: radio buttons for "Social Club Storage" vs "Individual Patio Storage" per FR-033
+- [X] T086 [US3] Add maintenance room configuration section: size input (sqm) and location radio buttons ("In Social Club" vs "Separate Area") per FR-034
+- [X] T087 [US3] Display parking configuration (read-only): "Centralized Parking - 2 spaces per villa × [lot count] = [total spaces]" per FR-035
+- [X] T088 [US3] Implement custom cost override for any amenity in AmenitiesCatalog per FR-039
+- [X] T089 [US3] Add auto-save on amenity selection/deselection and configuration changes per FR-037
+- [X] T090 [P] [US3] Create SocialClubDesigner page in src/renderer/pages/SocialClubDesigner.tsx integrating AmenitiesCatalog component
+- [X] T091 [US3] Load and display selected amenities list with total cost in SocialClubDesigner page
+- [X] T092 [US3] Validate mandatory fields: storage location selected, maintenance room size > 0 and location selected
 
 **Checkpoint**: User Story 3 complete - developers can design social club with amenities, configure mandatory storage and maintenance room independently
 
@@ -184,41 +184,41 @@
 
 ### Implementation for User Story 4
 
-- [ ] T093 [P] [US4] Create FinancialAnalysis TypeScript interface in src/renderer/models/FinancialAnalysis.ts per data-model.md
-- [ ] T094 [P] [US4] Create CostBreakdown TypeScript interface in src/renderer/models/FinancialAnalysis.ts
-- [ ] T095 [P] [US4] Create PricingScenario TypeScript interface in src/renderer/models/FinancialAnalysis.ts
-- [ ] T096 [P] [US4] Create Zod validation schema for FinancialAnalysisInput in src/renderer/models/FinancialAnalysis.ts
-- [ ] T097 [US4] Implement FinancialAnalyzer class in src/renderer/services/financial-analyzer.ts with all calculation methods
-- [ ] T098 [US4] Implement calculateTotalProjectCost method: land + amenities + parking + walkways + landscaping + maintenance room + storage + legal + other per FR-051
-- [ ] T099 [US4] Implement calculateCostPerSqmSharedAreas method: (parking + walkways + landscaping + maintenance room + social club storage if applicable) ÷ total lot sqm per FR-052
-- [ ] T100 [US4] Implement calculateBaseLotCost method: proportional land cost + proportional shared costs + (storage cost if patio) per FR-053
-- [ ] T101 [US4] Implement proportional cost allocation logic: divide shared costs by each lot's sqm percentage per FR-042, FR-044, FR-046
-- [ ] T102 [US4] Implement storage cost allocation: if social club, divide proportionally; if patio, include in per-lot cost per FR-048
-- [ ] T103 [US4] Implement generatePricingScenarios method: base cost × (1 + profit margin) for multiple margins per FR-054, FR-055
-- [ ] T104 [US4] Implement calculateRevenueAndProfit method: (lot sale price × lot count) - total project cost per FR-056, FR-057
-- [ ] T105 [US4] Implement calculateMaintenanceContributions method: proportional to common area ownership % per FR-058
-- [ ] T106 [US4] Implement IPC handler for 'financial:save' in src/main/ipc-handlers.ts with validation and SQLite INSERT/UPDATE
-- [ ] T107 [US4] Implement IPC handler for 'financial:recalculate' in src/main/ipc-handlers.ts calling FinancialAnalyzer when subdivision changes per FR-061
-- [ ] T108 [P] [US4] Expose 'saveFinancialAnalysis', 'recalculateFinancials' in src/preload/index.ts
-- [ ] T109 [P] [US4] Create FinancialPanel UI component in src/renderer/components/FinancialPanel/FinancialPanel.tsx with cost inputs
-- [ ] T110 [US4] Add land acquisition cost input (read-only from land parcel) in FinancialPanel
-- [ ] T111 [US4] Add amenities total cost display (calculated from selected amenities) in FinancialPanel per FR-040
-- [ ] T112 [US4] Add parking area cost input with description "Construction and landscaping for [X] spaces" per FR-041
-- [ ] T113 [US4] Add walkway construction cost input and landscaping cost input per FR-043
-- [ ] T114 [US4] Add maintenance room cost input with description "Construction and equipment for [X] sqm room" per FR-045
-- [ ] T115 [US4] Add storage unit cost input with conditional label: "Social Club Storage (shared)" or "Patio Storage (per lot)" per FR-047
-- [ ] T116 [US4] Add legal costs input (notary, permits, registrations) per FR-049
-- [ ] T117 [US4] Add other costs section with custom labels (infrastructure, utilities, marketing) per FR-050
-- [ ] T118 [US4] Display total project cost breakdown showing all cost categories per FR-051
-- [ ] T119 [US4] Display cost per square meter for shared areas (parking, walkways, landscaping, maintenance room) per FR-052
-- [ ] T120 [US4] Display base lot cost breakdown: proportional land cost + proportional shared costs + storage (if patio) per FR-053
-- [ ] T121 [US4] Add profit margin input (multiple values: 15%, 20%, 25%, 30%) and generate pricing scenarios per FR-054
-- [ ] T122 [US4] Display pricing scenarios table: profit margin → lot sale price → total revenue → expected profit per FR-055, FR-056, FR-057
-- [ ] T123 [US4] Add monthly maintenance cost input and display per-owner contributions by common area ownership % per FR-058
-- [ ] T124 [US4] Add currency toggle (DOP ↔ USD) with exchange rate input for all financial displays per FR-059
-- [ ] T125 [US4] Implement auto-recalculation when subdivision scenario changes per FR-061
-- [ ] T126 [P] [US4] Create FinancialAnalysis page in src/renderer/pages/FinancialAnalysis.tsx integrating FinancialPanel component
-- [ ] T127 [US4] Add auto-save on any cost input change per FR-060
+- [X] T093 [P] [US4] Create FinancialAnalysis TypeScript interface in src/renderer/models/FinancialAnalysis.ts per data-model.md
+- [X] T094 [P] [US4] Create CostBreakdown TypeScript interface in src/renderer/models/FinancialAnalysis.ts
+- [X] T095 [P] [US4] Create PricingScenario TypeScript interface in src/renderer/models/FinancialAnalysis.ts
+- [X] T096 [P] [US4] Create Zod validation schema for FinancialAnalysisInput in src/renderer/models/FinancialAnalysis.ts
+- [X] T097 [US4] Implement FinancialAnalyzer class in src/renderer/services/financial-analyzer.ts with all calculation methods
+- [X] T098 [US4] Implement calculateTotalProjectCost method: land + amenities + parking + walkways + landscaping + maintenance room + storage + legal + other per FR-051
+- [X] T099 [US4] Implement calculateCostPerSqmSharedAreas method: (parking + walkways + landscaping + maintenance room + social club storage if applicable) ÷ total lot sqm per FR-052
+- [X] T100 [US4] Implement calculateBaseLotCost method: proportional land cost + proportional shared costs + (storage cost if patio) per FR-053
+- [X] T101 [US4] Implement proportional cost allocation logic: divide shared costs by each lot's sqm percentage per FR-042, FR-044, FR-046
+- [X] T102 [US4] Implement storage cost allocation: if social club, divide proportionally; if patio, include in per-lot cost per FR-048
+- [X] T103 [US4] Implement generatePricingScenarios method: base cost × (1 + profit margin) for multiple margins per FR-054, FR-055
+- [X] T104 [US4] Implement calculateRevenueAndProfit method: (lot sale price × lot count) - total project cost per FR-056, FR-057
+- [X] T105 [US4] Implement calculateMaintenanceContributions method: proportional to common area ownership % per FR-058
+- [X] T106 [US4] Implement IPC handler for 'financial:save' in src/main/ipc-handlers.ts with validation and SQLite INSERT/UPDATE
+- [X] T107 [US4] Implement IPC handler for 'financial:recalculate' in src/main/ipc-handlers.ts calling FinancialAnalyzer when subdivision changes per FR-061
+- [X] T108 [P] [US4] Expose 'saveFinancialAnalysis', 'recalculateFinancials' in src/preload/index.ts
+- [X] T109 [P] [US4] Create FinancialPanel UI component in src/renderer/components/FinancialPanel/FinancialPanel.tsx with cost inputs
+- [X] T110 [US4] Add land acquisition cost input (read-only from land parcel) in FinancialPanel
+- [X] T111 [US4] Add amenities total cost display (calculated from selected amenities) in FinancialPanel per FR-040
+- [X] T112 [US4] Add parking area cost input with description "Construction and landscaping for [X] spaces" per FR-041
+- [X] T113 [US4] Add walkway construction cost input and landscaping cost input per FR-043
+- [X] T114 [US4] Add maintenance room cost input with description "Construction and equipment for [X] sqm room" per FR-045
+- [X] T115 [US4] Add storage unit cost input with conditional label: "Social Club Storage (shared)" or "Patio Storage (per lot)" per FR-047
+- [X] T116 [US4] Add legal costs input (notary, permits, registrations) per FR-049
+- [X] T117 [US4] Add other costs section with custom labels (infrastructure, utilities, marketing) per FR-050
+- [X] T118 [US4] Display total project cost breakdown showing all cost categories per FR-051
+- [X] T119 [US4] Display cost per square meter for shared areas (parking, walkways, landscaping, maintenance room) per FR-052
+- [X] T120 [US4] Display base lot cost breakdown: proportional land cost + proportional shared costs + storage (if patio) per FR-053
+- [X] T121 [US4] Add profit margin input (multiple values: 15%, 20%, 25%, 30%) and generate pricing scenarios per FR-054
+- [X] T122 [US4] Display pricing scenarios table: profit margin → lot sale price → total revenue → expected profit per FR-055, FR-056, FR-057
+- [X] T123 [US4] Add monthly maintenance cost input and display per-owner contributions by common area ownership % per FR-058
+- [X] T124 [US4] Add currency toggle (DOP ↔ USD) with exchange rate input for all financial displays per FR-059
+- [X] T125 [US4] Implement auto-recalculation when subdivision scenario changes per FR-061
+- [X] T126 [P] [US4] Create FinancialAnalysis page in src/renderer/pages/FinancialAnalysis.tsx integrating FinancialPanel component
+- [X] T127 [US4] Add auto-save on any cost input change per FR-060
 
 **Checkpoint**: User Story 4 complete - developers can perform comprehensive financial analysis with proportional cost allocation independently
 
@@ -232,21 +232,21 @@
 
 ### Implementation for User Story 5
 
-- [ ] T128 [P] [US5] Create AIDescriptionGenerator class in src/renderer/services/ai-description-generator.ts with prompt generation methods
-- [ ] T129 [US5] Implement generateClaudeCodePrompt method: create JSON with land area, target villas, social club constraints, parking (2 spaces/villa), maintenance room, storage config, costs per FR-063
-- [ ] T130 [US5] Implement generateGoogleNanoPrompts method: create text with visual descriptions (Micro-Villa lot, social club, parking area, landscaping, walkways, maintenance room) per FR-066
-- [ ] T131 [US5] Implement IPC handler for 'ai:generateSubdivisionPrompt' in src/main/ipc-handlers.ts calling AIDescriptionGenerator and writing ai-subdivision-prompt.json to target directory per FR-067
-- [ ] T132 [US5] Implement IPC handler for 'ai:generateImagePrompts' in src/main/ipc-handlers.ts calling AIDescriptionGenerator and writing ai-image-prompts.txt to target directory per FR-067
-- [ ] T133 [US5] Implement IPC handler for 'ai:importOptimizedSubdivision' in src/main/ipc-handlers.ts to load Claude Code results (JSON format) and update subdivision scenario per FR-068
-- [ ] T134 [P] [US5] Expose 'generateSubdivisionPrompt', 'generateImagePrompts', 'importOptimizedSubdivision' in src/preload/index.ts
-- [ ] T135 [P] [US5] Create AIIntegration UI component in src/renderer/components/AIIntegration/AIIntegration.tsx with action buttons
-- [ ] T136 [US5] Add "Generate AI Subdivision Description" button (enabled when project fully configured) per FR-062
-- [ ] T137 [US5] Add "Generate AI Image Prompts" button (enabled when subdivision selected) per FR-065
-- [ ] T138 [US5] Add "Import Optimized Subdivision from Claude Code" button with file selector per FR-068
-- [ ] T139 [US5] Display success messages showing file paths after AI prompt generation per FR-067
-- [ ] T140 [US5] Validate manual trigger workflow (no automatic generation on save/export) per FR-069
-- [ ] T141 [P] [US5] Add AIIntegration component to FinancialAnalysis page or create dedicated AI page
-- [ ] T142 [US5] Implement project target directory path storage in Project model (for AI tools to save results)
+- [X] T128 [P] [US5] Create AIDescriptionGenerator class in src/renderer/services/ai-description-generator.ts with prompt generation methods
+- [X] T129 [US5] Implement generateClaudeCodePrompt method: create JSON with land area, target villas, social club constraints, parking (2 spaces/villa), maintenance room, storage config, costs per FR-063
+- [X] T130 [US5] Implement generateGoogleNanoPrompts method: create text with visual descriptions (Micro-Villa lot, social club, parking area, landscaping, walkways, maintenance room) per FR-066
+- [X] T131 [US5] Implement IPC handler for 'ai:generateSubdivisionPrompt' in src/main/ipc-handlers.ts calling AIDescriptionGenerator and writing ai-subdivision-prompt.json to target directory per FR-067
+- [X] T132 [US5] Implement IPC handler for 'ai:generateImagePrompts' in src/main/ipc-handlers.ts calling AIDescriptionGenerator and writing ai-image-prompts.txt to target directory per FR-067
+- [X] T133 [US5] Implement IPC handler for 'ai:importOptimizedSubdivision' in src/main/ipc-handlers.ts to load Claude Code results (JSON format) and update subdivision scenario per FR-068
+- [X] T134 [P] [US5] Expose 'generateSubdivisionPrompt', 'generateImagePrompts', 'importOptimizedSubdivision' in src/preload/index.ts
+- [X] T135 [P] [US5] Create AIIntegration UI component in src/renderer/components/AIIntegration/AIIntegration.tsx with action buttons
+- [X] T136 [US5] Add "Generate AI Subdivision Description" button (enabled when project fully configured) per FR-062
+- [X] T137 [US5] Add "Generate AI Image Prompts" button (enabled when subdivision selected) per FR-065
+- [X] T138 [US5] Add "Import Optimized Subdivision from Claude Code" button with file selector per FR-068
+- [X] T139 [US5] Display success messages showing file paths after AI prompt generation per FR-067
+- [X] T140 [US5] Validate manual trigger workflow (no automatic generation on save/export) per FR-069
+- [X] T141 [P] [US5] Add AIIntegration component to FinancialAnalysis page or create dedicated AI page
+- [X] T142 [US5] Implement project target directory path storage in Project model (for AI tools to save results)
 
 **Checkpoint**: User Story 5 complete - developers can manually generate AI prompts and import optimized results independently
 
@@ -260,24 +260,24 @@
 
 ### Implementation for User Story 6
 
-- [ ] T143 [P] [US6] Create ProjectImage TypeScript interface in src/renderer/models/ProjectImage.ts per data-model.md
-- [ ] T144 [P] [US6] Create ImageMetadata TypeScript interface in src/renderer/models/ProjectImage.ts
-- [ ] T145 [US6] Implement IPC handler for 'dialog:selectImages' in src/main/ipc-handlers.ts using Electron dialog.showOpenDialog with image filters per FR-070, FR-071
-- [ ] T146 [US6] Implement IPC handler for 'images:attachToLand' in src/main/ipc-handlers.ts copying images to local storage and creating DB records per FR-073
-- [ ] T147 [US6] Implement IPC handler for 'images:attachToLot' in src/main/ipc-handlers.ts with lot association per FR-073
-- [ ] T148 [US6] Implement IPC handler for 'images:getThumbnail' in src/main/ipc-handlers.ts generating Base64 data URL for thumbnails per FR-074
-- [ ] T149 [US6] Implement IPC handler for 'images:importAIGenerated' in src/main/ipc-handlers.ts scanning project target directory images/ folder per FR-072
-- [ ] T150 [US6] Add image size validation (up to 10MB, compression or rejection for larger) per FR-077
-- [ ] T151 [US6] Add image format validation (JPEG, PNG, WebP) per FR-076
-- [ ] T152 [P] [US6] Expose 'selectImages', 'attachImagesToLand', 'attachImagesToLot', 'getImageThumbnail', 'importAIGeneratedImages' in src/preload/index.ts
-- [ ] T153 [P] [US6] Create ImageManager UI component in src/renderer/components/ImageManager/ImageManager.tsx with upload and preview
-- [ ] T154 [US6] Add "Upload Images to Land Parcel" button triggering file dialog in ImageManager
-- [ ] T155 [US6] Add "Upload Images to Lot" button for selected Micro-Villa lot in ImageManager
-- [ ] T156 [US6] Add "Import AI-Generated Images" button scanning project target directory per FR-072
-- [ ] T157 [US6] Display image thumbnails in grid layout per FR-074
-- [ ] T158 [US6] Implement thumbnail click handler to open full-size image preview modal per FR-075
-- [ ] T159 [US6] Add image persistence validation on project save per FR-073
-- [ ] T160 [P] [US6] Integrate ImageManager component into ProjectSetup page (for land images) and SubdivisionPlanner page (for lot images)
+- [X] T143 [P] [US6] Create ProjectImage TypeScript interface in src/renderer/models/ProjectImage.ts per data-model.md
+- [X] T144 [P] [US6] Create ImageMetadata TypeScript interface in src/renderer/models/ProjectImage.ts
+- [X] T145 [US6] Implement IPC handler for 'dialog:selectImages' in src/main/ipc-handlers.ts using Electron dialog.showOpenDialog with image filters per FR-070, FR-071
+- [X] T146 [US6] Implement IPC handler for 'images:attachToLand' in src/main/ipc-handlers.ts copying images to local storage and creating DB records per FR-073
+- [X] T147 [US6] Implement IPC handler for 'images:attachToLot' in src/main/ipc-handlers.ts with lot association per FR-073
+- [X] T148 [US6] Implement IPC handler for 'images:getThumbnail' in src/main/ipc-handlers.ts generating Base64 data URL for thumbnails per FR-074
+- [X] T149 [US6] Implement IPC handler for 'images:importAIGenerated' in src/main/ipc-handlers.ts scanning project target directory images/ folder per FR-072
+- [X] T150 [US6] Add image size validation (up to 10MB, compression or rejection for larger) per FR-077
+- [X] T151 [US6] Add image format validation (JPEG, PNG, WebP) per FR-076
+- [X] T152 [P] [US6] Expose 'selectImages', 'attachImagesToLand', 'attachImagesToLot', 'getImageThumbnail', 'importAIGeneratedImages' in src/preload/index.ts
+- [X] T153 [P] [US6] Create ImageManager UI component in src/renderer/components/ImageManager/ImageManager.tsx with upload and preview
+- [X] T154 [US6] Add "Upload Images to Land Parcel" button triggering file dialog in ImageManager
+- [X] T155 [US6] Add "Upload Images to Lot" button for selected Micro-Villa lot in ImageManager
+- [X] T156 [US6] Add "Import AI-Generated Images" button scanning project target directory per FR-072
+- [X] T157 [US6] Display image thumbnails in grid layout per FR-074
+- [X] T158 [US6] Implement thumbnail click handler to open full-size image preview modal per FR-075
+- [X] T159 [US6] Add image persistence validation on project save per FR-073
+- [X] T160 [P] [US6] Integrate ImageManager component into ProjectSetup page (for land images) and SubdivisionPlanner page (for lot images)
 
 **Checkpoint**: User Story 6 complete - developers can upload, preview, and import AI-generated images independently
 
@@ -291,24 +291,24 @@
 
 ### Implementation for User Story 7
 
-- [ ] T161 [P] [US7] Create ExportResult TypeScript interface in src/renderer/models/Export.ts
-- [ ] T162 [P] [US7] Create project JSON export schema v1.0.0 with checksum validation per data-model.md
-- [ ] T163 [US7] Implement IPC handler for 'dialog:selectExportDir' in src/main/ipc-handlers.ts using Electron dialog.showOpenDialog for directory selection per FR-078
-- [ ] T164 [US7] Implement IPC handler for 'export:project' in src/main/ipc-handlers.ts with full export logic per FR-079
-- [ ] T165 [US7] Implement project.json generation with all configuration and financial data in export handler
-- [ ] T166 [US7] Implement images/ subfolder creation and file copy (uploaded + AI-generated) per FR-080
-- [ ] T167 [US7] Implement ai-prompts/ subfolder creation and copy (if AI prompts exist) per FR-079
-- [ ] T168 [US7] Add export directory writability validation per FR-082
-- [ ] T169 [US7] Add checksum generation for project.json validation per data-model.md
-- [ ] T170 [US7] Store project target directory path in projects table for future AI integration per FR-084
-- [ ] T171 [US7] Implement success/failure feedback with clear messages per FR-083
-- [ ] T172 [P] [US7] Expose 'selectExportDirectory', 'exportProject' in src/preload/index.ts
-- [ ] T173 [P] [US7] Create Export UI component in src/renderer/components/Export/Export.tsx with export button and status
-- [ ] T174 [US7] Add "Select Export Directory" button triggering native directory picker in Export component
-- [ ] T175 [US7] Add "Export Project" button (enabled when directory selected) in Export component
-- [ ] T176 [US7] Display export progress and success/failure message with exported file paths per FR-083
-- [ ] T177 [US7] Validate export completes in <10 seconds per SC-006
-- [ ] T178 [P] [US7] Create Export page in src/renderer/pages/Export.tsx integrating Export component
+- [X] T161 [P] [US7] Create ExportResult TypeScript interface in src/renderer/models/Export.ts
+- [X] T162 [P] [US7] Create project JSON export schema v1.0.0 with checksum validation per data-model.md
+- [X] T163 [US7] Implement IPC handler for 'dialog:selectExportDir' in src/main/ipc-handlers.ts using Electron dialog.showOpenDialog for directory selection per FR-078
+- [X] T164 [US7] Implement IPC handler for 'export:project' in src/main/ipc-handlers.ts with full export logic per FR-079
+- [X] T165 [US7] Implement project.json generation with all configuration and financial data in export handler
+- [X] T166 [US7] Implement images/ subfolder creation and file copy (uploaded + AI-generated) per FR-080
+- [X] T167 [US7] Implement ai-prompts/ subfolder creation and copy (if AI prompts exist) per FR-079
+- [X] T168 [US7] Add export directory writability validation per FR-082
+- [X] T169 [US7] Add checksum generation for project.json validation per data-model.md
+- [X] T170 [US7] Store project target directory path in projects table for future AI integration per FR-084
+- [X] T171 [US7] Implement success/failure feedback with clear messages per FR-083
+- [X] T172 [P] [US7] Expose 'selectExportDirectory', 'exportProject' in src/preload/index.ts
+- [X] T173 [P] [US7] Create Export UI component in src/renderer/components/Export/Export.tsx with export button and status
+- [X] T174 [US7] Add "Select Export Directory" button triggering native directory picker in Export component
+- [X] T175 [US7] Add "Export Project" button (enabled when directory selected) in Export component
+- [X] T176 [US7] Display export progress and success/failure message with exported file paths per FR-083
+- [X] T177 [US7] Validate export completes in <10 seconds per SC-006
+- [X] T178 [P] [US7] Create Export page in src/renderer/pages/Export.tsx integrating Export component
 
 **Checkpoint**: User Story 7 complete - developers can export complete projects to disk with AI integration support independently
 
@@ -322,27 +322,27 @@
 
 ### Implementation for User Story 8
 
-- [ ] T179 [P] [US8] Create ImportResult TypeScript interface in src/renderer/models/Import.ts with validation results
-- [ ] T180 [P] [US8] Create ProjectValidator class in src/renderer/services/project-validator.ts with JSON validation and recovery logic
-- [ ] T181 [US8] Implement IPC handler for 'dialog:selectImportDir' in src/main/ipc-handlers.ts using Electron dialog.showOpenDialog for directory selection per FR-085
-- [ ] T182 [US8] Implement IPC handler for 'import:project' in src/main/ipc-handlers.ts with full import logic per FR-086
-- [ ] T183 [US8] Implement project directory validation: check for project.json, images/ folder, optional ai-prompts/ folder per FR-086
-- [ ] T184 [US8] Implement project.json loading and Zod schema validation per FR-087, FR-090
-- [ ] T185 [US8] Implement checksum validation for data integrity per data-model.md
-- [ ] T186 [US8] Implement images/ folder scanning and image loading (both uploaded and AI-generated) per FR-088
-- [ ] T187 [US8] Implement complete project state restoration: land, subdivision, social club (parking, storage, maintenance), financials, images, target directory per FR-089
-- [ ] T188 [US8] Implement corrupted JSON field detection with detailed error messages listing invalid fields per FR-091
-- [ ] T189 [US8] Implement partial recovery option: load valid fields, skip invalid, generate warning list per FR-092, FR-093
-- [ ] T190 [US8] Implement missing image handling with placeholder indicators per FR-094
-- [ ] T191 [US8] Validate import completes in <10 seconds per SC-007
-- [ ] T192 [P] [US8] Expose 'selectImportDirectory', 'importProject' in src/preload/index.ts
-- [ ] T193 [P] [US8] Create Import UI component in src/renderer/components/Import/Import.tsx with import button and validation results
-- [ ] T194 [US8] Add "Select Import Directory" button triggering native directory picker in Import component
-- [ ] T195 [US8] Add "Import Project" button (enabled when directory selected) in Import component
-- [ ] T196 [US8] Display import validation results: success with 100% fidelity OR errors with field-by-field details per FR-091
-- [ ] T197 [US8] Implement partial recovery UI: show warning dialog listing skipped fields, confirm to proceed per FR-093
-- [ ] T198 [US8] Display missing image placeholders in UI after import per FR-094
-- [ ] T199 [P] [US8] Add Import component to main app navigation or ProjectSetup page
+- [X] T179 [P] [US8] Create ImportResult TypeScript interface in src/renderer/models/Import.ts with validation results
+- [X] T180 [P] [US8] Create ProjectValidator class in src/renderer/services/project-validator.ts with JSON validation and recovery logic
+- [X] T181 [US8] Implement IPC handler for 'dialog:selectImportDir' in src/main/ipc-handlers.ts using Electron dialog.showOpenDialog for directory selection per FR-085
+- [X] T182 [US8] Implement IPC handler for 'import:project' in src/main/ipc-handlers.ts with full import logic per FR-086
+- [X] T183 [US8] Implement project directory validation: check for project.json, images/ folder, optional ai-prompts/ folder per FR-086
+- [X] T184 [US8] Implement project.json loading and Zod schema validation per FR-087, FR-090
+- [X] T185 [US8] Implement checksum validation for data integrity per data-model.md
+- [X] T186 [US8] Implement images/ folder scanning and image loading (both uploaded and AI-generated) per FR-088
+- [X] T187 [US8] Implement complete project state restoration: land, subdivision, social club (parking, storage, maintenance), financials, images, target directory per FR-089
+- [X] T188 [US8] Implement corrupted JSON field detection with detailed error messages listing invalid fields per FR-091
+- [X] T189 [US8] Implement partial recovery option: load valid fields, skip invalid, generate warning list per FR-092, FR-093
+- [X] T190 [US8] Implement missing image handling with placeholder indicators per FR-094
+- [X] T191 [US8] Validate import completes in <10 seconds per SC-007
+- [X] T192 [P] [US8] Expose 'selectImportDirectory', 'importProject' in src/preload/index.ts
+- [X] T193 [P] [US8] Create Import UI component in src/renderer/components/Import/Import.tsx with import button and validation results
+- [X] T194 [US8] Add "Select Import Directory" button triggering native directory picker in Import component
+- [X] T195 [US8] Add "Import Project" button (enabled when directory selected) in Import component
+- [X] T196 [US8] Display import validation results: success with 100% fidelity OR errors with field-by-field details per FR-091
+- [X] T197 [US8] Implement partial recovery UI: show warning dialog listing skipped fields, confirm to proceed per FR-093
+- [X] T198 [US8] Display missing image placeholders in UI after import per FR-094
+- [X] T199 [P] [US8] Add Import component to main app navigation or ProjectSetup page
 
 **Checkpoint**: User Story 8 complete - developers can import projects with full data integrity validation and recovery independently
 
@@ -352,27 +352,27 @@
 
 **Purpose**: Improvements affecting multiple user stories and production readiness
 
-- [ ] T200 [P] Add comprehensive error boundaries in React/Vue app for graceful error handling
-- [ ] T201 [P] Implement app-wide loading states and spinners for IPC operations
-- [ ] T202 [P] Add keyboard shortcuts for common actions (Ctrl+S for save, Ctrl+E for export, etc.)
-- [ ] T203 [P] Implement app menu with File > New, Open, Export, Import, Settings, Help
-- [ ] T204 [P] Add Help menu item opening quickstart.md in default markdown viewer
-- [ ] T205 [P] Create app icon files (icon.ico for Windows, icon.icns for macOS) and configure in forge.config.js
-- [ ] T206 [P] Add application settings dialog: default currency, default unit (sqm/sqft), exchange rate, amenities catalog management
-- [ ] T207 [P] Implement recent projects list in main menu (last 5 projects)
-- [ ] T208 [P] Add "Clear Local Storage" option in settings with confirmation dialog per FR-030
-- [ ] T209 [P] Optimize subdivision calculation performance - validate <2 seconds for 21 scenarios per SC-002
-- [ ] T210 [P] Optimize financial recalculation - validate <1 second per SC-005
-- [ ] T211 [P] Validate app launch time <3 seconds on Windows and macOS per SC-012
-- [ ] T212 [P] Add accessibility improvements: ARIA labels, keyboard navigation, screen reader support
-- [ ] T213 [P] Implement responsive layout for different window sizes (minimum 1200×800 per quickstart.md)
-- [ ] T214 [P] Add confirmation dialogs for destructive actions (delete project, clear storage)
-- [ ] T215 [P] Code cleanup: remove console.logs, add JSDoc comments to complex functions
-- [ ] T216 [P] Security hardening: validate all user inputs, sanitize file paths, prevent path traversal
-- [ ] T217 Run quickstart.md validation: verify all setup steps work on fresh Windows and macOS installations
-- [ ] T218 Create user documentation in docs/user-guide.md with screenshots and workflows
-- [ ] T219 [P] Add telemetry opt-in for crash reporting and usage analytics (privacy-conscious)
-- [ ] T220 Final QA: test all 8 user stories independently, verify constitution compliance
+- [X] T200 [P] Add comprehensive error boundaries in React/Vue app for graceful error handling
+- [X] T201 [P] Implement app-wide loading states and spinners for IPC operations
+- [X] T202 [P] Add keyboard shortcuts for common actions (Ctrl+S for save, Ctrl+E for export, etc.)
+- [X] T203 [P] Implement app menu with File > New, Open, Export, Import, Settings, Help
+- [X] T204 [P] Add Help menu item opening quickstart.md in default markdown viewer
+- [X] T205 [P] Create app icon files (icon.ico for Windows, icon.icns for macOS) and configure in forge.config.js
+- [X] T206 [P] Add application settings dialog: default currency, default unit (sqm/sqft), exchange rate, amenities catalog management
+- [X] T207 [P] Implement recent projects list in main menu (last 5 projects)
+- [X] T208 [P] Add "Clear Local Storage" option in settings with confirmation dialog per FR-030
+- [X] T209 [P] Optimize subdivision calculation performance - validate <2 seconds for 21 scenarios per SC-002
+- [X] T210 [P] Optimize financial recalculation - validate <1 second per SC-005
+- [X] T211 [P] Validate app launch time <3 seconds on Windows and macOS per SC-012
+- [X] T212 [P] Add accessibility improvements: ARIA labels, keyboard navigation, screen reader support
+- [X] T213 [P] Implement responsive layout for different window sizes (minimum 1200×800 per quickstart.md)
+- [X] T214 [P] Add confirmation dialogs for destructive actions (delete project, clear storage)
+- [X] T215 [P] Code cleanup: remove console.logs, add JSDoc comments to complex functions
+- [X] T216 [P] Security hardening: validate all user inputs, sanitize file paths, prevent path traversal
+- [X] T217 Run quickstart.md validation: verify all setup steps work on fresh Windows and macOS installations
+- [X] T218 Create user documentation in docs/user-guide.md with screenshots and workflows
+- [X] T219 [P] Add telemetry opt-in for crash reporting and usage analytics (privacy-conscious)
+- [X] T220 Final QA: test all 8 user stories independently, verify constitution compliance
 
 **Checkpoint**: Application production-ready for packaging and distribution
 
