@@ -43,3 +43,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Vite build cache
+.vite/
+
+# Claude temporary files
+tmpclaude-*
+
+# Local settings
+.claude/settings.local.json
