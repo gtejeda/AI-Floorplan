@@ -8,8 +8,8 @@
  */
 
 export interface TokenBucketConfig {
-  capacity: number;      // Max tokens in bucket
-  refillRate: number;    // Tokens added per second
+  capacity: number; // Max tokens in bucket
+  refillRate: number; // Tokens added per second
   refillInterval: number; // Milliseconds between refills
 }
 
@@ -94,18 +94,18 @@ export class TokenBucket {
  * Uses 80% safety margin (8 requests/minute)
  */
 export const geminiRateLimiter = new TokenBucket({
-  capacity: 10,          // 10 requests max
-  refillRate: 10 / 60,   // 10 per minute = 0.167 per second
-  refillInterval: 1000   // Check every second
+  capacity: 10, // 10 requests max
+  refillRate: 10 / 60, // 10 per minute = 0.167 per second
+  refillInterval: 1000, // Check every second
 });
 
 /**
  * Rate limiter for Image Generation API (conservative: 5 RPM)
  */
 export const imageRateLimiter = new TokenBucket({
-  capacity: 5,           // 5 requests max
-  refillRate: 5 / 60,    // 5 per minute
-  refillInterval: 1000
+  capacity: 5, // 5 requests max
+  refillRate: 5 / 60, // 5 per minute
+  refillInterval: 1000,
 });
 
 /**
@@ -145,12 +145,12 @@ export function getRateLimitStatus(): {
     gemini: {
       available: Math.floor(geminiRateLimiter.getTokenCount()),
       capacity: 10,
-      waitTime: geminiRateLimiter.getWaitTime()
+      waitTime: geminiRateLimiter.getWaitTime(),
     },
     image: {
       available: Math.floor(imageRateLimiter.getTokenCount()),
       capacity: 5,
-      waitTime: imageRateLimiter.getWaitTime()
-    }
+      waitTime: imageRateLimiter.getWaitTime(),
+    },
   };
 }

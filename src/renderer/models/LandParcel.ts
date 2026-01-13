@@ -53,21 +53,22 @@ export interface LandParcelInput {
 /**
  * Zod validation schema for LandParcel
  */
-export const LandParcelSchema = z.object({
-  id: z.string().uuid('Invalid UUID format'),
-  projectId: z.string().uuid('Invalid project UUID'),
-  width: z.number().positive('Width must be greater than 0'),
-  length: z.number().positive('Length must be greater than 0'),
-  area: z.number().positive('Area must be greater than 0'),
-  province: ProvinceSchema,
-  landmarks: z.array(LandmarkSchema).default([]),
-  isUrbanized: z.boolean(),
-  acquisitionCost: MoneySchema,
-  displayUnit: z.enum(['sqm', 'sqft']).default('sqm')
-}).refine(
-  (data) => Math.abs(data.area - (data.width * data.length)) <= 0.01,
-  { message: 'Area must match width × length (within 0.01 tolerance)' }
-);
+export const LandParcelSchema = z
+  .object({
+    id: z.string().uuid('Invalid UUID format'),
+    projectId: z.string().uuid('Invalid project UUID'),
+    width: z.number().positive('Width must be greater than 0'),
+    length: z.number().positive('Length must be greater than 0'),
+    area: z.number().positive('Area must be greater than 0'),
+    province: ProvinceSchema,
+    landmarks: z.array(LandmarkSchema).default([]),
+    isUrbanized: z.boolean(),
+    acquisitionCost: MoneySchema,
+    displayUnit: z.enum(['sqm', 'sqft']).default('sqm'),
+  })
+  .refine((data) => Math.abs(data.area - data.width * data.length) <= 0.01, {
+    message: 'Area must match width × length (within 0.01 tolerance)',
+  });
 
 /**
  * Zod validation schema for LandParcelInput
@@ -80,7 +81,7 @@ export const LandParcelInputSchema = z.object({
   landmarks: z.array(LandmarkSchema).optional().default([]),
   isUrbanized: z.boolean(),
   acquisitionCost: MoneySchema,
-  displayUnit: z.enum(['sqm', 'sqft']).optional().default('sqm')
+  displayUnit: z.enum(['sqm', 'sqft']).optional().default('sqm'),
 });
 
 /**
@@ -113,6 +114,6 @@ export function createLandParcel(input: LandParcelInput, id?: string): LandParce
     landmarks: validatedInput.landmarks || [],
     isUrbanized: validatedInput.isUrbanized,
     acquisitionCost: validatedInput.acquisitionCost,
-    displayUnit: validatedInput.displayUnit || 'sqm'
+    displayUnit: validatedInput.displayUnit || 'sqm',
   };
 }

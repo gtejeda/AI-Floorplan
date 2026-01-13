@@ -1,0 +1,678 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Image Generation IPC API Contracts",
+  "version": "1.0.0",
+  "description": "IPC method contracts for AI-powered project visualization image generation",
+  "channels": {
+    "ai:generate-site-plan-image": {
+      "description": "Generate AI-powered site plan image from approved subdivision plan",
+      "handler": "ipcMain.handle",
+      "request": {
+        "type": "object",
+        "required": ["projectId", "subdivisionPlanId", "viewType"],
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the project"
+          },
+          "subdivisionPlanId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of approved AISubdivisionPlan (MUST be approved)"
+          },
+          "viewType": {
+            "type": "string",
+            "enum": ["site-plan", "aerial", "context"],
+            "description": "Type of visualization to generate"
+          },
+          "resolution": {
+            "type": "string",
+            "enum": ["1024x1024", "1792x1024", "1024x1792"],
+            "default": "1024x1024",
+            "description": "Image resolution (depends on AI model capabilities)"
+          },
+          "customPromptAdditions": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional user refinements to add to base prompt"
+          }
+        },
+        "example": {
+          "projectId": "550e8400-e29b-41d4-a716-446655440000",
+          "subdivisionPlanId": "550e8400-e29b-41d4-a716-446655440002",
+          "viewType": "site-plan",
+          "resolution": "1024x1024",
+          "customPromptAdditions": "Include property boundary lines"
+        }
+      },
+      "response": {
+        "type": "object",
+        "required": ["visualizationId", "status"],
+        "properties": {
+          "visualizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of created ProjectVisualization record"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["completed", "failed"],
+            "description": "Generation status"
+          },
+          "localPath": {
+            "type": "string",
+            "description": "Absolute path to saved image file (if status=completed)"
+          },
+          "filename": {
+            "type": "string",
+            "description": "Image filename (e.g., 'project-site-plan-1736697600000.png')"
+          },
+          "format": {
+            "type": "string",
+            "enum": ["png", "jpeg", "webp"],
+            "description": "Image format"
+          },
+          "widthPixels": {
+            "type": "integer",
+            "minimum": 256,
+            "description": "Image width in pixels"
+          },
+          "heightPixels": {
+            "type": "integer",
+            "minimum": 256,
+            "description": "Image height in pixels"
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message if status=failed"
+          },
+          "generationTimeMs": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Time taken to generate image in milliseconds"
+          }
+        },
+        "example": {
+          "visualizationId": "550e8400-e29b-41d4-a716-446655440003",
+          "status": "completed",
+          "localPath": "C:\\Users\\user\\AppData\\Local\\MicroVillas\\project-images\\550e8400-e29b-41d4-a716-446655440000\\project-site-plan-1736697600000.png",
+          "filename": "project-site-plan-1736697600000.png",
+          "format": "png",
+          "widthPixels": 1024,
+          "heightPixels": 1024,
+          "generationTimeMs": 95000
+        }
+      },
+      "errors": [
+        {
+          "code": "VALIDATION_ERROR",
+          "message": "Request validation failed (invalid input parameters)"
+        },
+        {
+          "code": "PLAN_NOT_APPROVED",
+          "message": "Cannot generate images for unapproved plan"
+        },
+        {
+          "code": "PLAN_NOT_FOUND",
+          "message": "Subdivision plan with specified ID does not exist"
+        },
+        {
+          "code": "AI_API_ERROR",
+          "message": "Image AI API returned error (Gemini/DALL-E service error)"
+        },
+        {
+          "code": "FILE_SYSTEM_ERROR",
+          "message": "Failed to save generated image to disk"
+        },
+        {
+          "code": "DATABASE_ERROR",
+          "message": "Failed to save visualization metadata to database"
+        }
+      ],
+      "notes": [
+        "Plan MUST have approvedByUser=true before image generation",
+        "Images saved to app.getPath('userData')/project-images/{projectId}/",
+        "Database record created with localPath reference",
+        "Gemini 3 Pro Image used as primary provider, DALL-E 3 as fallback"
+      ]
+    },
+    "ai:regenerate-image": {
+      "description": "Regenerate an existing visualization with refinements (keeps backup)",
+      "handler": "ipcMain.handle",
+      "request": {
+        "type": "object",
+        "required": ["visualizationId", "customPromptAdditions"],
+        "properties": {
+          "visualizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of existing ProjectVisualization to regenerate"
+          },
+          "customPromptAdditions": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "User refinements for regeneration prompt"
+          },
+          "resolution": {
+            "type": "string",
+            "enum": ["1024x1024", "1792x1024", "1024x1792"],
+            "description": "Optional resolution change"
+          }
+        },
+        "example": {
+          "visualizationId": "550e8400-e29b-41d4-a716-446655440003",
+          "customPromptAdditions": "Add more landscaping details, brighter lighting"
+        }
+      },
+      "response": {
+        "type": "object",
+        "required": ["newVisualizationId", "status", "backupPath"],
+        "properties": {
+          "newVisualizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of new ProjectVisualization record"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["completed", "failed"]
+          },
+          "localPath": {
+            "type": "string",
+            "description": "Path to new generated image"
+          },
+          "backupPath": {
+            "type": "string",
+            "description": "Path to backup of previous image (*.backup.png)"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": ["png", "jpeg", "webp"]
+          },
+          "widthPixels": {
+            "type": "integer"
+          },
+          "heightPixels": {
+            "type": "integer"
+          },
+          "errorMessage": {
+            "type": "string"
+          },
+          "generationTimeMs": {
+            "type": "integer"
+          }
+        },
+        "example": {
+          "newVisualizationId": "550e8400-e29b-41d4-a716-446655440004",
+          "status": "completed",
+          "localPath": "C:\\Users\\user\\AppData\\Local\\MicroVillas\\project-images\\550e8400-e29b-41d4-a716-446655440000\\project-site-plan-1736697700000.png",
+          "backupPath": "C:\\Users\\user\\AppData\\Local\\MicroVillas\\project-images\\550e8400-e29b-41d4-a716-446655440000\\project-site-plan-1736697600000.backup.png",
+          "filename": "project-site-plan-1736697700000.png",
+          "format": "png",
+          "widthPixels": 1024,
+          "heightPixels": 1024,
+          "generationTimeMs": 88000
+        }
+      },
+      "errors": [
+        {
+          "code": "VISUALIZATION_NOT_FOUND",
+          "message": "Visualization with specified ID does not exist"
+        },
+        {
+          "code": "BACKUP_FAILED",
+          "message": "Failed to create backup of previous image"
+        },
+        {
+          "code": "AI_API_ERROR",
+          "message": "Image generation API error"
+        },
+        {
+          "code": "FILE_SYSTEM_ERROR",
+          "message": "Failed to save new image to disk"
+        }
+      ],
+      "notes": [
+        "Previous image renamed with .backup.png extension",
+        "Backup persists until user explicitly confirms new image is acceptable",
+        "Database maintains link to both new and backup versions"
+      ]
+    },
+    "ai:confirm-regenerated-image": {
+      "description": "Confirm new regenerated image is acceptable (deletes backup)",
+      "handler": "ipcMain.handle",
+      "request": {
+        "type": "object",
+        "required": ["newVisualizationId"],
+        "properties": {
+          "newVisualizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of new regenerated image to confirm"
+          }
+        },
+        "example": {
+          "newVisualizationId": "550e8400-e29b-41d4-a716-446655440004"
+        }
+      },
+      "response": {
+        "type": "object",
+        "required": ["success"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "deletedBackupPath": {
+            "type": "string",
+            "description": "Path to backup file that was deleted"
+          },
+          "errorMessage": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "success": true,
+          "deletedBackupPath": "C:\\Users\\user\\AppData\\Local\\MicroVillas\\project-images\\550e8400-e29b-41d4-a716-446655440000\\project-site-plan-1736697600000.backup.png"
+        }
+      },
+      "errors": [
+        {
+          "code": "VISUALIZATION_NOT_FOUND",
+          "message": "New visualization with specified ID does not exist"
+        },
+        {
+          "code": "BACKUP_NOT_FOUND",
+          "message": "No backup found for this visualization"
+        },
+        {
+          "code": "FILE_SYSTEM_ERROR",
+          "message": "Failed to delete backup file"
+        }
+      ]
+    },
+    "ai:restore-backup-image": {
+      "description": "Restore previous backup image (reject regenerated version)",
+      "handler": "ipcMain.handle",
+      "request": {
+        "type": "object",
+        "required": ["newVisualizationId"],
+        "properties": {
+          "newVisualizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of regenerated image to reject"
+          }
+        },
+        "example": {
+          "newVisualizationId": "550e8400-e29b-41d4-a716-446655440004"
+        }
+      },
+      "response": {
+        "type": "object",
+        "required": ["success", "restoredVisualizationId"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "restoredVisualizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of restored previous visualization"
+          },
+          "restoredPath": {
+            "type": "string",
+            "description": "Path to restored image (backup renamed to original)"
+          },
+          "deletedPath": {
+            "type": "string",
+            "description": "Path to rejected new image (deleted)"
+          },
+          "errorMessage": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "success": true,
+          "restoredVisualizationId": "550e8400-e29b-41d4-a716-446655440003",
+          "restoredPath": "C:\\Users\\user\\AppData\\Local\\MicroVillas\\project-images\\550e8400-e29b-41d4-a716-446655440000\\project-site-plan-1736697600000.png",
+          "deletedPath": "C:\\Users\\user\\AppData\\Local\\MicroVillas\\project-images\\550e8400-e29b-41d4-a716-446655440000\\project-site-plan-1736697700000.png"
+        }
+      },
+      "errors": [
+        {
+          "code": "VISUALIZATION_NOT_FOUND",
+          "message": "New visualization with specified ID does not exist"
+        },
+        {
+          "code": "BACKUP_NOT_FOUND",
+          "message": "No backup found to restore"
+        },
+        {
+          "code": "FILE_SYSTEM_ERROR",
+          "message": "Failed to restore backup or delete new image"
+        },
+        {
+          "code": "DATABASE_ERROR",
+          "message": "Failed to update database records"
+        }
+      ]
+    },
+    "ai:get-project-visualizations": {
+      "description": "Get all visualizations for a project or specific subdivision plan",
+      "handler": "ipcMain.handle",
+      "request": {
+        "type": "object",
+        "required": ["projectId"],
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subdivisionPlanId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional filter by specific subdivision plan"
+          },
+          "viewType": {
+            "type": "string",
+            "enum": ["site-plan", "aerial", "context", "custom"],
+            "description": "Optional filter by view type"
+          }
+        },
+        "example": {
+          "projectId": "550e8400-e29b-41d4-a716-446655440000",
+          "subdivisionPlanId": "550e8400-e29b-41d4-a716-446655440002",
+          "viewType": "site-plan"
+        }
+      },
+      "response": {
+        "type": "object",
+        "required": ["visualizations"],
+        "properties": {
+          "visualizations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "projectId",
+                "viewType",
+                "filename",
+                "format",
+                "localPath",
+                "generatedAt",
+                "aiModel",
+                "isApproved",
+                "isFinal"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "projectId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "aiSubdivisionPlanId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "viewType": {
+                  "type": "string",
+                  "enum": ["site-plan", "aerial", "context", "custom"]
+                },
+                "filename": {
+                  "type": "string"
+                },
+                "format": {
+                  "type": "string",
+                  "enum": ["png", "jpeg", "webp"]
+                },
+                "sizeBytes": {
+                  "type": "integer"
+                },
+                "widthPixels": {
+                  "type": "integer"
+                },
+                "heightPixels": {
+                  "type": "integer"
+                },
+                "localPath": {
+                  "type": "string"
+                },
+                "thumbnailPath": {
+                  "type": "string"
+                },
+                "generatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "aiModel": {
+                  "type": "string"
+                },
+                "promptText": {
+                  "type": "string"
+                },
+                "caption": {
+                  "type": "string"
+                },
+                "isApproved": {
+                  "type": "boolean"
+                },
+                "isFinal": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "visualizations": [
+            {
+              "id": "550e8400-e29b-41d4-a716-446655440003",
+              "projectId": "550e8400-e29b-41d4-a716-446655440000",
+              "aiSubdivisionPlanId": "550e8400-e29b-41d4-a716-446655440002",
+              "viewType": "site-plan",
+              "filename": "project-site-plan-1736697600000.png",
+              "format": "png",
+              "sizeBytes": 524288,
+              "widthPixels": 1024,
+              "heightPixels": 1024,
+              "localPath": "C:\\Users\\user\\AppData\\Local\\MicroVillas\\project-images\\550e8400-e29b-41d4-a716-446655440000\\project-site-plan-1736697600000.png",
+              "generatedAt": "2026-01-12T15:45:00.000Z",
+              "aiModel": "gemini-3-pro-image-preview",
+              "promptText": "Professional architectural site plan, top-down 2D view...",
+              "isApproved": true,
+              "isFinal": true
+            }
+          ]
+        }
+      },
+      "errors": [
+        {
+          "code": "PROJECT_NOT_FOUND",
+          "message": "Project with specified ID does not exist"
+        },
+        {
+          "code": "DATABASE_ERROR",
+          "message": "Failed to query visualizations from database"
+        }
+      ]
+    }
+  },
+  "progressEvents": {
+    "ai:generation-progress": {
+      "description": "Progress event emitted during image generation (one-way, main → renderer)",
+      "channel": "event.sender.send",
+      "event": {
+        "type": "object",
+        "required": ["operationType", "status", "message"],
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": ["subdivision-plan", "image-generation"],
+            "description": "Type of AI operation in progress"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "started",
+              "retrying",
+              "processing",
+              "validating",
+              "completed",
+              "failed"
+            ],
+            "description": "Current status of operation"
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Retry attempt number (if retrying)"
+          },
+          "message": {
+            "type": "string",
+            "description": "User-friendly status message"
+          },
+          "progress": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Progress percentage (0-100)"
+          }
+        },
+        "example": {
+          "operationType": "image-generation",
+          "status": "processing",
+          "message": "Generating site plan image with Gemini...",
+          "progress": 60
+        }
+      }
+    }
+  },
+  "viewTypeDetails": {
+    "site-plan": {
+      "description": "Professional 2D architectural site plan (CAD-style)",
+      "promptTemplate": "Professional architectural site plan, top-down 2D view. Clean line work, measured dimensions labeled, property boundaries marked. Green landscaping between lots. Parking areas indicated. Professional CAD-style drawing. Black lines on white background. Scale bar included. North arrow. High detail, architectural precision.",
+      "recommendedResolution": "1024x1024",
+      "format": "png",
+      "aiModel": "gemini-3-pro-image-preview"
+    },
+    "aerial": {
+      "description": "Photorealistic aerial view at 45-degree angle",
+      "promptTemplate": "Aerial view photograph, 45-degree angle, {province}. Small modern houses. Blue swimming pool visible. Light gray paving. Green grass and tropical landscaping. Clear sky, daytime, drone photography style. Photorealistic, high resolution.",
+      "recommendedResolution": "1792x1024",
+      "format": "png",
+      "aiModel": "gemini-3-pro-image-preview or dall-e-3"
+    },
+    "context": {
+      "description": "Wide-angle marketing view showing subdivision in landscape",
+      "promptTemplate": "Wide-angle context view showing subdivision integrated into landscape. Modern tropical architecture. Lush vegetation. Blue sky. Professional real estate marketing image. Golden hour lighting.",
+      "recommendedResolution": "1792x1024",
+      "format": "png",
+      "aiModel": "gemini-3-pro-image-preview or dall-e-3"
+    }
+  },
+  "implementation": {
+    "mainProcess": "src/main/ipc-handlers.ts",
+    "preloadScript": "src/preload/index.ts",
+    "rendererAPI": "window.aiService",
+    "validation": "Zod schemas in src/shared/ai-contracts.ts",
+    "database": "src/main/storage.ts (better-sqlite3)",
+    "aiService": "src/main/ai-services/image-client.ts",
+    "imageStorage": "app.getPath('userData')/project-images/{projectId}/",
+    "namingConvention": "{projectName}-{viewType}-{timestamp}.png"
+  },
+  "examples": {
+    "basic-flow": {
+      "description": "Generate site plan image after approving subdivision plan",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Approve subdivision plan first",
+          "channel": "ai:approve-plan",
+          "request": {
+            "planId": "550e8400-e29b-41d4-a716-446655440002"
+          }
+        },
+        {
+          "step": 2,
+          "action": "Generate site plan image",
+          "channel": "ai:generate-site-plan-image",
+          "request": {
+            "projectId": "550e8400-e29b-41d4-a716-446655440000",
+            "subdivisionPlanId": "550e8400-e29b-41d4-a716-446655440002",
+            "viewType": "site-plan",
+            "resolution": "1024x1024"
+          }
+        },
+        {
+          "step": 3,
+          "action": "Listen for progress",
+          "channel": "ai:generation-progress",
+          "event": {
+            "operationType": "image-generation",
+            "status": "processing",
+            "message": "Generating image with AI...",
+            "progress": 50
+          }
+        },
+        {
+          "step": 4,
+          "action": "Receive completed image",
+          "response": {
+            "visualizationId": "550e8400-e29b-41d4-a716-446655440003",
+            "status": "completed",
+            "localPath": "C:\\Users\\user\\AppData\\Local\\MicroVillas\\project-images\\550e8400-e29b-41d4-a716-446655440000\\project-site-plan-1736697600000.png",
+            "format": "png"
+          }
+        }
+      ]
+    },
+    "regeneration-flow": {
+      "description": "Regenerate image with refinements and confirm acceptance",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Request regeneration",
+          "channel": "ai:regenerate-image",
+          "request": {
+            "visualizationId": "550e8400-e29b-41d4-a716-446655440003",
+            "customPromptAdditions": "Add more trees and landscaping"
+          }
+        },
+        {
+          "step": 2,
+          "action": "Receive new image (backup created)",
+          "response": {
+            "newVisualizationId": "550e8400-e29b-41d4-a716-446655440004",
+            "status": "completed",
+            "localPath": "...project-site-plan-1736697700000.png",
+            "backupPath": "...project-site-plan-1736697600000.backup.png"
+          }
+        },
+        {
+          "step": 3,
+          "action": "User reviews new image and confirms",
+          "channel": "ai:confirm-regenerated-image",
+          "request": {
+            "newVisualizationId": "550e8400-e29b-41d4-a716-446655440004"
+          }
+        },
+        {
+          "step": 4,
+          "action": "Backup deleted, new image becomes primary",
+          "response": {
+            "success": true,
+            "deletedBackupPath": "...project-site-plan-1736697600000.backup.png"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -24,58 +24,58 @@ const schema = {
   defaultCurrency: {
     type: 'string',
     enum: ['DOP', 'USD'],
-    default: 'USD'
+    default: 'USD',
   },
   defaultUnit: {
     type: 'string',
     enum: ['sqm', 'sqft'],
-    default: 'sqm'
+    default: 'sqm',
   },
   exchangeRate: {
     type: 'number',
     minimum: 0,
-    default: 58.50
+    default: 58.5,
   },
   recentProjects: {
     type: 'array',
     items: {
-      type: 'string'
+      type: 'string',
     },
-    default: []
+    default: [],
   },
   telemetry: {
     type: 'object',
     properties: {
       enabled: {
         type: 'boolean',
-        default: false
+        default: false,
       },
       enabledAt: {
-        type: 'string'
+        type: 'string',
       },
       disabledAt: {
-        type: 'string'
+        type: 'string',
       },
       hasLaunched: {
         type: 'boolean',
-        default: false
+        default: false,
       },
       events: {
         type: 'array',
-        default: []
+        default: [],
       },
       crashes: {
         type: 'array',
-        default: []
-      }
+        default: [],
+      },
     },
     default: {
       enabled: false,
       hasLaunched: false,
       events: [],
-      crashes: []
-    }
-  }
+      crashes: [],
+    },
+  },
 };
 
 const store = new Store<AppSettings>({ schema: schema as any });
@@ -89,7 +89,7 @@ export function addRecentProject(projectPath: string): void {
   const recent = store.get('recentProjects', []);
 
   // Remove if already exists
-  const filtered = recent.filter(p => p !== projectPath);
+  const filtered = recent.filter((p) => p !== projectPath);
 
   // Add to beginning
   filtered.unshift(projectPath);
@@ -121,7 +121,7 @@ export function clearRecentProjects(): void {
  */
 export function removeRecentProject(projectPath: string): void {
   const recent = store.get('recentProjects', []);
-  const filtered = recent.filter(p => p !== projectPath);
+  const filtered = recent.filter((p) => p !== projectPath);
   store.set('recentProjects', filtered);
 }
 

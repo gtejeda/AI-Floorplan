@@ -1,0 +1,233 @@
+.api-key-settings {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.api-key-settings__header {
+  margin-bottom: 2rem;
+}
+
+.api-key-settings__title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.api-key-settings__description {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.api-key-settings__section {
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.api-key-settings__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.api-key-settings__status {
+  font-weight: 400;
+}
+
+.status-indicator {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.status-indicator--unknown {
+  background-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.status-indicator--valid {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-indicator--invalid {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.api-key-settings__input-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.api-key-settings__input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: 'Courier New', Courier, monospace;
+  transition: all 0.2s;
+}
+
+.api-key-settings__input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.api-key-settings__input::placeholder {
+  font-family: inherit;
+}
+
+.api-key-settings__test-button {
+  padding: 0.75rem 1rem;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.api-key-settings__test-button:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.api-key-settings__test-button:active:not(:disabled) {
+  background-color: #e5e7eb;
+}
+
+.api-key-settings__test-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.api-key-settings__error {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  color: #dc2626;
+}
+
+.api-key-settings__help {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.api-key-settings__help a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.api-key-settings__help a:hover {
+  text-decoration: underline;
+}
+
+.api-key-settings__message {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.api-key-settings__message--success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.api-key-settings__message--error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.api-key-settings__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.api-key-settings__save-button {
+  padding: 0.75rem 1.5rem;
+  background-color: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 120px;
+}
+
+.api-key-settings__save-button:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.api-key-settings__save-button:active:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.api-key-settings__save-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: dark) {
+  .api-key-settings__title {
+    color: #f9fafb;
+  }
+
+  .api-key-settings__description {
+    color: #9ca3af;
+  }
+
+  .api-key-settings__section {
+    background-color: #111827;
+    border-color: #374151;
+  }
+
+  .api-key-settings__label {
+    color: #e5e7eb;
+  }
+
+  .api-key-settings__input {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+  }
+
+  .api-key-settings__input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+
+  .api-key-settings__test-button {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+  }
+
+  .api-key-settings__test-button:hover:not(:disabled) {
+    background-color: #374151;
+  }
+
+  .api-key-settings__help {
+    color: #9ca3af;
+  }
+}

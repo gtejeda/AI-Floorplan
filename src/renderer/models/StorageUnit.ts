@@ -16,5 +16,5 @@ export type StorageType = 'centralized' | 'individual-patios';
 export interface StorageUnit {
   type: StorageType;
   dedicatedStorageArea?: number; // square meters (if centralized)
-  description?: string;           // Optional description
+  description?: string; // Optional description
 }

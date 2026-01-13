@@ -27,6 +27,8 @@ export interface GenerateSubdivisionPlanRequest {
   socialClubPercent: number; // 10-30
   targetLotCount?: number; // optional guidance
   province?: string; // for context in prompt
+  count?: number; // number of alternative plans to generate (1-5, default: 1)
+  customPrompt?: string; // optional custom prompt to override the default
 }
 
 export const GenerateSubdivisionPlanRequestSchema = z.object({
@@ -37,20 +39,34 @@ export const GenerateSubdivisionPlanRequestSchema = z.object({
   landArea: z.number().positive(),
   socialClubPercent: z.number().int().min(10).max(30),
   targetLotCount: z.number().int().positive().optional(),
-  province: z.string().optional()
+  province: z.string().optional(),
+  count: z.number().int().min(1).max(5).optional().default(1),
+  customPrompt: z.string().max(10000).optional(),
 });
 
 /**
  * Response from subdivision plan generation
  */
 export interface GenerateSubdivisionPlanResponse {
-  planId: string; // UUID of created AISubdivisionPlan
-  status: 'completed' | 'failed';
-  plan?: SubdivisionPlan; // Full plan if successful
+  plans: Array<{
+    planId: string; // UUID of created AISubdivisionPlan
+    status: 'completed' | 'failed';
+    plan?: SubdivisionPlan; // Full plan if successful
+    validationStatus?: 'valid' | 'invalid' | 'warnings';
+    validationErrors?: string[];
+    validationWarnings?: string[];
+    errorMessage?: string; // If generation failed
+    tokensUsed?: number;
+    generationTimeMs?: number;
+  }>;
+  // For backward compatibility with single plan generation
+  planId?: string; // UUID of the first/only plan
+  status?: 'completed' | 'failed';
+  plan?: SubdivisionPlan;
   validationStatus?: 'valid' | 'invalid' | 'warnings';
   validationErrors?: string[];
   validationWarnings?: string[];
-  errorMessage?: string; // If generation failed
+  errorMessage?: string;
   tokensUsed?: number;
   generationTimeMs?: number;
 }
@@ -58,47 +74,53 @@ export interface GenerateSubdivisionPlanResponse {
 export const GenerateSubdivisionPlanResponseSchema = z.object({
   planId: z.string().uuid(),
   status: z.enum(['completed', 'failed']),
-  plan: z.object({
-    lotLayout: z.array(z.object({
-      lotNumber: z.number().int().positive(),
-      dimensions: z.object({
+  plan: z
+    .object({
+      lotLayout: z.array(
+        z.object({
+          lotNumber: z.number().int().positive(),
+          dimensions: z.object({
+            widthMeters: z.number().positive(),
+            lengthMeters: z.number().positive(),
+            areaSqm: z.number().positive(),
+          }),
+          position: z.object({
+            x: z.number(),
+            y: z.number(),
+          }),
+        })
+      ),
+      roadConfiguration: z.object({
         widthMeters: z.number().positive(),
-        lengthMeters: z.number().positive(),
-        areaSqm: z.number().positive()
+        totalAreaSqm: z.number().positive(),
+        layout: z.enum(['grid', 'perimeter', 'central-spine', 'loop']),
       }),
-      position: z.object({
-        x: z.number(),
-        y: z.number()
-      })
-    })),
-    roadConfiguration: z.object({
-      widthMeters: z.number().positive(),
-      totalAreaSqm: z.number().positive(),
-      layout: z.enum(['grid', 'perimeter', 'central-spine', 'loop'])
-    }),
-    amenityAreas: z.array(z.object({
-      type: z.enum(['social-club', 'parking', 'green-space', 'maintenance']),
-      areaSqm: z.number().positive(),
-      position: z.object({
-        x: z.number(),
-        y: z.number()
+      amenityAreas: z.array(
+        z.object({
+          type: z.enum(['social-club', 'parking', 'green-space', 'maintenance']),
+          areaSqm: z.number().positive(),
+          position: z.object({
+            x: z.number(),
+            y: z.number(),
+          }),
+          description: z.string().optional(),
+        })
+      ),
+      metrics: z.object({
+        totalLots: z.number().int().nonnegative(),
+        viableLots: z.number().int().nonnegative(),
+        invalidLots: z.array(z.number().int()),
+        averageLotSizeSqm: z.number().positive(),
+        landUtilizationPercent: z.number().min(0).max(100),
       }),
-      description: z.string().optional()
-    })),
-    metrics: z.object({
-      totalLots: z.number().int().nonnegative(),
-      viableLots: z.number().int().nonnegative(),
-      invalidLots: z.array(z.number().int()),
-      averageLotSizeSqm: z.number().positive(),
-      landUtilizationPercent: z.number().min(0).max(100)
     })
-  }).optional(),
+    .optional(),
   validationStatus: z.enum(['valid', 'invalid', 'warnings']).optional(),
   validationErrors: z.array(z.string()).optional(),
   validationWarnings: z.array(z.string()).optional(),
   errorMessage: z.string().optional(),
   tokensUsed: z.number().int().nonnegative().optional(),
-  generationTimeMs: z.number().int().positive().optional()
+  generationTimeMs: z.number().int().positive().optional(),
 });
 
 // SubdivisionPlan structure (matches data-model.md)
@@ -147,6 +169,45 @@ export interface SubdivisionMetrics {
 }
 
 // ============================================================================
+// SUBDIVISION PROMPT PREVIEW
+// ============================================================================
+
+/**
+ * Request to preview subdivision plan prompt
+ * Channel: 'ai:preview-subdivision-prompt'
+ */
+export interface PreviewSubdivisionPromptRequest {
+  landWidth: number; // meters
+  landLength: number; // meters
+  landArea: number; // sqm
+  socialClubPercent: number; // 10-30
+  targetLotCount?: number; // optional guidance
+  province?: string; // for context in prompt
+  strategy?: 'balanced' | 'maximize-lots' | 'larger-lots' | 'varied-amenities' | 'different-layout';
+}
+
+export const PreviewSubdivisionPromptRequestSchema = z.object({
+  landWidth: z.number().positive(),
+  landLength: z.number().positive(),
+  landArea: z.number().positive(),
+  socialClubPercent: z.number().int().min(10).max(30),
+  targetLotCount: z.number().int().positive().optional(),
+  province: z.string().optional(),
+  strategy: z.enum(['balanced', 'maximize-lots', 'larger-lots', 'varied-amenities', 'different-layout']).optional(),
+});
+
+/**
+ * Response from prompt preview
+ */
+export interface PreviewSubdivisionPromptResponse {
+  prompt: string;
+}
+
+export const PreviewSubdivisionPromptResponseSchema = z.object({
+  prompt: z.string(),
+});
+
+// ============================================================================
 // IMAGE GENERATION
 // ============================================================================
 
@@ -159,7 +220,9 @@ export interface GenerateSitePlanImageRequest {
   subdivisionPlanId: string; // Must be approved plan
   viewType: 'site-plan' | 'aerial' | 'context';
   resolution?: '1024x1024' | '1792x1024' | '1024x1792';
-  customPromptAdditions?: string; // User refinements
+  customPromptAdditions?: string; // User refinements (added to base prompt)
+  fullCustomPrompt?: string; // Complete replacement prompt
+  referenceImagePath?: string; // Path to site plan image (REQUIRED for aerial/context views)
 }
 
 export const GenerateSitePlanImageRequestSchema = z.object({
@@ -167,7 +230,9 @@ export const GenerateSitePlanImageRequestSchema = z.object({
   subdivisionPlanId: z.string().uuid(),
   viewType: z.enum(['site-plan', 'aerial', 'context']),
   resolution: z.enum(['1024x1024', '1792x1024', '1024x1792']).optional(),
-  customPromptAdditions: z.string().max(500).optional()
+  customPromptAdditions: z.string().max(500).optional(),
+  fullCustomPrompt: z.string().max(5000).optional(),
+  referenceImagePath: z.string().optional(), // Path to site plan image (required for aerial/context)
 });
 
 /**
@@ -194,7 +259,7 @@ export const GenerateSitePlanImageResponseSchema = z.object({
   widthPixels: z.number().int().positive().optional(),
   heightPixels: z.number().int().positive().optional(),
   errorMessage: z.string().optional(),
-  generationTimeMs: z.number().int().positive().optional()
+  generationTimeMs: z.number().int().positive().optional(),
 });
 
 // ============================================================================
@@ -210,7 +275,7 @@ export interface ApprovePlanRequest {
 }
 
 export const ApprovePlanRequestSchema = z.object({
-  planId: z.string().uuid()
+  planId: z.string().uuid(),
 });
 
 /**
@@ -227,7 +292,7 @@ export const ApprovePlanResponseSchema = z.object({
   success: z.boolean(),
   planId: z.string().uuid(),
   approvedAt: z.string().datetime(),
-  errorMessage: z.string().optional()
+  errorMessage: z.string().optional(),
 });
 
 // ============================================================================
@@ -245,7 +310,7 @@ export interface RejectPlanRequest {
 
 export const RejectPlanRequestSchema = z.object({
   planId: z.string().uuid(),
-  reason: z.string().max(500).optional()
+  reason: z.string().max(500).optional(),
 });
 
 /**
@@ -260,7 +325,7 @@ export interface RejectPlanResponse {
 export const RejectPlanResponseSchema = z.object({
   success: z.boolean(),
   planId: z.string().uuid(),
-  errorMessage: z.string().optional()
+  errorMessage: z.string().optional(),
 });
 
 // ============================================================================
@@ -282,7 +347,7 @@ export const GetGenerationHistoryRequestSchema = z.object({
   projectId: z.string().uuid(),
   limit: z.number().int().positive().max(100).optional(),
   offset: z.number().int().nonnegative().optional(),
-  includeRejected: z.boolean().optional()
+  includeRejected: z.boolean().optional(),
 });
 
 /**
@@ -294,17 +359,19 @@ export interface GetGenerationHistoryResponse {
 }
 
 export const GetGenerationHistoryResponseSchema = z.object({
-  plans: z.array(z.object({
-    id: z.string().uuid(),
-    generatedAt: z.string().datetime(),
-    generationStatus: z.enum(['pending', 'completed', 'failed', 'rejected']),
-    validationStatus: z.enum(['valid', 'invalid', 'warnings']),
-    approvedByUser: z.boolean(),
-    viableLots: z.number().int().nonnegative(),
-    totalLots: z.number().int().nonnegative(),
-    landUtilizationPercent: z.number().min(0).max(100)
-  })),
-  total: z.number().int().nonnegative()
+  plans: z.array(
+    z.object({
+      id: z.string().uuid(),
+      generatedAt: z.string().datetime(),
+      generationStatus: z.enum(['pending', 'completed', 'failed', 'rejected']),
+      validationStatus: z.enum(['valid', 'invalid', 'warnings']),
+      approvedByUser: z.boolean(),
+      viableLots: z.number().int().nonnegative(),
+      totalLots: z.number().int().nonnegative(),
+      landUtilizationPercent: z.number().min(0).max(100),
+    })
+  ),
+  total: z.number().int().nonnegative(),
 });
 
 export interface AISubdivisionPlanSummary {
@@ -319,27 +386,128 @@ export interface AISubdivisionPlanSummary {
 }
 
 // ============================================================================
+// ARCHIVED PLANS MANAGEMENT
+// ============================================================================
+
+/**
+ * Request to get archived subdivision plans
+ * Channel: 'ai:get-archived-plans'
+ */
+export interface GetArchivedPlansRequest {
+  projectId: string;
+  limit?: number; // Default: 20
+  offset?: number; // Default: 0
+}
+
+export const GetArchivedPlansRequestSchema = z.object({
+  projectId: z.string().uuid(),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+  offset: z.number().int().nonnegative().optional().default(0),
+});
+
+/**
+ * Response with archived plans
+ */
+export interface GetArchivedPlansResponse {
+  plans: AISubdivisionPlanSummary[];
+  total: number;
+}
+
+export const GetArchivedPlansResponseSchema = z.object({
+  plans: z.array(
+    z.object({
+      id: z.string().uuid(),
+      generatedAt: z.string().datetime(),
+      generationStatus: z.enum(['pending', 'completed', 'failed', 'rejected']),
+      validationStatus: z.enum(['valid', 'invalid', 'warnings']),
+      approvedByUser: z.boolean(),
+      viableLots: z.number().int().nonnegative(),
+      totalLots: z.number().int().nonnegative(),
+      landUtilizationPercent: z.number().min(0).max(100),
+    })
+  ),
+  total: z.number().int().nonnegative(),
+});
+
+/**
+ * Request to switch to an archived plan (activate it)
+ * Channel: 'ai:switch-to-archived-plan'
+ */
+export interface SwitchToArchivedPlanRequest {
+  planId: string;
+  projectId: string;
+}
+
+export const SwitchToArchivedPlanRequestSchema = z.object({
+  planId: z.string().uuid(),
+  projectId: z.string().uuid(),
+});
+
+/**
+ * Response after switching to archived plan
+ */
+export interface SwitchToArchivedPlanResponse {
+  success: boolean;
+  planId: string;
+  activatedAt: string; // ISO 8601
+  errorMessage?: string;
+}
+
+export const SwitchToArchivedPlanResponseSchema = z.object({
+  success: z.boolean(),
+  planId: z.string().uuid(),
+  activatedAt: z.string().datetime(),
+  errorMessage: z.string().optional(),
+});
+
+// ============================================================================
 // PROGRESS EVENTS (Renderer → Main communication)
 // ============================================================================
 
 /**
- * Progress event emitted during AI operations
+ * Progress event emitted during AI subdivision plan generation
  * Sent via event.sender.send('ai:generation-progress', data)
  */
 export interface AIGenerationProgressEvent {
-  operationType: 'subdivision-plan' | 'image-generation';
-  status: 'started' | 'retrying' | 'processing' | 'validating' | 'completed' | 'failed';
-  attempt?: number; // Retry attempt number
+  planIndex: number; // Current plan being generated (1-based)
+  totalPlans: number; // Total number of plans to generate
+  status: 'generating' | 'completed' | 'failed'; // Current plan status
   message: string; // User-friendly status message
-  progress?: number; // 0-100 percentage (if available)
+  strategy?: string; // Generation strategy (e.g., 'maximize-lots')
+  planId?: string; // Plan ID (when completed)
+  generationTimeMs?: number; // Generation time in milliseconds (when completed)
+  errorMessage?: string; // Error message (when failed)
 }
 
 export const AIGenerationProgressEventSchema = z.object({
-  operationType: z.enum(['subdivision-plan', 'image-generation']),
-  status: z.enum(['started', 'retrying', 'processing', 'validating', 'completed', 'failed']),
-  attempt: z.number().int().positive().optional(),
+  planIndex: z.number().int().positive(),
+  totalPlans: z.number().int().positive(),
+  status: z.enum(['generating', 'completed', 'failed']),
   message: z.string(),
-  progress: z.number().min(0).max(100).optional()
+  strategy: z.string().optional(),
+  planId: z.string().optional(),
+  generationTimeMs: z.number().int().positive().optional(),
+  errorMessage: z.string().optional(),
+});
+
+/**
+ * Streaming progress event emitted during AI content generation
+ * Sent via event.sender.send('ai:streaming-progress', data)
+ */
+export interface AIStreamingProgressEvent {
+  planIndex: number; // Current plan being generated (1-based)
+  totalPlans: number; // Total number of plans to generate
+  chunkLength: number; // Length of current chunk
+  accumulatedLength: number; // Total accumulated length
+  message: string; // User-friendly status message
+}
+
+export const AIStreamingProgressEventSchema = z.object({
+  planIndex: z.number().int().positive(),
+  totalPlans: z.number().int().positive(),
+  chunkLength: z.number().int().nonnegative(),
+  accumulatedLength: z.number().int().nonnegative(),
+  message: z.string(),
 });
 
 // ============================================================================
@@ -355,7 +523,7 @@ export interface GetSessionCostRequest {
 }
 
 export const GetSessionCostRequestSchema = z.object({
-  projectId: z.string().uuid()
+  projectId: z.string().uuid(),
 });
 
 /**
@@ -376,7 +544,7 @@ export const GetSessionCostResponseSchema = z.object({
   imageCalls: z.number().int().nonnegative(),
   totalTokensUsed: z.number().int().nonnegative(),
   estimatedCostUsd: z.number().nonnegative(),
-  remainingBudget: z.number().nonnegative().optional()
+  remainingBudget: z.number().nonnegative().optional(),
 });
 
 // ============================================================================
@@ -392,7 +560,7 @@ export interface GetAISettingsRequest {
 }
 
 export const GetAISettingsRequestSchema = z.object({
-  projectId: z.string().uuid().optional()
+  projectId: z.string().uuid().optional(),
 });
 
 /**
@@ -430,8 +598,8 @@ export const GetAISettingsResponseSchema = z.object({
     imageStyle: z.string().optional(),
     includeContextLandmarks: z.boolean(),
     enableCostWarnings: z.boolean(),
-    maxCostPerSessionUsd: z.number().positive().optional()
-  })
+    maxCostPerSessionUsd: z.number().positive().optional(),
+  }),
 });
 
 /**
@@ -455,8 +623,8 @@ export const UpdateAISettingsRequestSchema = z.object({
     imageStyle: z.string().optional(),
     includeContextLandmarks: z.boolean().optional(),
     enableCostWarnings: z.boolean().optional(),
-    maxCostPerSessionUsd: z.number().positive().optional()
-  })
+    maxCostPerSessionUsd: z.number().positive().optional(),
+  }),
 });
 
 /**
@@ -471,7 +639,7 @@ export interface UpdateAISettingsResponse {
 export const UpdateAISettingsResponseSchema = z.object({
   success: z.boolean(),
   settings: GetAISettingsResponseSchema.shape.settings.optional(),
-  errorMessage: z.string().optional()
+  errorMessage: z.string().optional(),
 });
 
 // ============================================================================
@@ -489,7 +657,7 @@ export interface SetAPIKeyRequest {
 
 export const SetAPIKeyRequestSchema = z.object({
   service: z.enum(['gemini', 'image']),
-  apiKey: z.string().min(1)
+  apiKey: z.string().min(1),
 });
 
 /**
@@ -502,7 +670,7 @@ export interface SetAPIKeyResponse {
 
 export const SetAPIKeyResponseSchema = z.object({
   success: z.boolean(),
-  errorMessage: z.string().optional()
+  errorMessage: z.string().optional(),
 });
 
 /**
@@ -514,7 +682,7 @@ export interface TestAPIKeyRequest {
 }
 
 export const TestAPIKeyRequestSchema = z.object({
-  service: z.enum(['gemini', 'image'])
+  service: z.enum(['gemini', 'image']),
 });
 
 /**
@@ -527,7 +695,7 @@ export interface TestAPIKeyResponse {
 
 export const TestAPIKeyResponseSchema = z.object({
   valid: z.boolean(),
-  errorMessage: z.string().optional()
+  errorMessage: z.string().optional(),
 });
 
 // ============================================================================
@@ -544,6 +712,11 @@ export interface AIServiceAPI {
     request: GenerateSubdivisionPlanRequest
   ): Promise<GenerateSubdivisionPlanResponse>;
 
+  // Subdivision prompt preview
+  previewSubdivisionPrompt(
+    request: PreviewSubdivisionPromptRequest
+  ): Promise<PreviewSubdivisionPromptResponse>;
+
   // Image generation
   generateSitePlanImage(
     request: GenerateSitePlanImageRequest
@@ -554,9 +727,11 @@ export interface AIServiceAPI {
   rejectPlan(request: RejectPlanRequest): Promise<RejectPlanResponse>;
 
   // History and tracking
-  getGenerationHistory(
-    request: GetGenerationHistoryRequest
-  ): Promise<GetGenerationHistoryResponse>;
+  getGenerationHistory(request: GetGenerationHistoryRequest): Promise<GetGenerationHistoryResponse>;
+
+  getArchivedPlans(request: GetArchivedPlansRequest): Promise<GetArchivedPlansResponse>;
+
+  switchToArchivedPlan(request: SwitchToArchivedPlanRequest): Promise<SwitchToArchivedPlanResponse>;
 
   getSessionCost(request: GetSessionCostRequest): Promise<GetSessionCostResponse>;
 
@@ -569,9 +744,7 @@ export interface AIServiceAPI {
   testAPIKey(request: TestAPIKeyRequest): Promise<TestAPIKeyResponse>;
 
   // Event listeners (for progress updates)
-  onGenerationProgress(
-    callback: (event: AIGenerationProgressEvent) => void
-  ): () => void; // Returns unsubscribe function
+  onGenerationProgress(callback: (event: AIGenerationProgressEvent) => void): () => void; // Returns unsubscribe function
 }
 
 // ============================================================================
@@ -582,10 +755,7 @@ export interface AIServiceAPI {
  * Validates IPC request against schema
  * Throws ZodError if validation fails
  */
-export function validateIPCRequest<T>(
-  data: unknown,
-  schema: z.ZodSchema<T>
-): T {
+export function validateIPCRequest<T>(data: unknown, schema: z.ZodSchema<T>): T {
   return schema.parse(data);
 }
 
@@ -603,3 +773,82 @@ export function safeValidateIPCResponse<T>(
   }
   return { success: false, error: result.error };
 }
+
+// ============================================================================
+// EXAMPLE USAGE IN MAIN PROCESS
+// ============================================================================
+
+/**
+ * Example IPC handler registration in main process
+ *
+ * ```typescript
+ * import { ipcMain } from 'electron';
+ * import {
+ *   GenerateSubdivisionPlanRequest,
+ *   GenerateSubdivisionPlanRequestSchema,
+ *   GenerateSubdivisionPlanResponse,
+ *   validateIPCRequest
+ * } from './contracts/ipc-subdivision-ai';
+ *
+ * ipcMain.handle('ai:generate-subdivision-plan', async (event, rawRequest) => {
+ *   // Validate request
+ *   const request = validateIPCRequest(rawRequest, GenerateSubdivisionPlanRequestSchema);
+ *
+ *   // Execute AI generation
+ *   const response: GenerateSubdivisionPlanResponse = await generatePlan(request);
+ *
+ *   return response;
+ * });
+ * ```
+ */
+
+// ============================================================================
+// EXAMPLE USAGE IN PRELOAD SCRIPT
+// ============================================================================
+
+/**
+ * Example contextBridge exposure in preload script
+ *
+ * ```typescript
+ * import { contextBridge, ipcRenderer } from 'electron';
+ * import { AIServiceAPI } from './contracts/ipc-subdivision-ai';
+ *
+ * contextBridge.exposeInMainWorld('aiService', {
+ *   generateSubdivisionPlan: (request) =>
+ *     ipcRenderer.invoke('ai:generate-subdivision-plan', request),
+ *
+ *   generateSitePlanImage: (request) =>
+ *     ipcRenderer.invoke('ai:generate-site-plan-image', request),
+ *
+ *   approvePlan: (request) =>
+ *     ipcRenderer.invoke('ai:approve-plan', request),
+ *
+ *   rejectPlan: (request) =>
+ *     ipcRenderer.invoke('ai:reject-plan', request),
+ *
+ *   getGenerationHistory: (request) =>
+ *     ipcRenderer.invoke('ai:get-generation-history', request),
+ *
+ *   getSessionCost: (request) =>
+ *     ipcRenderer.invoke('ai:get-session-cost', request),
+ *
+ *   getSettings: (request) =>
+ *     ipcRenderer.invoke('ai:get-settings', request),
+ *
+ *   updateSettings: (request) =>
+ *     ipcRenderer.invoke('ai:update-settings', request),
+ *
+ *   setAPIKey: (request) =>
+ *     ipcRenderer.invoke('ai:set-api-key', request),
+ *
+ *   testAPIKey: (request) =>
+ *     ipcRenderer.invoke('ai:test-api-key', request),
+ *
+ *   onGenerationProgress: (callback) => {
+ *     const subscription = (_event, data) => callback(data);
+ *     ipcRenderer.on('ai:generation-progress', subscription);
+ *     return () => ipcRenderer.removeListener('ai:generation-progress', subscription);
+ *   }
+ * } as AIServiceAPI);
+ * ```
+ */

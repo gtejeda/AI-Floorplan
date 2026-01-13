@@ -23,7 +23,9 @@ export const useKeyboardShortcuts = (
 
     const handleKeyDown = (event: KeyboardEvent) => {
       for (const shortcut of shortcuts) {
-        const ctrlMatch = shortcut.ctrl ? (event.ctrlKey || event.metaKey) : !event.ctrlKey && !event.metaKey;
+        const ctrlMatch = shortcut.ctrl
+          ? event.ctrlKey || event.metaKey
+          : !event.ctrlKey && !event.metaKey;
         const altMatch = shortcut.alt ? event.altKey : !event.altKey;
         const shiftMatch = shortcut.shift ? event.shiftKey : !event.shiftKey;
         const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase();
@@ -56,7 +58,7 @@ export const globalShortcuts: KeyboardShortcut[] = [
       const event = new CustomEvent('app:save');
       window.dispatchEvent(event);
     },
-    description: 'Save current project'
+    description: 'Save current project',
   },
   {
     key: 'e',
@@ -65,7 +67,7 @@ export const globalShortcuts: KeyboardShortcut[] = [
       const event = new CustomEvent('app:export');
       window.dispatchEvent(event);
     },
-    description: 'Export project'
+    description: 'Export project',
   },
   {
     key: 'i',
@@ -74,7 +76,7 @@ export const globalShortcuts: KeyboardShortcut[] = [
       const event = new CustomEvent('app:import');
       window.dispatchEvent(event);
     },
-    description: 'Import project'
+    description: 'Import project',
   },
   {
     key: 'n',
@@ -83,7 +85,7 @@ export const globalShortcuts: KeyboardShortcut[] = [
       const event = new CustomEvent('app:new');
       window.dispatchEvent(event);
     },
-    description: 'New project'
+    description: 'New project',
   },
   {
     key: 'o',
@@ -92,7 +94,7 @@ export const globalShortcuts: KeyboardShortcut[] = [
       const event = new CustomEvent('app:open');
       window.dispatchEvent(event);
     },
-    description: 'Open project'
+    description: 'Open project',
   },
   {
     key: ',',
@@ -101,7 +103,7 @@ export const globalShortcuts: KeyboardShortcut[] = [
       const event = new CustomEvent('app:settings');
       window.dispatchEvent(event);
     },
-    description: 'Open settings'
+    description: 'Open settings',
   },
   {
     key: '/',
@@ -110,8 +112,8 @@ export const globalShortcuts: KeyboardShortcut[] = [
       const event = new CustomEvent('app:help');
       window.dispatchEvent(event);
     },
-    description: 'Show help'
-  }
+    description: 'Show help',
+  },
 ];
 
 export default useKeyboardShortcuts;

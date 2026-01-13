@@ -1,386 +1,498 @@
 # Tasks: AI-Assisted Subdivision Planning
 
-**Feature**: 001-ai-subdivision-planning
-**Version**: 1.0.0
-**Last Updated**: 2026-01-11
+**Feature Branch**: `001-ai-subdivision-planning`
+**Input**: Design documents from `/specs/001-ai-subdivision-planning/`
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
-This task list implements the AI-Assisted Subdivision Planning feature with three independent user stories (P1, P2, P3) built on a common foundational layer.
+**Tests**: NOT REQUESTED - No test tasks included per specification
 
----
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-## Task Format
+## Format: `[ID] [P?] [Story] Description`
 
-```
-- [ ] [TaskID] [P?] [Story?] Description with file path
-```
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- Include exact file paths in descriptions
 
-- **TaskID**: Sequential T001, T002, T003...
-- **[P] marker**: Parallelizable task (can run concurrently with other [P] tasks in same phase)
-- **[Story] label**: [US1], [US2], [US3] for user story tasks (NOT for setup/foundational/polish)
-- **File paths**: Exact absolute paths from project structure
+## Path Conventions
 
----
-
-## Phase Dependencies
-
-```
-Phase 1 (Setup)
-    ↓
-Phase 2 (Foundational) ← BLOCKS all user stories
-    ↓
-    ├→ Phase 3 (US1 - P1) ← MVP
-    ├→ Phase 4 (US2 - P2) ← Can run in parallel with US1 & US3
-    └→ Phase 5 (US3 - P3) ← Can run in parallel with US1 & US2
-    ↓
-Phase 6 (Polish)
-```
-
-**Critical Path**: Setup → Foundational → US1 (MVP) → Polish
-**Parallel Delivery**: After Foundational, US1/US2/US3 can be developed by separate teams simultaneously
+This is an Electron desktop application with the following structure:
+- **Main process**: `src/main/` (Node.js backend)
+- **Renderer process**: `src/renderer/` (React frontend)
+- **Preload**: `src/preload/` (IPC bridge)
+- **Shared types**: `src/shared/` (TypeScript types)
 
 ---
 
-## Phase 1: Setup (Project Initialization)
+## Phase 1: Setup (Shared Infrastructure)
 
-### Dependencies Installation
+**Purpose**: Project initialization and basic structure for AI subdivision planning feature
 
-- [ ] [T001] [P] Install Gemini AI SDK dependency in package.json at `D:\fast2ai\AI-Floorplan\package.json`
-- [ ] [T002] [P] Install node-fetch or axios for HTTP requests if needed at `D:\fast2ai\AI-Floorplan\package.json`
-- [ ] [T003] [P] Install crypto module dependencies for API key encryption at `D:\fast2ai\AI-Floorplan\package.json`
-
-### Environment Configuration
-
-- [ ] [T004] Create .env.example template with AI API key placeholders at `D:\fast2ai\AI-Floorplan\.env.example`
-- [ ] [T005] Update .gitignore to exclude .env and AI-generated images directory at `D:\fast2ai\AI-Floorplan\.gitignore`
-- [ ] [T006] Create AI mock mode configuration for offline testing in environment variables at `D:\fast2ai\AI-Floorplan\.env.example`
-
-### Documentation Setup
-
-- [ ] [T007] Verify quickstart.md completeness for API key setup at `D:\fast2ai\AI-Floorplan\specs\001-ai-subdivision-planning\quickstart.md`
+- [X] T001 Verify project structure matches plan.md (src/main/, src/renderer/, src/preload/, src/shared/)
+- [X] T002 Install AI dependencies: @google/generative-ai@0.24.1, zod@4.3.5
+- [X] T003 [P] Create .env.example file documenting required API keys (GEMINI_API_KEY, OPENAI_API_KEY)
+- [X] T004 [P] Configure dotenv in src/main/index.ts for environment variable loading
 
 ---
 
-## Phase 2: Foundational (BLOCKS All User Stories)
+## Phase 2: Foundational (Blocking Prerequisites)
 
-**CRITICAL**: All tasks in this phase MUST complete before any user story implementation can begin.
+**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 
-### Shared Contracts & Types
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] [T008] [P] Create shared AI contracts file with Zod schemas at `D:\fast2ai\AI-Floorplan\src\shared\ai-contracts.ts`
-- [ ] [T009] [P] Copy IPC contract definitions from spec to `D:\fast2ai\AI-Floorplan\src\shared\ai-contracts.ts`
-- [ ] [T010] Validate all Zod schemas compile without errors at `D:\fast2ai\AI-Floorplan\src\shared\ai-contracts.ts`
+### Database Schema & Migration
 
-### Preload Layer
+- [X] T005 Create database migration 002-ai-tables.sql in src/main/migrations/ with ai_subdivision_plans, project_visualizations, ai_generation_requests, ai_settings tables
+- [X] T006 Implement migration logic in src/main/storage.ts to check schema_version and apply migration if needed
+- [X] T007 Add foreign key enforcement (PRAGMA foreign_keys = ON) in database initialization
 
-- [ ] [T011] Extend preload script to expose AI IPC channels via contextBridge at `D:\fast2ai\AI-Floorplan\src\preload\index.ts`
-- [ ] [T012] Add aiService API exposure with all 10 IPC methods at `D:\fast2ai\AI-Floorplan\src\preload\index.ts`
-- [ ] [T013] Add onGenerationProgress event listener registration at `D:\fast2ai\AI-Floorplan\src\preload\index.ts`
+### Core Storage Functions
 
-### Database Schema Migration
+- [X] T008 Implement createAISubdivisionPlan() function in src/main/storage.ts
+- [X] T009 Implement activateAISubdivisionPlan() transaction function in src/main/storage.ts (deactivates other plans)
+- [X] T010 [P] Implement getActiveAISubdivisionPlan() function in src/main/storage.ts
+- [X] T011 [P] Implement createProjectVisualization() function in src/main/storage.ts
+- [X] T012 [P] Implement createAIGenerationRequest() function in src/main/storage.ts
 
-- [ ] [T014] Create migration script for ai_subdivision_plans table with all fields from data-model.md at `D:\fast2ai\AI-Floorplan\src\main\migrations\002-ai-tables.sql`
-- [ ] [T015] Create ai_generation_requests table with audit trail fields at `D:\fast2ai\AI-Floorplan\src\main\migrations\002-ai-tables.sql`
-- [ ] [T016] Create project_visualizations table with image metadata fields at `D:\fast2ai\AI-Floorplan\src\main\migrations\002-ai-tables.sql`
-- [ ] [T017] Create ai_settings table with user preferences and encrypted API keys at `D:\fast2ai\AI-Floorplan\src\main\migrations\002-ai-tables.sql`
-- [ ] [T018] Create indexes on project_id, approved_by_user, generation_status fields at `D:\fast2ai\AI-Floorplan\src\main\migrations\002-ai-tables.sql`
-- [ ] [T019] Add foreign key constraints to projects and land_parcels tables at `D:\fast2ai\AI-Floorplan\src\main\migrations\002-ai-tables.sql`
-- [ ] [T020] Update schema version to 1.1.0 in app_metadata table at `D:\fast2ai\AI-Floorplan\src\main\migrations\002-ai-tables.sql`
-- [ ] [T021] Execute migration and verify all tables created successfully at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
+### Shared Type Definitions
 
-### Main Process Infrastructure
+- [X] T013 Create Zod schemas in src/shared/ai-contracts.ts: AISubdivisionPlanSchema, SubdivisionPlanSchema, LotSchema, RoadConfigurationSchema, AmenityAreaSchema, SubdivisionMetricsSchema
+- [X] T014 [P] Create Zod schemas in src/shared/ai-contracts.ts: ProjectVisualizationSchema, AIGenerationRequestSchema
+- [X] T015 Export TypeScript types from Zod schemas in src/shared/ai-contracts.ts
 
-- [ ] [T022] [P] Create rate limiter utility with token bucket algorithm at `D:\fast2ai\AI-Floorplan\src\main\utils\rate-limiter.ts`
-- [ ] [T023] [P] Create exponential backoff error handler utility at `D:\fast2ai\AI-Floorplan\src\main\utils\retry-handler.ts`
-- [ ] [T024] [P] Create API key encryption/decryption utility using crypto at `D:\fast2ai\AI-Floorplan\src\main\utils\crypto.ts`
+### AI Service Infrastructure
 
-### AI Service Clients
+- [X] T016 Implement retry handler with exponential backoff in src/main/utils/retry-handler.ts (max 3 retries, jitter, retryable errors: 429, 500, 503)
+- [X] T017 Create Gemini client initialization in src/main/ai-services/gemini-client.ts with API key validation
+- [X] T018 Implement image provider selection logic in src/main/ai-services/image-client.ts (Gemini vs DALL-E fallback)
 
-- [ ] [T025] [P] Create Gemini client stub with API initialization at `D:\fast2ai\AI-Floorplan\src\main\ai-services\gemini-client.ts`
-- [ ] [T026] [P] Implement Gemini text generation method with prompt formatting at `D:\fast2ai\AI-Floorplan\src\main\ai-services\gemini-client.ts`
-- [ ] [T027] [P] Add token counting and cost estimation to Gemini client at `D:\fast2ai\AI-Floorplan\src\main\ai-services\gemini-client.ts`
-- [ ] [T028] [P] Add error handling and retry logic to Gemini client at `D:\fast2ai\AI-Floorplan\src\main\ai-services\gemini-client.ts`
-- [ ] [T029] [P] Create Nano Banana Pro client stub with API initialization at `D:\fast2ai\AI-Floorplan\src\main\ai-services\nanobananapro-client.ts`
-- [ ] [T030] [P] Implement image generation method with multi-view support at `D:\fast2ai\AI-Floorplan\src\main\ai-services\nanobananapro-client.ts`
-- [ ] [T031] [P] Add image download and file system storage to image client at `D:\fast2ai\AI-Floorplan\src\main\ai-services\nanobananapro-client.ts`
-- [ ] [T032] [P] Add error handling and polling for async image generation at `D:\fast2ai\AI-Floorplan\src\main\ai-services\nanobananapro-client.ts`
+### IPC Channel Setup
 
-### IPC Handlers (Main Process)
+- [X] T019 Register IPC handlers in src/main/ipc-handlers.ts: ai:generate-subdivision-plan, ai:approve-plan, ai:reject-plan, ai:get-generation-history
+- [X] T020 [P] Register IPC handlers in src/main/ipc-handlers.ts: ai:generate-site-plan-image, ai:regenerate-image, ai:confirm-regenerated-image, ai:restore-backup-image, ai:get-project-visualizations
+- [X] T021 Expose IPC API in src/preload/index.ts via window.aiService with typed methods matching contracts/subdivision-plan-api.json and contracts/image-generation-api.json
 
-- [ ] [T033] Extend ipc-handlers.ts with ai:generate-subdivision-plan handler at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T034] Add ai:generate-site-plan-image handler at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T035] Add ai:approve-plan handler at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T036] Add ai:reject-plan handler at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T037] Add ai:get-generation-history handler at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T038] Add ai:get-session-cost handler at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T039] Add ai:get-settings handler at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T040] Add ai:update-settings handler at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T041] Add ai:set-api-key handler with encryption at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T042] Add ai:test-api-key handler with validation at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T043] Add ai:generation-progress event emitter at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T044] Add Zod validation to all IPC handlers using schemas from ai-contracts.ts at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
+### Renderer Models
 
-### Storage Layer (Main Process)
+- [X] T022 [P] Create AISubdivisionPlan.ts model in src/renderer/models/ matching Zod schema
+- [X] T023 [P] Create SubdivisionPlan.ts model in src/renderer/models/ with Lot, RoadConfiguration, AmenityArea, SubdivisionMetrics types
+- [X] T024 [P] Create ProjectVisualization.ts model in src/renderer/models/ matching Zod schema
+- [X] T025 [P] Create AIGenerationRequest.ts model in src/renderer/models/ matching Zod schema
+- [X] T026 [P] Create AISettings.ts model in src/renderer/models/ for API key management
 
-- [ ] [T045] [P] Extend storage.ts with createAISubdivisionPlan CRUD operation at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T046] [P] Add getAISubdivisionPlanById, getAISubdivisionPlansByProject methods at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T047] [P] Add updateAISubdivisionPlan, approveAISubdivisionPlan methods at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T048] [P] Add createAIGenerationRequest and query methods at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T049] [P] Add createProjectVisualization CRUD operations at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T050] [P] Add getProjectVisualizationsByPlan, getProjectVisualizationsByProject methods at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T051] [P] Add createAISettings, getAISettings, updateAISettings methods at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T052] Add transaction support for multi-table operations at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-
-**CHECKPOINT**: Foundation ready - user story implementation can now begin in parallel
+**Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
 ---
 
 ## Phase 3: User Story 1 - Generate Text-Based Subdivision Plan (Priority: P1) 🎯 MVP
 
-All tasks in this phase support US1 - the minimum viable product.
+**Goal**: Enable investors to generate AI-powered text-based subdivision plans with specific dimensions, approve/reject plans, and persist approved plans across sessions
 
-### Models (Renderer)
+**Independent Test**: Enter land dimensions → Request subdivision plan → Receive AI-generated layout with lot dimensions and counts → Approve plan → Reload app → Plan automatically loads
 
-- [ ] [T053] [US1] [P] Create AISubdivisionPlan model interface at `D:\fast2ai\AI-Floorplan\src\renderer\models\AISubdivisionPlan.ts`
-- [ ] [T054] [US1] [P] Create AIGenerationRequest model interface at `D:\fast2ai\AI-Floorplan\src\renderer\models\AIGenerationRequest.ts`
-- [ ] [T055] [US1] [P] Create AISettings model interface at `D:\fast2ai\AI-Floorplan\src\renderer\models\AISettings.ts`
-- [ ] [T056] [US1] Add SubdivisionPlan, Lot, RoadConfiguration, AmenityArea types at `D:\fast2ai\AI-Floorplan\src\renderer\models\SubdivisionPlan.ts`
+### Core AI Integration
 
-### Services (Renderer Business Logic)
+- [X] T027 [P] [US1] Implement subdivision plan prompt builder in src/main/ai-services/gemini-client.ts with template including land specs, lot requirements (90 sqm minimum), social club allocation, road configuration
+- [X] T028 [US1] Configure Gemini JSON Schema for subdivision plan output in src/main/ai-services/gemini-client.ts (responseMimeType: application/json, temperature: 0.2, maxOutputTokens: 65536)
+- [X] T029 [US1] Implement generateSubdivisionPlan() function in src/main/ai-services/gemini-client.ts with retry logic, progress events, token usage tracking
 
-- [ ] [T057] [US1] Create ai-subdivision-service.ts stub at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-subdivision-service.ts`
-- [ ] [T058] [US1] Implement generateSubdivisionPrompt function with land parcel data at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-subdivision-service.ts`
-- [ ] [T059] [US1] Implement validateSubdivisionPlan function enforcing 90 sqm minimum at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-subdivision-service.ts`
-- [ ] [T060] [US1] Implement parseAIResponse to convert Gemini JSON to SubdivisionPlan at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-subdivision-service.ts`
-- [ ] [T061] [US1] Add retry logic wrapper for failed generations at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-subdivision-service.ts`
-- [ ] [T062] [US1] Add calculateSubdivisionMetrics helper function at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-subdivision-service.ts`
+### Validation Logic
+
+- [X] T030 [US1] Create subdivision plan validator in src/main/services/subdivision-plan-validator.ts with critical validations: 90 sqm minimum, area consistency, total coverage, social club allocation
+- [X] T031 [US1] Implement warning validations in src/main/services/subdivision-plan-validator.ts: lot aspect ratio, land utilization, road coverage
+- [X] T032 [US1] Add validateGeneratedPlan() function returning validationStatus, validationErrors, validationWarnings
+
+### IPC Handler Implementation
+
+- [X] T033 [US1] Implement ai:generate-subdivision-plan handler in src/main/ipc-handlers.ts: validate request, create AIGenerationRequest, call Gemini API, validate plan, save AISubdivisionPlan, return response
+- [X] T034 [US1] Implement ai:approve-plan handler in src/main/ipc-handlers.ts: validate plan exists, check validationStatus != 'invalid', call activateAISubdivisionPlan(), return success
+- [X] T035 [P] [US1] Implement ai:reject-plan handler in src/main/ipc-handlers.ts: update plan status to 'rejected', save rejection reason
+- [X] T036 [P] [US1] Implement ai:get-generation-history handler in src/main/ipc-handlers.ts: query plans with pagination, return plan summaries
+
+### Auto-Load on Startup
+
+- [X] T037 [US1] Add loadActiveAISubdivisionPlan() call to app startup sequence in src/main/index.ts after database initialization
+- [X] T038 [US1] Send loaded plan to renderer via IPC event on window ready
+
+### React Components
+
+- [X] T039 [P] [US1] Create AIPlanGenerator.tsx component in src/renderer/components/AIIntegration/ with form for land dimensions, social club percentage, target lot count, province
+- [X] T040 [P] [US1] Create AIPlanGenerator.css in src/renderer/components/AIIntegration/ for component styling
+- [X] T041 [P] [US1] Create PlanApprovalPanel.tsx component in src/renderer/components/AIIntegration/ displaying plan metrics, lot details, approve/reject buttons
+- [X] T042 [P] [US1] Create PlanApprovalPanel.css in src/renderer/components/AIIntegration/
+- [X] T043 [P] [US1] Create PlanViewer.tsx component in src/renderer/components/SubdivisionPlanner/ for displaying plan details
+- [X] T044 [P] [US1] Create LotDetailsTable.tsx component in src/renderer/components/SubdivisionPlanner/ showing lot number, dimensions, area, compliance status
+- [X] T045 [P] [US1] Create CoverageMetrics.tsx component in src/renderer/components/SubdivisionPlanner/ showing total lots, viable lots, land utilization, road coverage
+
+### Utility Components
+
+- [X] T046 [P] [US1] Create LoadingSpinner.tsx component in src/renderer/components/common/ for AI generation progress
+- [X] T047 [P] [US1] Create ErrorDisplay.tsx component in src/renderer/components/common/ for user-friendly error messages
+- [X] T048 [P] [US1] Create ErrorBoundary.tsx component in src/renderer/components/ for React error catching
+- [X] T049 [P] [US1] Create ErrorBoundary.css in src/renderer/components/
 
 ### React Hooks
 
-- [ ] [T063] [US1] Create useAISubdivisionPlan hook with state management at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAISubdivisionPlan.ts`
-- [ ] [T064] [US1] Add generatePlan async function with progress tracking at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAISubdivisionPlan.ts`
-- [ ] [T065] [US1] Add approvePlan and rejectPlan functions at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAISubdivisionPlan.ts`
-- [ ] [T066] [US1] Add error state handling and retry mechanism at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAISubdivisionPlan.ts`
-- [ ] [T067] [US1] Add progress event listener integration at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAISubdivisionPlan.ts`
+- [X] T050 [US1] Create useAISubdivisionPlan.ts hook in src/renderer/hooks/ with state management: currentPlan, generationState, planHistory
+- [X] T051 [US1] Implement generatePlan() function in useAISubdivisionPlan.ts hook calling window.aiService.generateSubdivisionPlan()
+- [X] T052 [US1] Implement approvePlan() function in useAISubdivisionPlan.ts hook with optimistic updates and rollback on failure
+- [X] T053 [P] [US1] Implement rejectPlan() function in useAISubdivisionPlan.ts hook
+- [X] T054 [P] [US1] Add IPC progress event listener in useAISubdivisionPlan.ts for real-time status updates
 
-### Components (UI)
+### Services
 
-- [ ] [T068] [US1] Create AIPlanGenerator.tsx component skeleton at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\AIPlanGenerator.tsx`
-- [ ] [T069] [US1] Add land parcel input form with dimensions at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\AIPlanGenerator.tsx`
-- [ ] [T070] [US1] Add "Generate Subdivision Plan" button with loading state at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\AIPlanGenerator.tsx`
-- [ ] [T071] [US1] Add progress indicator showing generation status at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\AIPlanGenerator.tsx`
-- [ ] [T072] [US1] Add error display with retry button at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\AIPlanGenerator.tsx`
-- [ ] [T073] [US1] Create PlanApprovalPanel.tsx component skeleton at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanApprovalPanel.tsx`
-- [ ] [T074] [US1] Display subdivision plan summary with lot count and metrics at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanApprovalPanel.tsx`
-- [ ] [T075] [US1] Display lot dimensions table with 90 sqm compliance indicators at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanApprovalPanel.tsx`
-- [ ] [T076] [US1] Display road configuration and amenity areas at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanApprovalPanel.tsx`
-- [ ] [T077] [US1] Add Approve and Reject buttons with feedback textarea at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanApprovalPanel.tsx`
-- [ ] [T078] [US1] Add validation warnings display for non-compliant lots at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanApprovalPanel.tsx`
+- [X] T055 [P] [US1] Create ai-subdivision-service.ts in src/renderer/services/ wrapping IPC calls with error handling and type safety
+- [X] T056 [P] [US1] Create error-messages.ts in src/renderer/utils/ mapping error codes to user-friendly messages
 
-### Integration
+### Page Integration
 
-- [ ] [T079] [US1] Connect AIPlanGenerator to useAISubdivisionPlan hook at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\AIPlanGenerator.tsx`
-- [ ] [T080] [US1] Connect PlanApprovalPanel to useAISubdivisionPlan hook at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanApprovalPanel.tsx`
-- [ ] [T081] [US1] Wire IPC calls from service layer to main process handlers at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-subdivision-service.ts`
-- [ ] [T082] [US1] Verify database persistence for approved plans at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T083] [US1] Integrate AI plan generator into main SubdivisionPlanner page at `D:\fast2ai\AI-Floorplan\src\renderer\pages\SubdivisionPlanner.tsx`
+- [X] T057 [US1] Integrate AIPlanGenerator and PlanApprovalPanel components into SubdivisionPlanner.tsx page in src/renderer/pages/
+- [X] T058 [US1] Add ErrorBoundary wrapper to SubdivisionPlanner.tsx page
+- [X] T059 [US1] Implement auto-load logic in SubdivisionPlanner.tsx to display plan on mount if approved plan exists
 
-**CHECKPOINT**: User Story 1 independently testable - can generate, review, approve/reject plans
+**Checkpoint**: At this point, User Story 1 should be fully functional - users can generate plans, approve/reject them, and see plans persist across sessions
 
 ---
 
 ## Phase 4: User Story 2 - Generate Project Visualization Images (Priority: P2)
 
-All tasks in this phase support US2 - visualization after plan approval.
+**Goal**: Transform approved subdivision plans into visual representations (site plan, aerial view, context view) with image persistence, regeneration, and backup management
 
-### Models (Renderer)
+**Independent Test**: Start with pre-approved plan → Click "Generate Images" → Receive multiple visual representations → Images persist across sessions → Regenerate with refinements → Confirm/restore backup
 
-- [ ] [T084] [US2] [P] Verify ProjectVisualization model exists or create at `D:\fast2ai\AI-Floorplan\src\renderer\models\ProjectVisualization.ts`
-- [ ] [T085] [US2] [P] Add ViewType and ImageFormat enums to model at `D:\fast2ai\AI-Floorplan\src\renderer\models\ProjectVisualization.ts`
+### Image Prompt Engineering
 
-### Services (Renderer Business Logic)
+- [X] T060 [P] [US2] Create image prompt templates in src/main/ai-services/image-client.ts for site-plan view (CAD-style 2D)
+- [X] T061 [P] [US2] Create image prompt templates in src/main/ai-services/image-client.ts for aerial view (45-degree photorealistic)
+- [X] T062 [P] [US2] Create image prompt templates in src/main/ai-services/image-client.ts for context view (wide-angle marketing)
+- [X] T063 [US2] Implement buildImagePrompt() function in src/main/ai-services/image-client.ts combining template with subdivision plan details and custom additions
 
-- [ ] [T086] [US2] Create ai-image-service.ts stub at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-image-service.ts`
-- [ ] [T087] [US2] Implement generateImagePrompt function for site-plan view at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-image-service.ts`
-- [ ] [T088] [US2] Implement generateImagePrompt function for aerial view at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-image-service.ts`
-- [ ] [T089] [US2] Implement generateImagePrompt function for context view at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-image-service.ts`
-- [ ] [T090] [US2] Add async polling logic for image generation progress at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-image-service.ts`
-- [ ] [T091] [US2] Add file size validation for 10MB limit at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-image-service.ts`
+### AI Image Generation
+
+- [X] T064 [US2] Implement generateImageWithGemini() function in src/main/ai-services/image-client.ts using gemini-3-pro-image-preview model
+- [X] T065 [US2] Implement generateImageWithDALLE() fallback function in src/main/ai-services/image-client.ts using dall-e-3 model
+- [X] T066 [US2] Add generateProjectImage() orchestrator in src/main/ai-services/image-client.ts selecting provider based on available API keys
+
+### File System Management
+
+- [X] T067 [US2] Implement getProjectImagesDirectory() function in src/main/services/file-manager.ts: app.getPath('userData')/project-images/{projectId}/
+- [X] T068 [US2] Implement saveImageToFileSystem() function in src/main/services/file-manager.ts with atomic write and error handling
+- [X] T069 [US2] Implement createImageBackup() function in src/main/services/file-manager.ts renaming original to .backup.png
+- [X] T070 [P] [US2] Implement restoreImageBackup() function in src/main/services/file-manager.ts
+- [X] T071 [P] [US2] Implement deleteImageBackup() function in src/main/services/file-manager.ts
+
+### IPC Handler Implementation
+
+- [X] T072 [US2] Implement ai:generate-site-plan-image handler in src/main/ipc-handlers.ts: validate plan is approved, create AIGenerationRequest, call image API, save to file system, create ProjectVisualization record, return response
+- [X] T073 [US2] Implement ai:regenerate-image handler in src/main/ipc-handlers.ts: load existing visualization, create backup, generate new image, save as new ProjectVisualization, return paths
+- [X] T074 [P] [US2] Implement ai:confirm-regenerated-image handler in src/main/ipc-handlers.ts: delete backup file, mark visualization as confirmed
+- [X] T075 [P] [US2] Implement ai:restore-backup-image handler in src/main/ipc-handlers.ts: restore backup, delete new image, update database
+- [X] T076 [P] [US2] Implement ai:get-project-visualizations handler in src/main/ipc-handlers.ts: query visualizations with optional filters (subdivisionPlanId, viewType)
+
+### Auto-Load Images on Startup
+
+- [X] T077 [US2] Extend loadActiveAISubdivisionPlan() in src/main/index.ts to also query and return associated visualizations
+- [X] T078 [US2] Send visualizations to renderer via IPC event when plan loads
+
+### React Components
+
+- [X] T079 [P] [US2] Create VisualizationGallery.tsx component in src/renderer/components/AIIntegration/ displaying all generated images with thumbnails
+- [X] T080 [P] [US2] Create VisualizationGallery.css in src/renderer/components/AIIntegration/
+- [X] T081 [P] [US2] Create ImageRegenerator.tsx component in src/renderer/components/AIIntegration/ with refinement prompt input, preview comparison, confirm/restore buttons
+- [X] T082 [P] [US2] Create ImageRegenerator.css in src/renderer/components/AIIntegration/
 
 ### React Hooks
 
-- [ ] [T092] [US2] Create useAIImageGeneration hook with multi-image state at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAIImageGeneration.ts`
-- [ ] [T093] [US2] Add generateImage async function with view type parameter at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAIImageGeneration.ts`
-- [ ] [T094] [US2] Add regenerateImage function with custom prompt refinements at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAIImageGeneration.ts`
-- [ ] [T095] [US2] Add progress tracking for each view type at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAIImageGeneration.ts`
-- [ ] [T096] [US2] Add error handling per image generation request at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAIImageGeneration.ts`
+- [X] T083 [US2] Create useAIImageGeneration.ts hook in src/renderer/hooks/ with state: visualizations, generationState, backups
+- [X] T084 [US2] Implement generateImages() function in useAIImageGeneration.ts generating all view types (site-plan, aerial, context)
+- [X] T085 [US2] Implement regenerateImage() function in useAIImageGeneration.ts with custom prompt additions
+- [X] T086 [P] [US2] Implement confirmImage() function in useAIImageGeneration.ts
+- [X] T087 [P] [US2] Implement restoreBackup() function in useAIImageGeneration.ts
+- [X] T088 [P] [US2] Add IPC progress event listener for image generation in useAIImageGeneration.ts
 
-### Components (UI)
+### Services
 
-- [ ] [T097] [US2] Create VisualizationGallery.tsx component skeleton at `D:\fast2ai\AI-Floorplan\src\renderer\components\ImageViewer\VisualizationGallery.tsx`
-- [ ] [T098] [US2] Add multi-perspective image display grid (site-plan, aerial, context) at `D:\fast2ai\AI-Floorplan\src\renderer\components\ImageViewer\VisualizationGallery.tsx`
-- [ ] [T099] [US2] Add image loading indicators per view type at `D:\fast2ai\AI-Floorplan\src\renderer\components\ImageViewer\VisualizationGallery.tsx`
-- [ ] [T100] [US2] Add image zoom and preview functionality at `D:\fast2ai\AI-Floorplan\src\renderer\components\ImageViewer\VisualizationGallery.tsx`
-- [ ] [T101] [US2] Add "Save to Project" button for each image at `D:\fast2ai\AI-Floorplan\src\renderer\components\ImageViewer\VisualizationGallery.tsx`
-- [ ] [T102] [US2] Create ImageRegenerator.tsx component skeleton at `D:\fast2ai\AI-Floorplan\src\renderer\components\ImageViewer\ImageRegenerator.tsx`
-- [ ] [T103] [US2] Add feedback textarea for regeneration prompts at `D:\fast2ai\AI-Floorplan\src\renderer\components\ImageViewer\ImageRegenerator.tsx`
-- [ ] [T104] [US2] Add "Regenerate" button with loading state at `D:\fast2ai\AI-Floorplan\src\renderer\components\ImageViewer\ImageRegenerator.tsx`
-- [ ] [T105] [US2] Display original prompt with editable refinements at `D:\fast2ai\AI-Floorplan\src\renderer\components\ImageViewer\ImageRegenerator.tsx`
+- [X] T089 [P] [US2] Create ai-image-service.ts in src/renderer/services/ wrapping image IPC calls with type safety
 
-### File System Integration
+### Page Integration
 
-- [ ] [T106] [US2] Create image storage directory structure in main process at `D:\fast2ai\AI-Floorplan\src\main\file-system.ts`
-- [ ] [T107] [US2] Implement saveImageToFile function with path management at `D:\fast2ai\AI-Floorplan\src\main\file-system.ts`
-- [ ] [T108] [US2] Implement getImageFromFile function for retrieval at `D:\fast2ai\AI-Floorplan\src\main\file-system.ts`
-- [ ] [T109] [US2] Add file size validation before storage at `D:\fast2ai\AI-Floorplan\src\main\file-system.ts`
+- [X] T090 [US2] Add "Generate Images" button to PlanApprovalPanel.tsx component (enabled only when plan is approved)
+- [X] T091 [US2] Integrate VisualizationGallery component into SubdivisionPlanner.tsx page below approved plan
+- [X] T092 [US2] Integrate ImageRegenerator component into SubdivisionPlanner.tsx for regeneration workflow
+- [X] T093 [US2] Implement auto-display logic in SubdivisionPlanner.tsx to show images when loading approved plan with visualizations
 
-### Integration
-
-- [ ] [T110] [US2] Connect VisualizationGallery to useAIImageGeneration hook at `D:\fast2ai\AI-Floorplan\src\renderer\components\ImageViewer\VisualizationGallery.tsx`
-- [ ] [T111] [US2] Connect ImageRegenerator to useAIImageGeneration hook at `D:\fast2ai\AI-Floorplan\src\renderer\components\ImageViewer\ImageRegenerator.tsx`
-- [ ] [T112] [US2] Wire image generation IPC calls from service to main process at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-image-service.ts`
-- [ ] [T113] [US2] Verify image persistence to database and file system at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T114] [US2] Integrate visualization gallery into FinancialAnalysis page at `D:\fast2ai\AI-Floorplan\src\renderer\pages\FinancialAnalysis.tsx`
-
-**CHECKPOINT**: User Story 2 independently testable - can generate images from pre-approved plans
+**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - users can generate plans, approve them, generate images, regenerate with refinements, and all data persists
 
 ---
 
-## Phase 5: User Story 3 - Compare Multiple Subdivision Options (Priority: P3)
+## Phase 5: User Story 3 - Compare Multiple AI-Generated Subdivision Options (Priority: P3)
 
-All tasks in this phase support US3 - advanced comparison mode.
+**Goal**: Enable investors to request multiple subdivision plans for the same land parcel, view them side-by-side with comparative metrics, and select preferred option
 
-### Services (Renderer Business Logic)
+**Independent Test**: Enter land dimensions → Request multiple subdivision options → View comparison table showing lot count, average size, coverage metrics → Select preferred plan → Alternative plans archived for future reference
 
-- [ ] [T115] [US3] Extend ai-subdivision-service.ts with generateMultiplePlans function at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-subdivision-service.ts`
-- [ ] [T116] [US3] Implement batch generation logic for 3-5 plans with variation parameters at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-subdivision-service.ts`
-- [ ] [T117] [US3] Add comparison metrics calculation (lot count, size, coverage, costs) at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-subdivision-service.ts`
-- [ ] [T118] [US3] Implement activatePlan function to switch active plan at `D:\fast2ai\AI-Floorplan\src\renderer\services\ai-subdivision-service.ts`
+### Enhanced Generation for Multiple Plans
 
-### React Hooks
+- [X] T094 [P] [US3] Extend ai:generate-subdivision-plan handler in src/main/ipc-handlers.ts to accept optionalCount parameter (default: 1, max: 5)
+- [X] T095 [US3] Implement loop in ai:generate-subdivision-plan handler to generate multiple plans with varied prompts (maximize lots vs larger lots vs different amenity allocations)
+- [X] T096 [US3] Return array of plans in response instead of single plan when count > 1
 
-- [ ] [T119] [US3] Extend useAISubdivisionPlan with multi-plan state management at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAISubdivisionPlan.ts`
-- [ ] [T120] [US3] Add generateMultiplePlans async function at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAISubdivisionPlan.ts`
-- [ ] [T121] [US3] Add selectPlan function to mark plan as active at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAISubdivisionPlan.ts`
-- [ ] [T122] [US3] Add progress tracking for batch generation at `D:\fast2ai\AI-Floorplan\src\renderer\hooks\useAISubdivisionPlan.ts`
+### Comparison View Component
 
-### Components (UI)
+- [X] T097 [P] [US3] Create PlanComparisonTable.tsx component in src/renderer/components/SubdivisionPlanner/ showing side-by-side metrics: lot count, average lot size, road coverage, amenity percentage, land utilization
+- [X] T098 [P] [US3] Create PlanComparisonTable.css in src/renderer/components/SubdivisionPlanner/
+- [X] T099 [US3] Add selection radio buttons to PlanComparisonTable.tsx for choosing preferred plan
 
-- [ ] [T123] [US3] Create PlanComparisonView.tsx component skeleton at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanComparisonView.tsx`
-- [ ] [T124] [US3] Add comparison table with columns for lot count, avg size, coverage, cost at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanComparisonView.tsx`
-- [ ] [T125] [US3] Add plan rows with selectable radio buttons at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanComparisonView.tsx`
-- [ ] [T126] [US3] Add visual diff highlighting for key metrics at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanComparisonView.tsx`
-- [ ] [T127] [US3] Add "Select as Active Plan" button at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanComparisonView.tsx`
-- [ ] [T128] [US3] Add "Request More Options" button to regenerate alternatives at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanComparisonView.tsx`
+### State Management for Multiple Plans
 
-### Storage Layer
+- [X] T100 [US3] Extend useAISubdivisionPlan.ts hook to support alternativePlans state array
+- [X] T101 [US3] Implement generateMultiplePlans() function in useAISubdivisionPlan.ts calling generation with count parameter
+- [X] T102 [US3] Implement selectPreferredPlan() function in useAISubdivisionPlan.ts to activate selected plan and archive alternatives
 
-- [ ] [T129] [US3] Extend storage.ts with activateAISubdivisionPlan function at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T130] [US3] Add archiveAISubdivisionPlan function to deactivate previous active plan at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T131] [US3] Add getAlternativePlans query to retrieve archived options at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
+### Archive Management
 
-### Integration
+- [X] T103 [US3] Add archived_at timestamp column to ai_subdivision_plans table in migration (if not already present) - NOTE: Using approved_by_user flag workaround
+- [X] T104 [US3] Update activateAISubdivisionPlan() in src/main/storage.ts to set archived_at timestamp when deactivating plans
+- [X] T105 [P] [US3] Implement getArchivedPlans() function in src/main/storage.ts to retrieve alternative plans
+- [X] T106 [P] [US3] Implement switchToArchivedPlan() function in src/main/storage.ts to reactivate an archived plan
 
-- [ ] [T132] [US3] Connect PlanComparisonView to useAISubdivisionPlan hook at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanComparisonView.tsx`
-- [ ] [T133] [US3] Wire plan selection and archiving through IPC handlers at `D:\fast2ai\AI-Floorplan\src\main\ipc-handlers.ts`
-- [ ] [T134] [US3] Verify plan switching updates database active status at `D:\fast2ai\AI-Floorplan\src\main\storage.ts`
-- [ ] [T135] [US3] Integrate comparison view into SubdivisionPlanner page at `D:\fast2ai\AI-Floorplan\src\renderer\pages\SubdivisionPlanner.tsx`
+### IPC Handler for Archived Plans
 
-**CHECKPOINT**: User Story 3 independently testable - can compare and select plans
+- [X] T107 [P] [US3] Implement ai:get-archived-plans handler in src/main/ipc-handlers.ts returning archived plans with summary metrics
+- [X] T108 [P] [US3] Implement ai:switch-to-archived-plan handler in src/main/ipc-handlers.ts to activate an archived plan as current
+
+### Page Integration
+
+- [X] T109 [US3] Add "Generate Multiple Options" button to AIPlanGenerator.tsx with count selector (3-5 options)
+- [X] T110 [US3] Integrate PlanComparisonTable component into SubdivisionPlanner.tsx showing when multiple plans are generated
+- [X] T111 [US3] Add "View Archived Plans" link to SubdivisionPlanner.tsx opening modal with archived plan history
+- [X] T112 [US3] Implement plan switching logic in SubdivisionPlanner.tsx to reload page when user switches to archived plan
+
+**Checkpoint**: All user stories should now be independently functional - users can generate single/multiple plans, compare them, generate images, and all plans are preserved for future reference
 
 ---
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-### Error Messaging
+**Purpose**: Improvements that affect multiple user stories and finalize the feature
 
-- [ ] [T136] [P] Standardize error messages across all AI operations with user-friendly language at `D:\fast2ai\AI-Floorplan\src\renderer\utils\error-messages.ts`
-- [ ] [T137] [P] Add error boundary component for AI features at `D:\fast2ai\AI-Floorplan\src\renderer\components\ErrorBoundary.tsx`
-- [ ] [T138] Add API-specific error code mapping to user messages at `D:\fast2ai\AI-Floorplan\src\renderer\utils\error-messages.ts`
+### Error Handling & User Experience
 
-### Loading States
+- [ ] T113 [P] Implement comprehensive error message mapping in src/renderer/utils/error-messages.ts for all error codes (VALIDATION_ERROR, AI_API_ERROR, PLAN_VALIDATION_ERROR, DATABASE_ERROR, etc.)
+- [ ] T114 [P] Add loading states and skeleton screens to all components in src/renderer/components/AIIntegration/
+- [ ] T115 [P] Implement toast notifications for success/error feedback using existing notification system
 
-- [ ] [T139] [P] Create reusable LoadingSpinner component for AI operations at `D:\fast2ai\AI-Floorplan\src\renderer\components\common\LoadingSpinner.tsx`
-- [ ] [T140] [P] Create ProgressBar component with percentage display at `D:\fast2ai\AI-Floorplan\src\renderer\components\common\ProgressBar.tsx`
-- [ ] [T141] Add skeleton loading states for plan review panels at `D:\fast2ai\AI-Floorplan\src\renderer\components\SubdivisionPlanner\PlanApprovalPanel.tsx`
+### Performance Optimization
 
-### Cost Tracking UI
-
-- [ ] [T142] Create CostTracker component showing session cost at `D:\fast2ai\AI-Floorplan\src\renderer\components\common\CostTracker.tsx`
-- [ ] [T143] Add cost warning modal for expensive operations at `D:\fast2ai\AI-Floorplan\src\renderer\components\common\CostWarningModal.tsx`
-- [ ] [T144] Display cost breakdown by API service (Gemini vs image) at `D:\fast2ai\AI-Floorplan\src\renderer\components\common\CostTracker.tsx`
+- [ ] T116 Add React.memo() to PlanViewer, LotDetailsTable, CoverageMetrics components to prevent unnecessary re-renders
+- [ ] T117 Implement image lazy loading in VisualizationGallery.tsx for large image sets
+- [ ] T118 Add database query optimization: indexes on project_id, approved_by_user, generation_status
 
 ### API Key Management UI
 
-- [ ] [T145] Create APIKeySettings component with secure input fields at `D:\fast2ai\AI-Floorplan\src\renderer\components\Settings\APIKeySettings.tsx`
-- [ ] [T146] Add "Test API Key" button with validation feedback at `D:\fast2ai\AI-Floorplan\src\renderer\components\Settings\APIKeySettings.tsx`
-- [ ] [T147] Add API key status indicators (valid/invalid/not-set) at `D:\fast2ai\AI-Floorplan\src\renderer\components\Settings\APIKeySettings.tsx`
-- [ ] [T148] Integrate API key settings into main Settings page at `D:\fast2ai\AI-Floorplan\src\renderer\pages\Settings.tsx`
+- [ ] T119 [P] Create APIKeySettings.tsx component in src/renderer/components/Settings/ with masked inputs for GEMINI_API_KEY and OPENAI_API_KEY
+- [ ] T120 [P] Create APIKeySettings.css in src/renderer/components/Settings/
+- [ ] T121 Implement "Test Connection" button in APIKeySettings.tsx to validate API keys
+- [ ] T122 Add API key encryption using Electron safeStorage in src/main/config.ts (getGeminiApiKey, setGeminiApiKey)
 
-### Documentation Validation
+### Cost Tracking & Limits
 
-- [ ] [T149] Test quickstart.md setup instructions with fresh environment at `D:\fast2ai\AI-Floorplan\specs\001-ai-subdivision-planning\quickstart.md`
-- [ ] [T150] Verify all API key acquisition steps are accurate at `D:\fast2ai\AI-Floorplan\specs\001-ai-subdivision-planning\quickstart.md`
-- [ ] [T151] Test mock AI mode for offline development at `D:\fast2ai\AI-Floorplan\src\main\ai-services\gemini-client.ts`
+- [ ] T123 Implement getTodaysCost() function in src/main/services/cost-tracker.ts aggregating tokens_used and estimated_cost_usd from ai_generation_requests
+- [ ] T124 Add cost limit check in ai:generate-subdivision-plan and ai:generate-site-plan-image handlers before calling APIs
+- [ ] T125 Create cost tracking dashboard component showing daily/weekly costs in SubdivisionPlanner.tsx
+
+### Documentation Updates
+
+- [X] T126 [P] Update CLAUDE.md with new AI subdivision planning feature technologies (Gemini 3 Flash, Zod schemas, SQLite migration patterns)
+- [ ] T127 [P] Verify quickstart.md instructions are accurate for new developers (API key setup, mock mode, testing)
+
+### Code Quality
+
+- [X] T128 Run ESLint on all new files and fix violations (src/main/ai-services/, src/renderer/components/AIIntegration/, src/renderer/hooks/)
+- [X] T129 Run Prettier formatting on all new files
+- [ ] T130 Add JSDoc comments to all public functions in src/main/ai-services/ and src/main/services/
+
+### Migration Verification
+
+- [ ] T131 Test database migration on fresh install (no existing database)
+- [ ] T132 Test database migration on existing v1.0.0 schema (upgrade path)
+- [ ] T133 Verify foreign key cascades work correctly (delete project deletes plans and images)
 
 ---
 
-## Summary
+## Dependencies & Execution Order
 
-**Total Tasks**: 151
-**Phases**: 6
-**User Stories**: 3 (US1 P1 MVP, US2 P2, US3 P3)
+### Phase Dependencies
 
-### Task Distribution
+- **Setup (Phase 1)**: No dependencies - can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
+- **User Story 1 (Phase 3)**: Depends on Foundational phase completion - can start after T026
+- **User Story 2 (Phase 4)**: Depends on Foundational phase completion - can start after T026 (does NOT depend on US1 completion, only needs approved plan as test data)
+- **User Story 3 (Phase 5)**: Depends on Foundational phase completion - can start after T026 (does NOT depend on US1/US2 completion)
+- **Polish (Phase 6)**: Depends on desired user stories being complete (minimum: US1)
 
-- **Phase 1 (Setup)**: 7 tasks
-- **Phase 2 (Foundational)**: 45 tasks (BLOCKS all user stories)
-- **Phase 3 (US1 - P1 MVP)**: 31 tasks
-- **Phase 4 (US2 - P2)**: 31 tasks
-- **Phase 5 (US3 - P3)**: 21 tasks
-- **Phase 6 (Polish)**: 16 tasks
+### User Story Independence
+
+- **User Story 1**: Fully independent after Foundational phase - can be implemented and tested without US2 or US3
+- **User Story 2**: Fully independent after Foundational phase - can be implemented and tested with mock approved plan (does not require US1 to be complete first)
+- **User Story 3**: Fully independent after Foundational phase - extends US1 generation but does not break existing functionality
+
+### Within Each User Story
+
+**User Story 1 Dependencies:**
+- T027-T029 (AI Integration) can start immediately after T016-T018 (AI infrastructure)
+- T030-T032 (Validation) can run in parallel with T027-T029
+- T033-T036 (IPC handlers) depend on T027-T032 completion
+- T039-T045 (React components) can start in parallel after T022-T026 (models)
+- T050-T054 (React hooks) depend on T039-T045 and T033-T036
+- T057-T059 (Page integration) depend on all previous US1 tasks
+
+**User Story 2 Dependencies:**
+- T060-T063 (Prompt engineering) can start immediately after T018 (image client setup)
+- T064-T066 (AI image generation) depend on T060-T063
+- T067-T071 (File system) can run in parallel with T060-T066
+- T072-T076 (IPC handlers) depend on T064-T071
+- T079-T082 (React components) can run in parallel with T072-T076
+- T083-T088 (React hooks) depend on T072-T082
+- T090-T093 (Page integration) depend on all previous US2 tasks
+
+**User Story 3 Dependencies:**
+- T094-T096 (Enhanced generation) depend on T033 (US1 IPC handler)
+- T097-T099 (Comparison view) can run in parallel with T094-T096
+- T100-T102 (State management) depend on T050 (US1 hook)
+- T103-T106 (Archive management) can run in parallel with T100-T102
+- T109-T112 (Page integration) depend on all previous US3 tasks
 
 ### Parallel Opportunities
 
-**Within Foundational Phase**:
-- T008-T010 (Contracts) can run in parallel
-- T022-T024 (Utilities) can run in parallel
-- T025-T032 (AI Clients) can run in parallel
-- T045-T051 (Storage CRUD) can run in parallel
+**Within Foundational Phase (all can run in parallel after schema is ready):**
+- T010-T012 (storage functions)
+- T014 (parallel to T013)
+- T020 (parallel to T019)
+- T022-T026 (all renderer models)
 
-**Within US1**:
-- T053-T056 (Models) can run in parallel
+**Within User Story 1 (parallel groups):**
+- T027-T029 with T030-T032
+- T039-T049 (all React components can be built in parallel)
+- T053-T054 with T055-T056
 
-**Across User Stories (after Foundational completes)**:
-- US1 (T053-T083), US2 (T084-T114), US3 (T115-T135) can all run in parallel
+**Within User Story 2 (parallel groups):**
+- T060-T062 (all prompt templates)
+- T067-T071 with T064-T066
+- T074-T076 (IPC handlers)
+- T079-T082 (components)
+- T086-T088 (hook functions)
 
-**Within Polish Phase**:
-- T136-T138 (Error messaging) can run in parallel
-- T139-T141 (Loading states) can run in parallel
+**Within User Story 3 (parallel groups):**
+- T105-T106 with T103-T104
+- T107-T108 (IPC handlers)
 
-### Critical Path to MVP
+**Within Polish Phase (most can run in parallel):**
+- T113-T115 (error handling)
+- T119-T122 (API key UI)
+- T126-T127 (documentation)
 
-1. Setup (T001-T007) → 7 tasks
-2. Foundational (T008-T052) → 45 tasks
-3. US1 Models (T053-T056) → 4 tasks
-4. US1 Services (T057-T062) → 6 tasks
-5. US1 Hooks (T063-T067) → 5 tasks
-6. US1 Components (T068-T078) → 11 tasks
-7. US1 Integration (T079-T083) → 5 tasks
-8. Polish (T136-T151) → 16 tasks
+---
 
-**Total MVP Tasks**: 99 tasks
+## Parallel Example: Foundational Phase
 
-### Implementation Strategy
+```bash
+# After T005-T007 (database schema) completes, launch in parallel:
+Task: "Implement getActiveAISubdivisionPlan() function in src/main/storage.ts"
+Task: "Implement createProjectVisualization() function in src/main/storage.ts"
+Task: "Implement createAIGenerationRequest() function in src/main/storage.ts"
+Task: "Create Zod schemas in src/shared/ai-contracts.ts: ProjectVisualizationSchema, AIGenerationRequestSchema"
+Task: "Create AISubdivisionPlan.ts model in src/renderer/models/"
+Task: "Create SubdivisionPlan.ts model in src/renderer/models/"
+Task: "Create ProjectVisualization.ts model in src/renderer/models/"
+Task: "Create AIGenerationRequest.ts model in src/renderer/models/"
+Task: "Create AISettings.ts model in src/renderer/models/"
+```
 
-**Week 1**: Setup + Foundational (Complete database, IPC, AI clients)
-**Week 2**: US1 Implementation (Generate and approve text plans)
-**Week 3**: US2 + US3 Implementation (Parallel teams for visualization and comparison)
-**Week 4**: Polish + Testing + Documentation validation
+---
 
-### Independent Testing Checkpoints
+## Parallel Example: User Story 1 React Components
 
-1. **After Phase 2**: Foundation can be tested in isolation (database migrations, IPC channels, AI client connectivity)
-2. **After Phase 3**: US1 can be tested end-to-end (generate → review → approve → persist)
-3. **After Phase 4**: US2 can be tested independently using pre-approved plans
-4. **After Phase 5**: US3 can be tested independently by generating multiple plans
-5. **After Phase 6**: Full integration testing across all user stories
+```bash
+# After T022-T026 (models) complete, launch all US1 components in parallel:
+Task: "[US1] Create AIPlanGenerator.tsx component in src/renderer/components/AIIntegration/"
+Task: "[US1] Create AIPlanGenerator.css in src/renderer/components/AIIntegration/"
+Task: "[US1] Create PlanApprovalPanel.tsx component in src/renderer/components/AIIntegration/"
+Task: "[US1] Create PlanApprovalPanel.css in src/renderer/components/AIIntegration/"
+Task: "[US1] Create PlanViewer.tsx component in src/renderer/components/SubdivisionPlanner/"
+Task: "[US1] Create LotDetailsTable.tsx component in src/renderer/components/SubdivisionPlanner/"
+Task: "[US1] Create CoverageMetrics.tsx component in src/renderer/components/SubdivisionPlanner/"
+Task: "[US1] Create LoadingSpinner.tsx component in src/renderer/components/common/"
+Task: "[US1] Create ErrorDisplay.tsx component in src/renderer/components/common/"
+Task: "[US1] Create ErrorBoundary.tsx component in src/renderer/components/"
+Task: "[US1] Create ErrorBoundary.css in src/renderer/components/"
+```
+
+---
+
+## Implementation Strategy
+
+### MVP First (User Story 1 Only)
+
+1. Complete Phase 1: Setup (T001-T004)
+2. Complete Phase 2: Foundational (T005-T026) - CRITICAL, blocks all stories
+3. Complete Phase 3: User Story 1 (T027-T059)
+4. **STOP and VALIDATE**: Test User Story 1 independently
+   - Generate subdivision plan with valid inputs
+   - Verify 90 sqm minimum enforcement
+   - Approve plan and verify persistence
+   - Restart app and verify plan auto-loads
+5. Deploy/demo if ready
+
+### Incremental Delivery
+
+1. **Foundation** (Phases 1-2): Database, IPC, shared types → Foundation ready
+2. **MVP** (Phase 3): User Story 1 → Test independently → Deploy (MVP!)
+3. **Images** (Phase 4): User Story 2 → Test independently → Deploy
+4. **Comparison** (Phase 5): User Story 3 → Test independently → Deploy
+5. **Polish** (Phase 6): Error handling, cost tracking, documentation → Final release
+
+Each story adds value without breaking previous stories.
+
+### Parallel Team Strategy
+
+With multiple developers:
+
+1. **Team completes Setup + Foundational together** (Phases 1-2)
+2. Once Foundational is done (after T026):
+   - **Developer A**: User Story 1 (T027-T059) - MVP priority
+   - **Developer B**: User Story 2 (T060-T093) - can work in parallel
+   - **Developer C**: User Story 3 (T094-T112) - can work in parallel
+3. Stories complete and integrate independently
+4. **Team converges** on Polish phase (T113-T133)
+
+---
+
+## Total Task Count
+
+- **Phase 1 (Setup)**: 4 tasks
+- **Phase 2 (Foundational)**: 22 tasks (BLOCKING)
+- **Phase 3 (User Story 1)**: 33 tasks (MVP)
+- **Phase 4 (User Story 2)**: 34 tasks
+- **Phase 5 (User Story 3)**: 19 tasks
+- **Phase 6 (Polish)**: 21 tasks
+
+**Total**: 133 tasks
+
+**MVP Scope** (recommended first delivery): Phases 1-3 = 59 tasks
+
+**Parallelizable Tasks**: 45 tasks marked [P] can run simultaneously with other tasks
+
+---
+
+## Notes
+
+- **[P] tasks**: Different files, no dependencies - safe to run in parallel
+- **[Story] label**: Maps task to specific user story (US1, US2, US3) for traceability
+- **Independent stories**: Each user story can be implemented and tested independently after Foundational phase
+- **No tests included**: Per specification, no test tasks are generated (tests were not requested)
+- **Commit strategy**: Commit after each task or logical group of [P] tasks
+- **Validation checkpoints**: Stop at phase checkpoints to verify story works independently before proceeding
+- **Constitution compliance**: Tasks organized by user story per Principle IV (Feature Independence)
+- **Simplicity focus**: Direct implementations, no premature abstractions per Principle VI

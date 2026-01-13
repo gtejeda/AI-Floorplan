@@ -172,7 +172,8 @@ export class SubdivisionCalculator {
       y: 0, // Bottom-left corner
     };
     const parkingWidth = Math.sqrt(
-      finalParkingArea / (PARKING_CONSTANTS.STANDARD_SPACE_LENGTH / PARKING_CONSTANTS.STANDARD_SPACE_WIDTH)
+      finalParkingArea /
+        (PARKING_CONSTANTS.STANDARD_SPACE_LENGTH / PARKING_CONSTANTS.STANDARD_SPACE_WIDTH)
     );
     const parkingLength = finalParkingArea / parkingWidth;
 
@@ -281,9 +282,28 @@ export class SubdivisionCalculator {
     distribution: 'horizontal-strips' | 'vertical-strips' | 'four-quadrants';
   } | null {
     const strategies = [
-      this.calculateHorizontalStrips(parcelWidth, parcelLength, availableArea, clubPosition, clubLength),
-      this.calculateVerticalStrips(parcelWidth, parcelLength, availableArea, clubPosition, clubWidth),
-      this.calculateFourQuadrants(parcelWidth, parcelLength, availableArea, clubPosition, clubWidth, clubLength),
+      this.calculateHorizontalStrips(
+        parcelWidth,
+        parcelLength,
+        availableArea,
+        clubPosition,
+        clubLength
+      ),
+      this.calculateVerticalStrips(
+        parcelWidth,
+        parcelLength,
+        availableArea,
+        clubPosition,
+        clubWidth
+      ),
+      this.calculateFourQuadrants(
+        parcelWidth,
+        parcelLength,
+        availableArea,
+        clubPosition,
+        clubWidth,
+        clubLength
+      ),
     ];
 
     // Pick strategy with most lots
@@ -451,8 +471,6 @@ export class SubdivisionCalculator {
     targetLotCount: number,
     tolerance: number = 2
   ): SubdivisionScenario[] {
-    return scenarios.filter(
-      (s) => Math.abs(s.lots.count - targetLotCount) <= tolerance
-    );
+    return scenarios.filter((s) => Math.abs(s.lots.count - targetLotCount) <= tolerance);
   }
 }

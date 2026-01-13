@@ -15,7 +15,7 @@ export type Currency = 'DOP' | 'USD';
  * Money interface for all financial values
  */
 export interface Money {
-  amount: number;  // Stored with full precision (not rounded)
+  amount: number; // Stored with full precision (not rounded)
   currency: Currency;
 }
 
@@ -25,8 +25,8 @@ export interface Money {
 export const MoneySchema = z.object({
   amount: z.number().nonnegative('Amount must be non-negative'),
   currency: z.enum(['DOP', 'USD'], {
-    errorMap: () => ({ message: 'Currency must be DOP or USD' })
-  })
+    errorMap: () => ({ message: 'Currency must be DOP or USD' }),
+  }),
 });
 
 /**
@@ -50,7 +50,7 @@ export function formatMoney(money: Money, precision: number = 2): string {
   const symbol = money.currency === 'USD' ? '$' : 'RD$';
   const formattedAmount = money.amount.toLocaleString('en-US', {
     minimumFractionDigits: precision,
-    maximumFractionDigits: precision
+    maximumFractionDigits: precision,
   });
   return `${symbol}${formattedAmount}`;
 }
@@ -64,7 +64,7 @@ export function addMoney(a: Money, b: Money): Money {
   }
   return {
     amount: a.amount + b.amount,
-    currency: a.currency
+    currency: a.currency,
   };
 }
 
@@ -77,7 +77,7 @@ export function subtractMoney(a: Money, b: Money): Money {
   }
   return {
     amount: a.amount - b.amount,
-    currency: a.currency
+    currency: a.currency,
   };
 }
 
@@ -87,7 +87,7 @@ export function subtractMoney(a: Money, b: Money): Money {
 export function multiplyMoney(money: Money, multiplier: number): Money {
   return {
     amount: money.amount * multiplier,
-    currency: money.currency
+    currency: money.currency,
   };
 }
 
@@ -100,7 +100,7 @@ export function divideMoney(money: Money, divisor: number): Money {
   }
   return {
     amount: money.amount / divisor,
-    currency: money.currency
+    currency: money.currency,
   };
 }
 

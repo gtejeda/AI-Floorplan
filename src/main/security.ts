@@ -139,9 +139,28 @@ export function sanitizeFilename(filename: string): string {
 
   // Check for reserved names on Windows
   const reservedNames = [
-    'CON', 'PRN', 'AUX', 'NUL',
-    'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-    'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+    'CON',
+    'PRN',
+    'AUX',
+    'NUL',
+    'COM1',
+    'COM2',
+    'COM3',
+    'COM4',
+    'COM5',
+    'COM6',
+    'COM7',
+    'COM8',
+    'COM9',
+    'LPT1',
+    'LPT2',
+    'LPT3',
+    'LPT4',
+    'LPT5',
+    'LPT6',
+    'LPT7',
+    'LPT8',
+    'LPT9',
   ];
 
   const nameWithoutExt = path.basename(sanitized, path.extname(sanitized)).toUpperCase();
@@ -200,13 +219,38 @@ export function validateUnit(unit: string): 'sqm' | 'sqft' {
  */
 export function validateProvince(province: string): string {
   const validProvinces = [
-    'Azua', 'Baoruco', 'Barahona', 'Dajabón', 'Distrito Nacional', 'Duarte',
-    'Elías Piña', 'El Seibo', 'Espaillat', 'Hato Mayor', 'Hermanas Mirabal',
-    'Independencia', 'La Altagracia', 'La Romana', 'La Vega',
-    'María Trinidad Sánchez', 'Monseñor Nouel', 'Monte Cristi', 'Monte Plata',
-    'Pedernales', 'Peravia', 'Puerto Plata', 'Samaná', 'San Cristóbal',
-    'San José de Ocoa', 'San Juan', 'San Pedro de Macorís', 'Sánchez Ramírez',
-    'Santiago', 'Santiago Rodríguez', 'Santo Domingo', 'Valverde'
+    'Azua',
+    'Baoruco',
+    'Barahona',
+    'Dajabón',
+    'Distrito Nacional',
+    'Duarte',
+    'Elías Piña',
+    'El Seibo',
+    'Espaillat',
+    'Hato Mayor',
+    'Hermanas Mirabal',
+    'Independencia',
+    'La Altagracia',
+    'La Romana',
+    'La Vega',
+    'María Trinidad Sánchez',
+    'Monseñor Nouel',
+    'Monte Cristi',
+    'Monte Plata',
+    'Pedernales',
+    'Peravia',
+    'Puerto Plata',
+    'Samaná',
+    'San Cristóbal',
+    'San José de Ocoa',
+    'San Juan',
+    'San Pedro de Macorís',
+    'Sánchez Ramírez',
+    'Santiago',
+    'Santiago Rodríguez',
+    'Santo Domingo',
+    'Valverde',
   ];
 
   if (!validProvinces.includes(province)) {
@@ -237,7 +281,7 @@ export class RateLimiter {
     const calls = this.calls.get(key) || [];
 
     // Remove old calls outside the window
-    const recentCalls = calls.filter(time => now - time < this.windowMs);
+    const recentCalls = calls.filter((time) => now - time < this.windowMs);
 
     if (recentCalls.length >= this.maxCalls) {
       return false;
@@ -270,5 +314,5 @@ export default {
   validateCurrency,
   validateUnit,
   validateProvince,
-  RateLimiter
+  RateLimiter,
 };

@@ -93,41 +93,49 @@ export const LandParcelSchema = z.object({
   isUrbanized: z.boolean(),
   acquisitionCost: z.object({
     amount: z.number().nonnegative('Cost cannot be negative').finite(),
-    currency: z.enum(['DOP', 'USD'])
+    currency: z.enum(['DOP', 'USD']),
   }),
   displayUnit: z.enum(['sqm', 'sqft']),
-  landmarks: z.array(z.object({
-    type: z.enum(['beach', 'airport', 'tourist_attraction', 'infrastructure', 'other']),
-    name: z.string().min(1, 'Landmark name is required'),
-    distance: z.number().positive().optional(),
-    description: z.string().optional()
-  })).optional()
+  landmarks: z
+    .array(
+      z.object({
+        type: z.enum(['beach', 'airport', 'tourist_attraction', 'infrastructure', 'other']),
+        name: z.string().min(1, 'Landmark name is required'),
+        distance: z.number().positive().optional(),
+        description: z.string().optional(),
+      })
+    )
+    .optional(),
 });
 
 export const MoneySchema = z.object({
   amount: z.number().nonnegative('Amount cannot be negative').finite(),
-  currency: z.enum(['DOP', 'USD'])
+  currency: z.enum(['DOP', 'USD']),
 });
 
 export const FinancialInputSchema = z.object({
   legalCosts: z.object({
     notary: MoneySchema,
     permits: MoneySchema,
-    registrations: MoneySchema
+    registrations: MoneySchema,
   }),
-  otherCosts: z.array(z.object({
-    label: z.string().min(1, 'Label is required').max(100),
-    amount: MoneySchema,
-    description: z.string().max(500).optional()
-  })),
+  otherCosts: z.array(
+    z.object({
+      label: z.string().min(1, 'Label is required').max(100),
+      amount: MoneySchema,
+      description: z.string().max(500).optional(),
+    })
+  ),
   monthlyMaintenanceCost: MoneySchema.optional(),
-  exchangeRate: z.object({
-    from: z.enum(['DOP', 'USD']),
-    to: z.enum(['DOP', 'USD']),
-    rate: z.number().positive('Exchange rate must be positive').finite(),
-    effectiveDate: z.date()
-  }).optional(),
-  targetProfitMargins: z.array(z.number().positive().max(100))
+  exchangeRate: z
+    .object({
+      from: z.enum(['DOP', 'USD']),
+      to: z.enum(['DOP', 'USD']),
+      rate: z.number().positive('Exchange rate must be positive').finite(),
+      effectiveDate: z.date(),
+    })
+    .optional(),
+  targetProfitMargins: z.array(z.number().positive().max(100)),
 });
 
 /**
@@ -143,7 +151,7 @@ export function validateForm<T>(
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errors: Record<string, string> = {};
-      error.errors.forEach(err => {
+      error.errors.forEach((err) => {
         const path = err.path.join('.');
         errors[path] = err.message;
       });
@@ -203,5 +211,5 @@ export default {
   debounce,
   LandParcelSchema,
   MoneySchema,
-  FinancialInputSchema
+  FinancialInputSchema,
 };

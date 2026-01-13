@@ -70,7 +70,9 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "better-sqlite3": "^12.6.0",
+    "dotenv": "^17.2.3",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^8.2.0",
     "fabric": "^7.1.0",

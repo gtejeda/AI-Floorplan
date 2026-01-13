@@ -35,8 +35,8 @@ const ProjectExportSchema = z.object({
   project: z.any(),
   metadata: z.object({
     exportedBy: z.string(),
-    checksum: z.string()
-  })
+    checksum: z.string(),
+  }),
 });
 
 /**
@@ -70,7 +70,7 @@ export class ProjectValidator {
       return {
         valid: true,
         errors: [],
-        data: exportData
+        data: exportData,
       };
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -80,20 +80,20 @@ export class ProjectValidator {
             message: err.message,
             expectedType: 'string',
             receivedValue: undefined,
-            severity: 'critical'
+            severity: 'critical',
           });
         });
       } else {
         errors.push({
           field: 'root',
           message: 'Invalid JSON structure',
-          severity: 'critical'
+          severity: 'critical',
         });
       }
 
       return {
         valid: false,
-        errors
+        errors,
       };
     }
   }
@@ -140,7 +140,7 @@ export class ProjectValidator {
         message: projectValidation.error || 'Invalid project structure',
         expectedType: projectValidation.expectedType,
         receivedValue: projectValidation.receivedValue,
-        severity: 'critical'
+        severity: 'critical',
       });
       invalidFields.push(projectValidation.field);
     } else {
@@ -149,14 +149,18 @@ export class ProjectValidator {
 
     // Validate land parcel if present
     if (projectData.landParcel) {
-      const landValidation = this.validateField('landParcel', projectData.landParcel, LandParcelSchema);
+      const landValidation = this.validateField(
+        'landParcel',
+        projectData.landParcel,
+        LandParcelSchema
+      );
       if (!landValidation.valid) {
         errors.push({
           field: landValidation.field,
           message: landValidation.error || 'Invalid land parcel structure',
           expectedType: landValidation.expectedType,
           receivedValue: landValidation.receivedValue,
-          severity: 'recoverable'
+          severity: 'recoverable',
         });
         invalidFields.push(landValidation.field);
       } else {
@@ -172,13 +176,13 @@ export class ProjectValidator {
         SubdivisionScenarioSchema
       );
 
-      scenariosValidation.errors.forEach(err => {
+      scenariosValidation.errors.forEach((err) => {
         errors.push({
           field: err.field,
           message: err.error || 'Invalid scenario',
           expectedType: err.expectedType,
           receivedValue: err.receivedValue,
-          severity: 'recoverable'
+          severity: 'recoverable',
         });
         invalidFields.push(err.field);
       });
@@ -189,7 +193,7 @@ export class ProjectValidator {
         warnings.push({
           field: 'subdivisionScenarios',
           message: `${scenariosValidation.invalidCount} invalid scenarios skipped`,
-          suggestion: 'Review and recalculate subdivision scenarios'
+          suggestion: 'Review and recalculate subdivision scenarios',
         });
       }
     }
@@ -208,7 +212,7 @@ export class ProjectValidator {
           message: socialClubValidation.error || 'Invalid social club design',
           expectedType: socialClubValidation.expectedType,
           receivedValue: socialClubValidation.receivedValue,
-          severity: 'recoverable'
+          severity: 'recoverable',
         });
         invalidFields.push(socialClubValidation.field);
       } else {
@@ -230,7 +234,7 @@ export class ProjectValidator {
           message: financialValidation.error || 'Invalid financial analysis',
           expectedType: financialValidation.expectedType,
           receivedValue: financialValidation.receivedValue,
-          severity: 'recoverable'
+          severity: 'recoverable',
         });
         invalidFields.push(financialValidation.field);
       } else {
@@ -239,14 +243,14 @@ export class ProjectValidator {
     }
 
     // Determine overall validity
-    const hasCriticalErrors = errors.some(e => e.severity === 'critical');
+    const hasCriticalErrors = errors.some((e) => e.severity === 'critical');
 
     return {
       valid: !hasCriticalErrors && errors.length === 0,
       errors,
       warnings,
       validatedFields,
-      invalidFields
+      invalidFields,
     };
   }
 
@@ -262,7 +266,7 @@ export class ProjectValidator {
       schema.parse(data);
       return {
         field: fieldName,
-        valid: true
+        valid: true,
       };
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -272,14 +276,14 @@ export class ProjectValidator {
           valid: false,
           error: firstError.message,
           expectedType: firstError.expected?.toString(),
-          receivedValue: firstError.received
+          receivedValue: firstError.received,
         };
       }
 
       return {
         field: fieldName,
         valid: false,
-        error: 'Validation failed'
+        error: 'Validation failed',
       };
     }
   }
@@ -313,7 +317,7 @@ export class ProjectValidator {
     return {
       validItems,
       invalidCount,
-      errors
+      errors,
     };
   }
 
@@ -336,7 +340,7 @@ export class ProjectValidator {
         recoveredData: null,
         skippedFields: [],
         errors: [],
-        warnings: []
+        warnings: [],
       };
     }
 
@@ -348,7 +352,7 @@ export class ProjectValidator {
       recoveredData,
       skippedFields,
       errors: validation.errors,
-      warnings: validation.warnings
+      warnings: validation.warnings,
     };
   }
 
@@ -369,7 +373,7 @@ export class ProjectValidator {
     return {
       valid: true,
       missingImages: [],
-      warnings: []
+      warnings: [],
     };
   }
 
@@ -392,14 +396,14 @@ export class ProjectValidator {
         structureValid: validation.structureValid !== false,
         checksumValid: validation.checksumValid !== false,
         schemaValid: validation.schemaValid !== false,
-        imagesValid: validation.imagesValid !== false
+        imagesValid: validation.imagesValid !== false,
       },
       errors: validation.errors || [],
       warnings: validation.warnings || [],
       partialRecovery: validation.partialRecovery,
       missingImages: validation.missingImages || [],
       missingAIPrompts: validation.missingAIPrompts || [],
-      duration
+      duration,
     };
   }
 }

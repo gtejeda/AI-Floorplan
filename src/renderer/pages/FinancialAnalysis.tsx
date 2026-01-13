@@ -20,7 +20,10 @@ export const FinancialAnalysisPage: React.FC<FinancialAnalysisPageProps> = ({ pr
   const [financialData, setFinancialData] = useState<FinancialAnalysisType | null>(null);
 
   // Project data needed for FinancialPanel
-  const [landAcquisitionCost, setLandAcquisitionCost] = useState<Money>({ amount: 0, currency: 'USD' });
+  const [landAcquisitionCost, setLandAcquisitionCost] = useState<Money>({
+    amount: 0,
+    currency: 'USD',
+  });
   const [amenitiesTotal, setAmenitiesTotal] = useState<Money>({ amount: 0, currency: 'USD' });
   const [lotCount, setLotCount] = useState<number>(0);
   const [totalLotArea, setTotalLotArea] = useState<number>(0);
@@ -54,7 +57,9 @@ export const FinancialAnalysisPage: React.FC<FinancialAnalysisPageProps> = ({ pr
 
       // Load selected subdivision scenario
       if (project.selectedScenarioId) {
-        const scenario = await window.electronAPI.loadSubdivisionScenario(project.selectedScenarioId);
+        const scenario = await window.electronAPI.loadSubdivisionScenario(
+          project.selectedScenarioId
+        );
         if (scenario) {
           setLotCount(scenario.lots.length);
 
@@ -69,7 +74,9 @@ export const FinancialAnalysisPage: React.FC<FinancialAnalysisPageProps> = ({ pr
 
       // Load social club design
       if (project.socialClubDesignId) {
-        const socialClubDesign = await window.electronAPI.loadSocialClubDesign(project.socialClubDesignId);
+        const socialClubDesign = await window.electronAPI.loadSocialClubDesign(
+          project.socialClubDesignId
+        );
         if (socialClubDesign) {
           // Calculate total amenities cost
           const totalAmenitiesCost = socialClubDesign.selectedAmenities.reduce(
@@ -91,7 +98,6 @@ export const FinancialAnalysisPage: React.FC<FinancialAnalysisPageProps> = ({ pr
       if (existingAnalysis) {
         setFinancialData(existingAnalysis);
       }
-
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load project data');
       console.error('Error loading project data:', err);
@@ -148,7 +154,8 @@ export const FinancialAnalysisPage: React.FC<FinancialAnalysisPageProps> = ({ pr
       <div className="page-header">
         <h1>Financial Analysis & Pricing</h1>
         <p className="page-description">
-          Configure project costs, view cost breakdowns, and generate pricing scenarios with multiple profit margins.
+          Configure project costs, view cost breakdowns, and generate pricing scenarios with
+          multiple profit margins.
         </p>
       </div>
 

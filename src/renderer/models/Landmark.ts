@@ -9,12 +9,7 @@ import { z } from 'zod';
 /**
  * Landmark types
  */
-export type LandmarkType = 
-  | 'beach' 
-  | 'airport' 
-  | 'tourist_attraction' 
-  | 'infrastructure' 
-  | 'other';
+export type LandmarkType = 'beach' | 'airport' | 'tourist_attraction' | 'infrastructure' | 'other';
 
 /**
  * Landmark interface
@@ -33,7 +28,7 @@ export const LandmarkSchema = z.object({
   type: z.enum(['beach', 'airport', 'tourist_attraction', 'infrastructure', 'other']),
   name: z.string().min(1),
   distance: z.number().positive().optional(),
-  description: z.string().optional()
+  description: z.string().optional(),
 });
 
 /**
@@ -63,5 +58,5 @@ export const LANDMARK_TYPE_LABELS: Record<LandmarkType, string> = {
   airport: 'Airport',
   tourist_attraction: 'Tourist Attraction',
   infrastructure: 'Infrastructure',
-  other: 'Other'
+  other: 'Other',
 };

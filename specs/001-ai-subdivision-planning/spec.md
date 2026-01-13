@@ -5,6 +5,16 @@
 **Status**: Draft
 **Input**: User description: "let's implement proper Subdivision planning with AI help; at this point we know the lot dimensions and the target sub-lot (Micro-Villas); We should use Gemini and Nano Banana Pro to start generating the sub-divisions; first the sub-division dimensions text, get that approved, then use that approved plan to generate images for the whole project view"
 
+## Clarifications
+
+### Session 2026-01-11
+
+- Q: How should approved subdivision plans be persisted across application sessions? → A: Auto-save approved plans immediately upon approval AND reload the last approved plan on app startup
+- Q: How should image generation be triggered after plan approval? → A: Require user to manually click "Generate Images" button after approval (button becomes enabled only after approval)
+- Q: How should generated images be persisted and reloaded across sessions? → A: Auto-save generated images and automatically display them when loading an approved plan that has associated images
+- Q: What is the project/plan data model for persistence? → A: Single active project per application instance; only one approved plan can exist at a time (new approval replaces old)
+- Q: How should image regeneration handle previously generated images? → A: Keep previous image version as backup until user explicitly confirms new version is acceptable
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Generate Text-Based Subdivision Plan (Priority: P1)
@@ -19,9 +29,10 @@ A real estate investor has entered their land parcel dimensions and wants to exp
 
 1. **Given** land parcel dimensions are entered (length, width, total area), **When** user requests AI subdivision planning, **Then** system generates a text-based subdivision plan showing number of lots, individual lot dimensions, road widths, amenity areas, and total coverage
 2. **Given** a subdivision plan is generated, **When** user reviews the plan, **Then** user can see all lot dimensions meet minimum 90 sqm requirement and understand the spatial layout through descriptive text
-3. **Given** user reviews a subdivision plan, **When** user approves the plan, **Then** system saves the approved plan and marks it as ready for image generation
-4. **Given** user reviews a subdivision plan, **When** user rejects the plan, **Then** user can request alternative subdivision layouts with different parameters (lot sizes, road configurations, amenity placements)
-5. **Given** land dimensions result in no viable subdivisions, **When** AI generates plan, **Then** system explains why subdivision is not possible and suggests minimum land size needed
+3. **Given** user reviews a subdivision plan, **When** user approves the plan, **Then** system immediately auto-saves the approved plan to database (replacing any previously approved plan) and marks it as ready for image generation
+4. **Given** an approved subdivision plan was saved in a previous session, **When** user reopens the application, **Then** system automatically loads the approved plan and displays it without requiring regeneration
+5. **Given** user reviews a subdivision plan, **When** user rejects the plan, **Then** user can request alternative subdivision layouts with different parameters (lot sizes, road configurations, amenity placements)
+6. **Given** land dimensions result in no viable subdivisions, **When** AI generates plan, **Then** system explains why subdivision is not possible and suggests minimum land size needed
 
 ---
 
@@ -35,11 +46,14 @@ After approving a text-based subdivision plan, the investor wants to see visual 
 
 **Acceptance Scenarios**:
 
-1. **Given** an approved subdivision plan exists, **When** user requests project visualization, **Then** system generates a top-down site plan image showing all lots, roads, and amenities with labels
-2. **Given** image generation is in progress, **When** user waits, **Then** system shows generation progress and estimated completion time
-3. **Given** images are generated, **When** user views them, **Then** user sees multiple perspectives (2D site plan, aerial view, and neighborhood context view)
-4. **Given** generated images, **When** user is satisfied with quality, **Then** user can save images to project files for export or presentation
-5. **Given** generated images don't meet expectations, **When** user requests regeneration, **Then** user can provide feedback prompts to refine the visual output (adjust perspective, emphasis on amenities, etc.)
+1. **Given** a subdivision plan is approved, **When** user views the approved plan, **Then** "Generate Images" button becomes enabled and is visibly available
+2. **Given** "Generate Images" button is enabled, **When** user clicks the button, **Then** system begins generating a top-down site plan image showing all lots, roads, and amenities with labels
+3. **Given** image generation is in progress, **When** user waits, **Then** system shows generation progress and estimated completion time
+4. **Given** images are generated, **When** user views them, **Then** user sees multiple perspectives (2D site plan, aerial view, and neighborhood context view)
+5. **Given** generated images, **When** generation completes, **Then** images are automatically saved to file system and linked to the approved subdivision plan in database
+6. **Given** approved plan with previously generated images exists, **When** user reopens application and loads the plan, **Then** system automatically displays the saved images without regeneration
+7. **Given** generated images don't meet expectations, **When** user requests regeneration with refinement prompts, **Then** system generates new images while preserving previous version as backup
+8. **Given** regenerated images are displayed alongside previous version, **When** user confirms new version is acceptable, **Then** system replaces the displayed images and archives the old version
 
 ---
 
@@ -68,6 +82,7 @@ An investor wants to compare different subdivision strategies (maximize lot coun
 - How does system handle very large land parcels that could result in hundreds of lots (performance and visualization limits)?
 - What happens when user requests regeneration multiple times in quick succession (rate limiting, cost management)?
 - How does system handle approved plans if land dimensions change after approval?
+- What happens when database references generated images but the image files are missing or corrupted on disk (allow regeneration without error)?
 
 ## Requirements *(mandatory)*
 
@@ -78,22 +93,22 @@ An investor wants to compare different subdivision strategies (maximize lot coun
 - **FR-003**: System MUST validate that all proposed lots meet minimum 90 sqm size requirement before presenting plan to user
 - **FR-004**: System MUST generate subdivision plans that include lot dimensions, road widths, amenity area allocations, and total coverage calculations
 - **FR-005**: System MUST allow users to approve or reject generated subdivision plans with feedback for refinements
-- **FR-006**: System MUST save approved subdivision plans to the project database for persistence across sessions
+- **FR-006**: System MUST immediately auto-save approved subdivision plan to the project database upon approval (replacing any previously approved plan as only one active plan is supported), and automatically reload the approved plan on application startup
 - **FR-007**: System MUST pass approved subdivision plan details as structured prompts to image generation AI
 - **FR-008**: System MUST generate multiple visual perspectives of the project (site plan, aerial view, context view)
 - **FR-009**: System MUST display generation progress for both text and image generation phases
 - **FR-010**: System MUST handle AI service errors gracefully with user-friendly error messages and retry options
 - **FR-011**: System MUST allow users to request alternative subdivision layouts without losing previous proposals
 - **FR-012**: System MUST calculate and display total lot count, road coverage percentage, and amenity coverage for each plan
-- **FR-013**: System MUST prevent image generation until a subdivision plan is explicitly approved by the user
-- **FR-014**: System MUST store generated images with references to their source subdivision plan
-- **FR-015**: System MUST support regeneration of images with user-provided refinement prompts
+- **FR-013**: System MUST disable "Generate Images" button until a subdivision plan is explicitly approved, then enable the button requiring manual user click to trigger image generation
+- **FR-014**: System MUST automatically save generated images to file system with database references linking them to their source subdivision plan, and automatically load and display these images when the associated approved plan is loaded
+- **FR-015**: System MUST support regeneration of images with user-provided refinement prompts while preserving previous image version as backup until user explicitly confirms the new version is acceptable
 
 ### Key Entities
 
 - **Subdivision Plan**: AI-generated layout containing lot array (each with dimensions and position), road network configuration (widths and layout), amenity area allocations, total coverage metrics, approval status, generation timestamp, and source AI model
 - **AI Generation Request**: Represents a request to AI service containing input parameters (land dimensions, constraints, user preferences), target AI service (Gemini for text, Nano Banana Pro for images), generation status, response data, error messages if failed, and timestamp
-- **Project Visualization**: Generated image asset with image file reference, associated subdivision plan ID, view type (site plan/aerial/context), generation parameters used, user satisfaction rating, and regeneration history
+- **Project Visualization**: Generated image asset with file system path reference, associated subdivision plan ID, view type (site plan/aerial/context), generation parameters used, user satisfaction rating, regeneration history, backup image reference (previous version kept until user confirms new version), confirmation status, and auto-load flag indicating whether to display on plan load
 - **Subdivision Lot**: Individual lot within a plan containing dimensions (length, width, area), position coordinates, lot number/identifier, and compliance status with minimum size requirement
 
 ## Success Criteria *(mandatory)*
@@ -118,6 +133,7 @@ An investor wants to compare different subdivision strategies (maximize lot coun
 - Desktop application has persistent internet connection for AI service calls (offline AI not in scope)
 - Image generation produces standard image formats (PNG/JPEG) that can be stored in local file system
 - User approval is a binary decision (approve/reject) with optional text feedback for refinements
+- Application supports single active project model: only one approved subdivision plan exists at a time, new approvals replace previous ones
 - Multiple subdivision plan requests for same land parcel are treated as independent explorations (not automatically linked)
 
 ## Dependencies
@@ -132,6 +148,7 @@ An investor wants to compare different subdivision strategies (maximize lot coun
 ## Out of Scope
 
 - Manual subdivision editing (users cannot drag-and-drop lots or roads in this version)
+- Multi-project management (only one active project/approved plan supported per application instance)
 - Cost estimation or financial analysis integration (separate feature)
 - 3D walkthrough or interactive visualization (only static images in this version)
 - AI training or customization (use AI services as-is)

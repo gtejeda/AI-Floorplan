@@ -50,7 +50,7 @@ class TelemetryService {
     // Log session start
     if (this.isEnabled) {
       this.trackEvent('usage', 'session_start', {
-        firstLaunch: !store.get('telemetry.hasLaunched', false)
+        firstLaunch: !store.get('telemetry.hasLaunched', false),
       });
       store.set('telemetry.hasLaunched', true);
     }
@@ -104,7 +104,7 @@ class TelemetryService {
       sessionId: this.sessionId,
       appVersion: this.appVersion,
       platform: process.platform,
-      data: this.sanitizeData(data)
+      data: this.sanitizeData(data),
     };
 
     if (!this.isEnabled) {
@@ -139,7 +139,7 @@ class TelemetryService {
       sessionId: this.sessionId,
       appVersion: this.appVersion,
       platform: process.platform,
-      context: this.sanitizeData(context)
+      context: this.sanitizeData(context),
     };
 
     // Always log locally for debugging
@@ -160,7 +160,7 @@ class TelemetryService {
   trackPerformance(operation: string, durationMs: number, metadata?: Record<string, any>): void {
     this.trackEvent('performance', operation, {
       durationMs,
-      ...metadata
+      ...metadata,
     });
   }
 
@@ -188,7 +188,7 @@ class TelemetryService {
       sessionId: this.sessionId,
       appVersion: this.appVersion,
       enabledAt: store.get('telemetry.enabledAt'),
-      disabledAt: store.get('telemetry.disabledAt')
+      disabledAt: store.get('telemetry.disabledAt'),
     };
   }
 
@@ -250,11 +250,11 @@ class TelemetryService {
       'phone',
       'address',
       'name',
-      'user'
+      'user',
     ];
 
     const lowerField = fieldName.toLowerCase();
-    return sensitivePatterns.some(pattern => lowerField.includes(pattern));
+    return sensitivePatterns.some((pattern) => lowerField.includes(pattern));
   }
 
   /**

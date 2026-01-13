@@ -18,7 +18,7 @@ export interface ExchangeRate {
 /**
  * Default exchange rate (DOP per USD)
  */
-export const DEFAULT_EXCHANGE_RATE = 58.50;
+export const DEFAULT_EXCHANGE_RATE = 58.5;
 
 /**
  * Precision for currency calculations
@@ -49,7 +49,7 @@ export function convertMoney(
 
   return {
     amount: Number(convertedAmount.toFixed(CURRENCY_PRECISION)),
-    currency: targetCurrency
+    currency: targetCurrency,
   };
 }
 
@@ -91,7 +91,7 @@ export function getInverseRate(exchangeRate: ExchangeRate): ExchangeRate {
     from: exchangeRate.to,
     to: exchangeRate.from,
     rate: 1 / exchangeRate.rate,
-    effectiveDate: exchangeRate.effectiveDate
+    effectiveDate: exchangeRate.effectiveDate,
   };
 }
 

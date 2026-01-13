@@ -17,7 +17,10 @@ export class AppError extends Error {
   }
 }
 
-export function handleError(error: unknown, context?: Record<string, any>): { success: false; error: string; code?: string } {
+export function handleError(
+  error: unknown,
+  context?: Record<string, any>
+): { success: false; error: string; code?: string } {
   if (error instanceof AppError) {
     console.error(`[${error.code}] ${error.message}`);
 
@@ -27,7 +30,7 @@ export function handleError(error: unknown, context?: Record<string, any>): { su
     return {
       success: false,
       error: error.message,
-      code: error.code
+      code: error.code,
     };
   }
 
@@ -39,7 +42,7 @@ export function handleError(error: unknown, context?: Record<string, any>): { su
 
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 
@@ -51,13 +54,11 @@ export function handleError(error: unknown, context?: Record<string, any>): { su
 
   return {
     success: false,
-    error: 'An unknown error occurred'
+    error: 'An unknown error occurred',
   };
 }
 
-export function wrapHandler<T extends (...args: any[]) => Promise<any>>(
-  handler: T
-): T {
+export function wrapHandler<T extends (...args: any[]) => Promise<any>>(handler: T): T {
   return (async (...args: Parameters<T>) => {
     try {
       return await handler(...args);

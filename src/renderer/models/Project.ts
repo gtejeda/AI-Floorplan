@@ -53,27 +53,30 @@ export interface UpdateProjectInput {
 /**
  * Zod validation schema for Project
  */
-export const ProjectSchema = z.object({
-  id: z.string().uuid('Invalid UUID format'),
-  name: z.string().min(1, 'Name is required').max(200, 'Name must be at most 200 characters'),
-  created: z.date(),
-  modified: z.date(),
-  version: z.string().regex(/^\d+\.\d+\.\d+$/, 'Version must follow semantic versioning (e.g., 1.0.0)'),
-  landParcelId: z.string().uuid().nullable(),
-  selectedScenarioId: z.string().uuid().nullable(),
-  status: z.enum(['draft', 'in_progress', 'finalized']),
-  notes: z.string().optional()
-}).refine(
-  (data) => data.created <= data.modified,
-  { message: 'Created date must be before or equal to modified date' }
-);
+export const ProjectSchema = z
+  .object({
+    id: z.string().uuid('Invalid UUID format'),
+    name: z.string().min(1, 'Name is required').max(200, 'Name must be at most 200 characters'),
+    created: z.date(),
+    modified: z.date(),
+    version: z
+      .string()
+      .regex(/^\d+\.\d+\.\d+$/, 'Version must follow semantic versioning (e.g., 1.0.0)'),
+    landParcelId: z.string().uuid().nullable(),
+    selectedScenarioId: z.string().uuid().nullable(),
+    status: z.enum(['draft', 'in_progress', 'finalized']),
+    notes: z.string().optional(),
+  })
+  .refine((data) => data.created <= data.modified, {
+    message: 'Created date must be before or equal to modified date',
+  });
 
 /**
  * Zod validation schema for CreateProjectInput
  */
 export const CreateProjectInputSchema = z.object({
   name: z.string().min(1, 'Name is required').max(200, 'Name must be at most 200 characters'),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 });
 
 /**
@@ -83,7 +86,7 @@ export const UpdateProjectInputSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   status: z.enum(['draft', 'in_progress', 'finalized']).optional(),
   selectedScenarioId: z.string().uuid().nullable().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 });
 
 /**
@@ -123,7 +126,7 @@ export function createProject(input: CreateProjectInput, id?: string): Project {
     landParcelId: null,
     selectedScenarioId: null,
     status: 'draft',
-    notes: validatedInput.notes
+    notes: validatedInput.notes,
   };
 }
 

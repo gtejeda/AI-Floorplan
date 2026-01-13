@@ -29,13 +29,7 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({ children }) =>
   return (
     <LoadingContext.Provider value={{ isLoading, loadingMessage, setLoading }}>
       {children}
-      {isLoading && (
-        <LoadingSpinner
-          size="large"
-          message={loadingMessage}
-          overlay={true}
-        />
-      )}
+      {isLoading && <LoadingSpinner size="large" message={loadingMessage} overlay={true} />}
     </LoadingContext.Provider>
   );
 };

@@ -138,7 +138,7 @@ CREATE INDEX IF NOT EXISTS idx_lots_scenario ON micro_villa_lots(scenario_id);
 CREATE TABLE IF NOT EXISTS social_club_designs (
     id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL,
-    scenario_id TEXT NOT NULL,
+    scenario_id TEXT NOT NULL, -- Can reference subdivision_scenarios OR ai_subdivision_plans
     storage_type TEXT NOT NULL CHECK(storage_type IN ('centralized', 'individual-patios')),
     dedicated_storage_area REAL, -- Optional
     maintenance_room_size REAL NOT NULL, -- Required
@@ -146,8 +146,9 @@ CREATE TABLE IF NOT EXISTS social_club_designs (
     total_cost_amount REAL NOT NULL,
     total_cost_currency TEXT NOT NULL,
     total_area REAL NOT NULL,
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    FOREIGN KEY (scenario_id) REFERENCES subdivision_scenarios(id)
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    -- Note: No FK constraint on scenario_id because it can reference either
+    -- subdivision_scenarios.id OR ai_subdivision_plans.id
 );
 
 CREATE INDEX IF NOT EXISTS idx_social_club_project ON social_club_designs(project_id);

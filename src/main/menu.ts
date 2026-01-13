@@ -23,7 +23,7 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
                 accelerator: 'Cmd+,',
                 click: () => {
                   mainWindow.webContents.send('menu:settings');
-                }
+                },
               },
               { type: 'separator' as const },
               { role: 'services' as const },
@@ -32,9 +32,9 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
               { role: 'hideOthers' as const },
               { role: 'unhide' as const },
               { type: 'separator' as const },
-              { role: 'quit' as const }
-            ]
-          }
+              { role: 'quit' as const },
+            ],
+          },
         ]
       : []),
 
@@ -47,14 +47,14 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
           accelerator: 'CmdOrCtrl+N',
           click: () => {
             mainWindow.webContents.send('menu:new-project');
-          }
+          },
         },
         {
           label: 'Open Project...',
           accelerator: 'CmdOrCtrl+O',
           click: () => {
             mainWindow.webContents.send('menu:open-project');
-          }
+          },
         },
         { type: 'separator' },
         // Recent Projects submenu
@@ -73,7 +73,7 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
                       accelerator: index < 9 ? `CmdOrCtrl+${index + 1}` : undefined,
                       click: () => {
                         mainWindow.webContents.send('menu:open-recent-project', projectPath);
-                      }
+                      },
                     };
                   }),
                   { type: 'separator' as const },
@@ -81,11 +81,11 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
                     label: 'Clear Recent Projects',
                     click: () => {
                       mainWindow.webContents.send('menu:clear-recent-projects');
-                    }
-                  }
-                ]
+                    },
+                  },
+                ],
               },
-              { type: 'separator' as const }
+              { type: 'separator' as const },
             ];
           }
           return [];
@@ -95,7 +95,7 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
           accelerator: 'CmdOrCtrl+S',
           click: () => {
             mainWindow.webContents.send('menu:save');
-          }
+          },
         },
         { type: 'separator' },
         {
@@ -103,32 +103,30 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
           accelerator: 'CmdOrCtrl+E',
           click: () => {
             mainWindow.webContents.send('menu:export');
-          }
+          },
         },
         {
           label: 'Import Project...',
           accelerator: 'CmdOrCtrl+I',
           click: () => {
             mainWindow.webContents.send('menu:import');
-          }
+          },
         },
         { type: 'separator' },
         ...(isMac
-          ? [
-              { role: 'close' as const }
-            ]
+          ? [{ role: 'close' as const }]
           : [
               {
                 label: 'Settings...',
                 accelerator: 'Ctrl+,',
                 click: () => {
                   mainWindow.webContents.send('menu:settings');
-                }
+                },
               },
               { type: 'separator' as const },
-              { role: 'quit' as const }
-            ])
-      ]
+              { role: 'quit' as const },
+            ]),
+      ],
     },
 
     // Edit Menu
@@ -149,18 +147,15 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
               { type: 'separator' as const },
               {
                 label: 'Speech',
-                submenu: [
-                  { role: 'startSpeaking' as const },
-                  { role: 'stopSpeaking' as const }
-                ]
-              }
+                submenu: [{ role: 'startSpeaking' as const }, { role: 'stopSpeaking' as const }],
+              },
             ]
           : [
               { role: 'delete' as const },
               { type: 'separator' as const },
-              { role: 'selectAll' as const }
-            ])
-      ]
+              { role: 'selectAll' as const },
+            ]),
+      ],
     },
 
     // View Menu
@@ -175,8 +170,8 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
         { role: 'zoomIn' },
         { role: 'zoomOut' },
         { type: 'separator' },
-        { role: 'togglefullscreen' }
-      ]
+        { role: 'togglefullscreen' },
+      ],
     },
 
     // Window Menu
@@ -190,12 +185,10 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
               { type: 'separator' as const },
               { role: 'front' as const },
               { type: 'separator' as const },
-              { role: 'window' as const }
+              { role: 'window' as const },
             ]
-          : [
-              { role: 'close' as const }
-            ])
-      ]
+          : [{ role: 'close' as const }]),
+      ],
     },
 
     // Help Menu
@@ -213,23 +206,23 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
               console.error('Failed to open quickstart:', error);
               mainWindow.webContents.send('menu:help-error', 'Could not open documentation');
             }
-          }
+          },
         },
         { type: 'separator' },
         {
           label: 'About Micro Villas',
           click: () => {
             mainWindow.webContents.send('menu:about');
-          }
+          },
         },
         {
           label: 'Report Issue',
           click: async () => {
             await shell.openExternal('https://github.com/microvillas/platform/issues');
-          }
-        }
-      ]
-    }
+          },
+        },
+      ],
+    },
   ];
 
   const menu = Menu.buildFromTemplate(template);

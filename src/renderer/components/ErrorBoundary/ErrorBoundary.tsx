@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<Props, State> {
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     };
   }
 
@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     });
 
     // Log error to main process for debugging
@@ -42,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
       window.electronAPI.logError({
         message: error.message,
         stack: error.stack,
-        componentStack: errorInfo.componentStack
+        componentStack: errorInfo.componentStack,
       });
     }
   }
@@ -51,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     });
   };
 
@@ -64,21 +64,26 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Default error UI
       return (
-        <div style={{
-          padding: '2rem',
-          maxWidth: '800px',
-          margin: '0 auto',
-          fontFamily: 'system-ui, -apple-system, sans-serif'
-        }}>
-          <div style={{
-            background: '#fee',
-            border: '2px solid #d00',
-            borderRadius: '8px',
-            padding: '1.5rem'
-          }}>
+        <div
+          style={{
+            padding: '2rem',
+            maxWidth: '800px',
+            margin: '0 auto',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+          }}
+        >
+          <div
+            style={{
+              background: '#fee',
+              border: '2px solid #d00',
+              borderRadius: '8px',
+              padding: '1.5rem',
+            }}
+          >
             <h1 style={{ color: '#d00', marginTop: 0 }}>Something went wrong</h1>
             <p style={{ marginBottom: '1rem' }}>
-              The application encountered an unexpected error. You can try to continue or reload the page.
+              The application encountered an unexpected error. You can try to continue or reload the
+              page.
             </p>
 
             <div style={{ marginBottom: '1rem' }}>
@@ -92,7 +97,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   border: 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
-                  fontSize: '1rem'
+                  fontSize: '1rem',
                 }}
               >
                 Try Again
@@ -106,7 +111,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   border: 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
-                  fontSize: '1rem'
+                  fontSize: '1rem',
                 }}
               >
                 Reload Application
@@ -115,38 +120,40 @@ export class ErrorBoundary extends Component<Props, State> {
 
             {this.state.error && (
               <details style={{ marginTop: '1rem' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
-                  Error Details
-                </summary>
-                <div style={{
-                  marginTop: '0.5rem',
-                  padding: '1rem',
-                  background: '#fff',
-                  borderRadius: '4px',
-                  overflow: 'auto'
-                }}>
-                  <p style={{ fontWeight: 'bold', color: '#d00' }}>
-                    {this.state.error.message}
-                  </p>
-                  <pre style={{
-                    fontSize: '0.85rem',
+                <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>Error Details</summary>
+                <div
+                  style={{
+                    marginTop: '0.5rem',
+                    padding: '1rem',
+                    background: '#fff',
+                    borderRadius: '4px',
                     overflow: 'auto',
-                    background: '#f5f5f5',
-                    padding: '0.5rem',
-                    borderRadius: '4px'
-                  }}>
+                  }}
+                >
+                  <p style={{ fontWeight: 'bold', color: '#d00' }}>{this.state.error.message}</p>
+                  <pre
+                    style={{
+                      fontSize: '0.85rem',
+                      overflow: 'auto',
+                      background: '#f5f5f5',
+                      padding: '0.5rem',
+                      borderRadius: '4px',
+                    }}
+                  >
                     {this.state.error.stack}
                   </pre>
                   {this.state.errorInfo?.componentStack && (
                     <>
                       <p style={{ fontWeight: 'bold', marginTop: '1rem' }}>Component Stack:</p>
-                      <pre style={{
-                        fontSize: '0.85rem',
-                        overflow: 'auto',
-                        background: '#f5f5f5',
-                        padding: '0.5rem',
-                        borderRadius: '4px'
-                      }}>
+                      <pre
+                        style={{
+                          fontSize: '0.85rem',
+                          overflow: 'auto',
+                          background: '#f5f5f5',
+                          padding: '0.5rem',
+                          borderRadius: '4px',
+                        }}
+                      >
                         {this.state.errorInfo.componentStack}
                       </pre>
                     </>

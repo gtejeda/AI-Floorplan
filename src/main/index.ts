@@ -3,6 +3,9 @@
  * Micro Villas Investment Platform
  */
 
+// Load environment variables first
+import 'dotenv/config';
+
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { initializeDatabase } from './storage';
@@ -23,10 +26,10 @@ const createWindow = (): void => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: preloadPath
+      preload: preloadPath,
     },
     title: 'Micro Villas Investment Platform',
-    show: false
+    show: false,
   });
 
   // Create application menu
@@ -43,7 +46,7 @@ const createWindow = (): void => {
     const devUrl = `http://localhost:${port}`;
     console.log('[Main] Loading dev server:', devUrl);
     mainWindow.loadURL(devUrl);
-    mainWindow.webContents.openDevTools();
+    //mainWindow.webContents.openDevTools();
   } else {
     // Production mode - load from file
     const indexPath = path.join(__dirname, '../renderer/main_window/index.html');
@@ -52,6 +55,7 @@ const createWindow = (): void => {
   }
 
   mainWindow.once('ready-to-show', () => {
+    mainWindow?.maximize();
     mainWindow?.show();
   });
 

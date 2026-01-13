@@ -7,11 +7,11 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ProjectSetup } from './pages/ProjectSetup';
 import { SubdivisionPlanner } from './pages/SubdivisionPlanner';
+import { SocialClubDesigner } from './pages/SocialClubDesigner';
 import { ExportPage } from './pages/Export';
 import { Import } from './components/Import/Import';
 
 // Placeholder components - will be implemented in later phases
-const SocialClubDesigner = () => <div>Social Club Designer - Coming in Phase 5</div>;
 const FinancialAnalysis = () => <div>Financial Analysis - Coming in Phase 6</div>;
 
 export const RouterProvider: React.FC = () => {

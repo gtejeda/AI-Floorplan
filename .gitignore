@@ -61,4 +61,3 @@ tmpclaude-*
 
 # Build artifacts
 /.forge/
-/package-lock.json

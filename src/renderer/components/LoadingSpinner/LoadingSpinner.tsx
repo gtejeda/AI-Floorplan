@@ -14,12 +14,12 @@ interface LoadingSpinnerProps {
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   size = 'medium',
   message,
-  overlay = false
+  overlay = false,
 }) => {
   const sizeClasses = {
     small: 'spinner-small',
     medium: 'spinner-medium',
-    large: 'spinner-large'
+    large: 'spinner-large',
   };
 
   const spinner = (
@@ -30,11 +30,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   );
 
   if (overlay) {
-    return (
-      <div className="loading-overlay">
-        {spinner}
-      </div>
-    );
+    return <div className="loading-overlay">{spinner}</div>;
   }
 
   return spinner;

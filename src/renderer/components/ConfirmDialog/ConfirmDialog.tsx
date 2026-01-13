@@ -34,14 +34,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelLabel = 'Cancel',
   onConfirm,
   onCancel,
-  variant = 'warning'
+  variant = 'warning',
 }) => {
   if (!isOpen) return null;
 
   const variantClasses = {
     danger: 'confirm-dialog-danger',
     warning: 'confirm-dialog-warning',
-    info: 'confirm-dialog-info'
+    info: 'confirm-dialog-info',
   };
 
   const handleConfirm = () => {
@@ -70,17 +70,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </div>
 
         <div className="confirm-dialog-footer">
-          <button
-            className="cancel-button"
-            onClick={handleCancel}
-            autoFocus
-          >
+          <button className="cancel-button" onClick={handleCancel} autoFocus>
             {cancelLabel}
           </button>
-          <button
-            className={`confirm-button ${variant}`}
-            onClick={handleConfirm}
-          >
+          <button className={`confirm-button ${variant}`} onClick={handleConfirm}>
             {confirmLabel}
           </button>
         </div>

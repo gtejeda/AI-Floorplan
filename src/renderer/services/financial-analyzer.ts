@@ -6,7 +6,7 @@ import {
   FinancialAnalysisInput,
   CostAllocation,
   LegalCosts,
-  OtherCost
+  OtherCost,
 } from '../models/FinancialAnalysis';
 import { Money } from '../models/Money';
 import { LandParcel } from '../models/LandParcel';
@@ -48,19 +48,10 @@ export class FinancialAnalyzer {
     const totalProjectCost = this.calculateTotalProjectCost(input.costs);
 
     // T099: Calculate cost per sqm for shared areas
-    const costPerSqm = this.calculateCostPerSqmSharedAreas(
-      input.costs,
-      landArea,
-      lotCount
-    );
+    const costPerSqm = this.calculateCostPerSqmSharedAreas(input.costs, landArea, lotCount);
 
     // T100: Calculate base lot cost
-    const baseLotCost = this.calculateBaseLotCost(
-      totalProjectCost,
-      input.costs,
-      lotCount,
-      lotArea
-    );
+    const baseLotCost = this.calculateBaseLotCost(totalProjectCost, input.costs, lotCount, lotArea);
 
     // T103: Generate pricing scenarios
     const pricingScenarios = this.generatePricingScenarios(
@@ -99,7 +90,7 @@ export class FinancialAnalyzer {
       monthlyMaintenancePerOwner,
       exchangeRate: input.exchangeRate,
       calculatedAt: now,
-      lastModified: now
+      lastModified: now,
     };
   }
 
@@ -121,10 +112,10 @@ export class FinancialAnalyzer {
       costs.maintenanceRoom,
       costs.storage,
       costs.legal.total,
-      ...costs.other.map(c => c.amount)
+      ...costs.other.map((c) => c.amount),
     ];
 
-    const hasInconsistentCurrency = allCosts.some(c => c.currency !== currency);
+    const hasInconsistentCurrency = allCosts.some((c) => c.currency !== currency);
     if (hasInconsistentCurrency) {
       throw new Error('All costs must use the same currency');
     }
@@ -143,7 +134,7 @@ export class FinancialAnalyzer {
 
     return {
       amount: Number(total.toFixed(2)),
-      currency
+      currency,
     };
   }
 
@@ -171,7 +162,7 @@ export class FinancialAnalyzer {
 
     return {
       amount: Number(costPerSqm.toFixed(2)),
-      currency
+      currency,
     };
   }
 
@@ -196,7 +187,7 @@ export class FinancialAnalyzer {
 
     return {
       amount: Number(baseCost.toFixed(2)),
-      currency
+      currency,
     };
   }
 
@@ -219,7 +210,7 @@ export class FinancialAnalyzer {
     // Proportional land cost
     const proportionalLandCost: Money = {
       amount: Number((costs.landAcquisition.amount * lotPercentage).toFixed(2)),
-      currency
+      currency,
     };
 
     // Proportional shared costs (parking, walkways, landscaping, maintenance)
@@ -231,7 +222,7 @@ export class FinancialAnalyzer {
 
     const proportionalSharedCosts: Money = {
       amount: Number((sharedCosts * lotPercentage).toFixed(2)),
-      currency
+      currency,
     };
 
     // T102: Storage cost allocation
@@ -240,24 +231,24 @@ export class FinancialAnalyzer {
       // Include per-lot storage cost
       storageCost = {
         amount: Number((costs.storage.amount / lotCount).toFixed(2)),
-        currency
+        currency,
       };
     } else {
       // Centralized storage is proportional
       storageCost = {
         amount: Number((costs.storage.amount * lotPercentage).toFixed(2)),
-        currency
+        currency,
       };
     }
 
     // Total base cost for this lot
     const totalBaseCost: Money = {
-      amount: Number((
-        proportionalLandCost.amount +
-        proportionalSharedCosts.amount +
-        storageCost.amount
-      ).toFixed(2)),
-      currency
+      amount: Number(
+        (proportionalLandCost.amount + proportionalSharedCosts.amount + storageCost.amount).toFixed(
+          2
+        )
+      ),
+      currency,
     };
 
     return {
@@ -266,7 +257,7 @@ export class FinancialAnalyzer {
       proportionalLandCost,
       proportionalSharedCosts,
       storageCost,
-      totalBaseCost
+      totalBaseCost,
     };
   }
 
@@ -282,22 +273,22 @@ export class FinancialAnalyzer {
   ): PricingScenario[] {
     const currency = baseLotCost.currency;
 
-    return profitMargins.map(margin => {
+    return profitMargins.map((margin) => {
       // T103: Calculate lot sale price
       const lotSalePrice: Money = {
         amount: Number((baseLotCost.amount * (1 + margin / 100)).toFixed(2)),
-        currency
+        currency,
       };
 
       // T104: Calculate revenue and profit
       const totalRevenue: Money = {
         amount: Number((lotSalePrice.amount * lotCount).toFixed(2)),
-        currency
+        currency,
       };
 
       const expectedProfit: Money = {
         amount: Number((totalRevenue.amount - totalProjectCost.amount).toFixed(2)),
-        currency
+        currency,
       };
 
       const roi = (expectedProfit.amount / totalProjectCost.amount) * 100;
@@ -308,7 +299,7 @@ export class FinancialAnalyzer {
         lotSalePrice,
         totalRevenue,
         expectedProfit,
-        roi: Number(roi.toFixed(2))
+        roi: Number(roi.toFixed(2)),
       };
     });
   }
@@ -326,12 +317,12 @@ export class FinancialAnalyzer {
 
     const totalRevenue: Money = {
       amount: Number((lotSalePrice.amount * lotCount).toFixed(2)),
-      currency
+      currency,
     };
 
     const expectedProfit: Money = {
       amount: Number((totalRevenue.amount - totalProjectCost.amount).toFixed(2)),
-      currency
+      currency,
     };
 
     const roi = (expectedProfit.amount / totalProjectCost.amount) * 100;
@@ -339,7 +330,7 @@ export class FinancialAnalyzer {
     return {
       totalRevenue,
       expectedProfit,
-      roi: Number(roi.toFixed(2))
+      roi: Number(roi.toFixed(2)),
     };
   }
 
@@ -358,7 +349,7 @@ export class FinancialAnalyzer {
 
     return {
       amount: Number(perOwnerContribution.toFixed(2)),
-      currency
+      currency,
     };
   }
 
@@ -378,35 +369,27 @@ export class FinancialAnalyzer {
     }
 
     const total: Money = {
-      amount: Number((
-        notaryFees.amount +
-        permits.amount +
-        registrations.amount
-      ).toFixed(2)),
-      currency
+      amount: Number((notaryFees.amount + permits.amount + registrations.amount).toFixed(2)),
+      currency,
     };
 
     return {
       notaryFees,
       permits,
       registrations,
-      total
+      total,
     };
   }
 
   /**
    * Add or update other cost
    */
-  static addOtherCost(
-    label: string,
-    amount: Money,
-    description?: string
-  ): OtherCost {
+  static addOtherCost(label: string, amount: Money, description?: string): OtherCost {
     return {
       id: uuidv4(),
       label,
       amount,
-      description
+      description,
     };
   }
 
@@ -421,14 +404,14 @@ export class FinancialAnalyzer {
     socialClub: SocialClubDesign | null
   ): FinancialAnalysis {
     // Extract profit margins from existing scenarios
-    const profitMargins = existing.pricingScenarios.map(s => s.profitMarginPercent);
+    const profitMargins = existing.pricingScenarios.map((s) => s.profitMarginPercent);
 
     const input: FinancialAnalysisInput = {
       projectId: existing.projectId,
       costs: existing.costs,
       profitMargins,
       monthlyMaintenanceCost: existing.monthlyMaintenanceCost,
-      exchangeRate: existing.exchangeRate
+      exchangeRate: existing.exchangeRate,
     };
 
     const recalculated = this.analyze(input, landParcel, scenario, socialClub);
@@ -438,7 +421,7 @@ export class FinancialAnalyzer {
       ...recalculated,
       id: existing.id,
       calculatedAt: existing.calculatedAt,
-      lastModified: new Date()
+      lastModified: new Date(),
     };
   }
 
@@ -458,7 +441,8 @@ export class FinancialAnalyzer {
     // Validate pricing scenarios
     analysis.pricingScenarios.forEach((scenario, index) => {
       // Check lot sale price calculation
-      const expectedLotPrice = analysis.baseLotCost.amount * (1 + scenario.profitMarginPercent / 100);
+      const expectedLotPrice =
+        analysis.baseLotCost.amount * (1 + scenario.profitMarginPercent / 100);
       if (Math.abs(scenario.lotSalePrice.amount - expectedLotPrice) > 0.01) {
         errors.push(`Pricing scenario ${index + 1}: Lot sale price calculation is incorrect`);
       }
@@ -475,17 +459,17 @@ export class FinancialAnalyzer {
       analysis.totalProjectCost.currency,
       analysis.costPerSqm.currency,
       analysis.baseLotCost.currency,
-      ...analysis.pricingScenarios.map(s => s.lotSalePrice.currency)
+      ...analysis.pricingScenarios.map((s) => s.lotSalePrice.currency),
     ];
 
-    const hasInconsistentCurrency = currencies.some(c => c !== currencies[0]);
+    const hasInconsistentCurrency = currencies.some((c) => c !== currencies[0]);
     if (hasInconsistentCurrency) {
       errors.push('Inconsistent currency across financial analysis');
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 }

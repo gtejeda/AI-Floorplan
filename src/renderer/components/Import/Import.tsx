@@ -11,7 +11,11 @@ import './Import.css';
 declare global {
   interface Window {
     electronAPI: {
-      selectImportDirectory: () => Promise<{ success: boolean; path: string | null; message: string }>;
+      selectImportDirectory: () => Promise<{
+        success: boolean;
+        path: string | null;
+        message: string;
+      }>;
       importProject: (sourceDir: string, options?: ImportOptions) => Promise<ImportResult>;
     };
   }
@@ -62,11 +66,13 @@ export const Import: React.FC = () => {
       setImportResult(result);
 
       // Check if partial recovery is needed
-      if (!result.success && result.errors.some(e => e.severity === 'recoverable')) {
+      if (!result.success && result.errors.some((e) => e.severity === 'recoverable')) {
         setShowPartialRecoveryDialog(true);
       } else if (result.success) {
         // Show success message
-        alert(`Project imported successfully!\nProject ID: ${result.importedProjectId}\nDuration: ${(result.duration / 1000).toFixed(2)}s`);
+        alert(
+          `Project imported successfully!\nProject ID: ${result.importedProjectId}\nDuration: ${(result.duration / 1000).toFixed(2)}s`
+        );
       }
     } catch (error: any) {
       console.error('Error importing project:', error);
@@ -78,17 +84,19 @@ export const Import: React.FC = () => {
           structureValid: false,
           checksumValid: false,
           schemaValid: false,
-          imagesValid: false
+          imagesValid: false,
         },
-        errors: [{
-          field: 'import',
-          message: error.message,
-          severity: 'critical'
-        }],
+        errors: [
+          {
+            field: 'import',
+            message: error.message,
+            severity: 'critical',
+          },
+        ],
         warnings: [],
         missingImages: [],
         missingAIPrompts: [],
-        duration: 0
+        duration: 0,
       });
     } finally {
       setIsImporting(false);
@@ -139,7 +147,8 @@ export const Import: React.FC = () => {
               {error.expectedType && (
                 <div className="error-details">
                   Expected: {error.expectedType}
-                  {error.receivedValue !== undefined && `, Received: ${JSON.stringify(error.receivedValue)}`}
+                  {error.receivedValue !== undefined &&
+                    `, Received: ${JSON.stringify(error.receivedValue)}`}
                 </div>
               )}
             </li>
@@ -163,9 +172,7 @@ export const Import: React.FC = () => {
             <li key={index} className="warning-item">
               <strong>{warning.field}:</strong> {warning.message}
               {warning.suggestion && (
-                <div className="warning-suggestion">
-                  Suggestion: {warning.suggestion}
-                </div>
+                <div className="warning-suggestion">Suggestion: {warning.suggestion}</div>
               )}
             </li>
           ))}
@@ -185,8 +192,8 @@ export const Import: React.FC = () => {
       <div className="missing-images">
         <h3>Missing Images ({missingImages.length})</h3>
         <p className="missing-images-note">
-          These images were referenced in the project but not found in the import directory.
-          They will be marked as placeholders in the project.
+          These images were referenced in the project but not found in the import directory. They
+          will be marked as placeholders in the project.
         </p>
         <ul>
           {missingImages.map((filename, index) => (
@@ -224,7 +231,8 @@ export const Import: React.FC = () => {
       <div className="import-header">
         <h1>Import Project</h1>
         <p className="import-description">
-          Load a previously exported project from disk with full data validation and recovery options.
+          Load a previously exported project from disk with full data validation and recovery
+          options.
         </p>
       </div>
 
@@ -236,7 +244,9 @@ export const Import: React.FC = () => {
             <input
               type="checkbox"
               checked={importOptions.enablePartialRecovery}
-              onChange={(e) => setImportOptions({ ...importOptions, enablePartialRecovery: e.target.checked })}
+              onChange={(e) =>
+                setImportOptions({ ...importOptions, enablePartialRecovery: e.target.checked })
+              }
             />
             Enable partial recovery (load valid fields, skip corrupted ones)
           </label>
@@ -246,7 +256,9 @@ export const Import: React.FC = () => {
             <input
               type="checkbox"
               checked={importOptions.validateChecksum}
-              onChange={(e) => setImportOptions({ ...importOptions, validateChecksum: e.target.checked })}
+              onChange={(e) =>
+                setImportOptions({ ...importOptions, validateChecksum: e.target.checked })
+              }
             />
             Validate checksum (verify data integrity)
           </label>
@@ -256,7 +268,9 @@ export const Import: React.FC = () => {
             <input
               type="checkbox"
               checked={importOptions.importImages}
-              onChange={(e) => setImportOptions({ ...importOptions, importImages: e.target.checked })}
+              onChange={(e) =>
+                setImportOptions({ ...importOptions, importImages: e.target.checked })
+              }
             />
             Import images
           </label>
@@ -320,12 +334,17 @@ export const Import: React.FC = () => {
           {importResult.duration && (
             <div className="performance-metrics">
               <p>
-                <strong>Import Duration:</strong> {(importResult.duration / 1000).toFixed(2)} seconds
+                <strong>Import Duration:</strong> {(importResult.duration / 1000).toFixed(2)}{' '}
+                seconds
                 {importResult.duration < 10000 ? ' ✓' : ' (Warning: >10s)'}
               </p>
-              <p><strong>Imported At:</strong> {new Date(importResult.importedAt).toLocaleString()}</p>
+              <p>
+                <strong>Imported At:</strong> {new Date(importResult.importedAt).toLocaleString()}
+              </p>
               {importResult.importedProjectId && (
-                <p><strong>Project ID:</strong> {importResult.importedProjectId}</p>
+                <p>
+                  <strong>Project ID:</strong> {importResult.importedProjectId}
+                </p>
               )}
             </div>
           )}
@@ -366,15 +385,15 @@ export const Import: React.FC = () => {
           <div className="modal-dialog">
             <h2>⚠️ Import Failed - Partial Recovery Available</h2>
             <p>
-              The project data contains errors and cannot be fully imported.
-              However, partial recovery is available.
+              The project data contains errors and cannot be fully imported. However, partial
+              recovery is available.
             </p>
 
             <div className="modal-errors">
               <h3>Detected Errors:</h3>
               <ul>
                 {importResult.errors
-                  .filter(e => e.severity === 'recoverable')
+                  .filter((e) => e.severity === 'recoverable')
                   .map((error, index) => (
                     <li key={index}>
                       <strong>{error.field}:</strong> {error.message}
@@ -384,21 +403,15 @@ export const Import: React.FC = () => {
             </div>
 
             <p className="modal-question">
-              Do you want to proceed with partial recovery?
-              Valid fields will be imported, and corrupted fields will be skipped.
+              Do you want to proceed with partial recovery? Valid fields will be imported, and
+              corrupted fields will be skipped.
             </p>
 
             <div className="modal-actions">
-              <button
-                className="btn btn-primary"
-                onClick={handlePartialRecoveryConfirm}
-              >
+              <button className="btn btn-primary" onClick={handlePartialRecoveryConfirm}>
                 Yes, Proceed with Partial Recovery
               </button>
-              <button
-                className="btn btn-secondary"
-                onClick={handlePartialRecoveryCancel}
-              >
+              <button className="btn btn-secondary" onClick={handlePartialRecoveryCancel}>
                 No, Cancel Import
               </button>
             </div>

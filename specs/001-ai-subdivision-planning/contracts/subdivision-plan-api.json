@@ -1,0 +1,689 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Subdivision Plan IPC API Contracts",
+  "version": "1.0.0",
+  "description": "IPC method contracts for AI subdivision plan generation and management",
+  "channels": {
+    "ai:generate-subdivision-plan": {
+      "description": "Generate AI-powered subdivision plan from land parcel dimensions",
+      "handler": "ipcMain.handle",
+      "request": {
+        "type": "object",
+        "required": [
+          "projectId",
+          "landParcelId",
+          "landWidth",
+          "landLength",
+          "landArea",
+          "socialClubPercent"
+        ],
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the project"
+          },
+          "landParcelId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the land parcel"
+          },
+          "landWidth": {
+            "type": "number",
+            "minimum": 10,
+            "description": "Land width in meters (must be positive)"
+          },
+          "landLength": {
+            "type": "number",
+            "minimum": 10,
+            "description": "Land length in meters (must be positive)"
+          },
+          "landArea": {
+            "type": "number",
+            "minimum": 90,
+            "description": "Total land area in square meters"
+          },
+          "socialClubPercent": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 30,
+            "description": "Social club area allocation as percentage (10-30%)"
+          },
+          "targetLotCount": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Optional target lot count guidance for AI"
+          },
+          "province": {
+            "type": "string",
+            "description": "Optional province name for context in AI prompts"
+          }
+        },
+        "example": {
+          "projectId": "550e8400-e29b-41d4-a716-446655440000",
+          "landParcelId": "550e8400-e29b-41d4-a716-446655440001",
+          "landWidth": 50,
+          "landLength": 40,
+          "landArea": 2000,
+          "socialClubPercent": 20,
+          "targetLotCount": 15,
+          "province": "San Pedro de Macorís"
+        }
+      },
+      "response": {
+        "type": "object",
+        "required": ["planId", "status"],
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of created AISubdivisionPlan record"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["completed", "failed"],
+            "description": "Generation status"
+          },
+          "plan": {
+            "type": "object",
+            "description": "Full subdivision plan (if status=completed)",
+            "required": [
+              "lotLayout",
+              "roadConfiguration",
+              "amenityAreas",
+              "metrics"
+            ],
+            "properties": {
+              "lotLayout": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["lotNumber", "dimensions", "position"],
+                  "properties": {
+                    "lotNumber": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "dimensions": {
+                      "type": "object",
+                      "required": ["widthMeters", "lengthMeters", "areaSqm"],
+                      "properties": {
+                        "widthMeters": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "lengthMeters": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "areaSqm": {
+                          "type": "number",
+                          "minimum": 90,
+                          "description": "CRITICAL: Must be at least 90 sqm"
+                        }
+                      }
+                    },
+                    "position": {
+                      "type": "object",
+                      "required": ["x", "y"],
+                      "properties": {
+                        "x": {
+                          "type": "number"
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "roadConfiguration": {
+                "type": "object",
+                "required": ["widthMeters", "totalAreaSqm", "layout"],
+                "properties": {
+                  "widthMeters": {
+                    "type": "number",
+                    "minimum": 4,
+                    "maximum": 12
+                  },
+                  "totalAreaSqm": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "layout": {
+                    "type": "string",
+                    "enum": ["grid", "perimeter", "central-spine", "loop"]
+                  }
+                }
+              },
+              "amenityAreas": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["type", "areaSqm", "position"],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "social-club",
+                        "parking",
+                        "green-space",
+                        "maintenance"
+                      ]
+                    },
+                    "areaSqm": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "position": {
+                      "type": "object",
+                      "required": ["x", "y"],
+                      "properties": {
+                        "x": {
+                          "type": "number"
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "metrics": {
+                "type": "object",
+                "required": [
+                  "totalLots",
+                  "viableLots",
+                  "invalidLots",
+                  "averageLotSizeSqm",
+                  "landUtilizationPercent"
+                ],
+                "properties": {
+                  "totalLots": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "viableLots": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "invalidLots": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Array of lot numbers below 90 sqm"
+                  },
+                  "averageLotSizeSqm": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "landUtilizationPercent": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                }
+              }
+            }
+          },
+          "validationStatus": {
+            "type": "string",
+            "enum": ["valid", "invalid", "warnings"],
+            "description": "Plan validation result"
+          },
+          "validationErrors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Critical validation errors (if any)"
+          },
+          "validationWarnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Non-critical validation warnings (if any)"
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message if status=failed"
+          },
+          "tokensUsed": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total tokens consumed by AI API call"
+          },
+          "generationTimeMs": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Time taken to generate plan in milliseconds"
+          }
+        },
+        "example": {
+          "planId": "550e8400-e29b-41d4-a716-446655440002",
+          "status": "completed",
+          "plan": {
+            "lotLayout": [
+              {
+                "lotNumber": 1,
+                "dimensions": {
+                  "widthMeters": 10,
+                  "lengthMeters": 12,
+                  "areaSqm": 120
+                },
+                "position": {
+                  "x": 5,
+                  "y": 5
+                }
+              }
+            ],
+            "roadConfiguration": {
+              "widthMeters": 6,
+              "totalAreaSqm": 300,
+              "layout": "grid"
+            },
+            "amenityAreas": [
+              {
+                "type": "social-club",
+                "areaSqm": 400,
+                "position": {
+                  "x": 25,
+                  "y": 20
+                },
+                "description": "Central social club with pool"
+              }
+            ],
+            "metrics": {
+              "totalLots": 15,
+              "viableLots": 15,
+              "invalidLots": [],
+              "averageLotSizeSqm": 105.5,
+              "landUtilizationPercent": 62.3
+            }
+          },
+          "validationStatus": "valid",
+          "tokensUsed": 12450,
+          "generationTimeMs": 28500
+        }
+      },
+      "errors": [
+        {
+          "code": "VALIDATION_ERROR",
+          "message": "Request validation failed (invalid input parameters)"
+        },
+        {
+          "code": "AI_API_ERROR",
+          "message": "Gemini API returned error (rate limit, service unavailable)"
+        },
+        {
+          "code": "PLAN_VALIDATION_ERROR",
+          "message": "Generated plan failed validation (e.g., all lots below 90 sqm)"
+        },
+        {
+          "code": "DATABASE_ERROR",
+          "message": "Failed to save plan to database"
+        }
+      ]
+    },
+    "ai:approve-plan": {
+      "description": "Approve a generated subdivision plan (activates plan, deactivates others)",
+      "handler": "ipcMain.handle",
+      "request": {
+        "type": "object",
+        "required": ["planId"],
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of AISubdivisionPlan to approve"
+          }
+        },
+        "example": {
+          "planId": "550e8400-e29b-41d4-a716-446655440002"
+        }
+      },
+      "response": {
+        "type": "object",
+        "required": ["success", "planId", "approvedAt"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether approval succeeded"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp of approval"
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message if success=false"
+          }
+        },
+        "example": {
+          "success": true,
+          "planId": "550e8400-e29b-41d4-a716-446655440002",
+          "approvedAt": "2026-01-12T15:30:00.000Z"
+        }
+      },
+      "errors": [
+        {
+          "code": "PLAN_NOT_FOUND",
+          "message": "Plan with specified ID does not exist"
+        },
+        {
+          "code": "PLAN_INVALID",
+          "message": "Cannot approve plan with validationStatus='invalid'"
+        },
+        {
+          "code": "DATABASE_ERROR",
+          "message": "Failed to update plan approval status"
+        }
+      ]
+    },
+    "ai:reject-plan": {
+      "description": "Reject a generated subdivision plan with optional feedback",
+      "handler": "ipcMain.handle",
+      "request": {
+        "type": "object",
+        "required": ["planId"],
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of AISubdivisionPlan to reject"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional user feedback for refinement"
+          }
+        },
+        "example": {
+          "planId": "550e8400-e29b-41d4-a716-446655440002",
+          "reason": "Lots too small, need larger spacing between roads"
+        }
+      },
+      "response": {
+        "type": "object",
+        "required": ["success", "planId"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "errorMessage": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "success": true,
+          "planId": "550e8400-e29b-41d4-a716-446655440002"
+        }
+      },
+      "errors": [
+        {
+          "code": "PLAN_NOT_FOUND",
+          "message": "Plan with specified ID does not exist"
+        },
+        {
+          "code": "DATABASE_ERROR",
+          "message": "Failed to update plan rejection status"
+        }
+      ]
+    },
+    "ai:get-generation-history": {
+      "description": "Get list of AI subdivision plans for a project (with pagination)",
+      "handler": "ipcMain.handle",
+      "request": {
+        "type": "object",
+        "required": ["projectId"],
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20,
+            "description": "Maximum number of results to return"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0,
+            "description": "Pagination offset"
+          },
+          "includeRejected": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to include rejected plans in results"
+          }
+        },
+        "example": {
+          "projectId": "550e8400-e29b-41d4-a716-446655440000",
+          "limit": 10,
+          "offset": 0,
+          "includeRejected": false
+        }
+      },
+      "response": {
+        "type": "object",
+        "required": ["plans", "total"],
+        "properties": {
+          "plans": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "generatedAt",
+                "generationStatus",
+                "validationStatus",
+                "approvedByUser",
+                "viableLots",
+                "totalLots",
+                "landUtilizationPercent"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "generatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "generationStatus": {
+                  "type": "string",
+                  "enum": ["pending", "completed", "failed", "rejected"]
+                },
+                "validationStatus": {
+                  "type": "string",
+                  "enum": ["valid", "invalid", "warnings"]
+                },
+                "approvedByUser": {
+                  "type": "boolean"
+                },
+                "viableLots": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "totalLots": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "landUtilizationPercent": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                }
+              }
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total count of plans (for pagination)"
+          }
+        },
+        "example": {
+          "plans": [
+            {
+              "id": "550e8400-e29b-41d4-a716-446655440002",
+              "generatedAt": "2026-01-12T15:30:00.000Z",
+              "generationStatus": "completed",
+              "validationStatus": "valid",
+              "approvedByUser": true,
+              "viableLots": 15,
+              "totalLots": 15,
+              "landUtilizationPercent": 62.3
+            }
+          ],
+          "total": 3
+        }
+      },
+      "errors": [
+        {
+          "code": "PROJECT_NOT_FOUND",
+          "message": "Project with specified ID does not exist"
+        },
+        {
+          "code": "DATABASE_ERROR",
+          "message": "Failed to query plans from database"
+        }
+      ]
+    }
+  },
+  "progressEvents": {
+    "ai:generation-progress": {
+      "description": "Progress event emitted during AI plan generation (one-way, main → renderer)",
+      "channel": "event.sender.send",
+      "event": {
+        "type": "object",
+        "required": ["operationType", "status", "message"],
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": ["subdivision-plan", "image-generation"],
+            "description": "Type of AI operation in progress"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "started",
+              "retrying",
+              "processing",
+              "validating",
+              "completed",
+              "failed"
+            ],
+            "description": "Current status of operation"
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Retry attempt number (if retrying)"
+          },
+          "message": {
+            "type": "string",
+            "description": "User-friendly status message"
+          },
+          "progress": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Progress percentage (if available)"
+          }
+        },
+        "example": {
+          "operationType": "subdivision-plan",
+          "status": "processing",
+          "message": "Generating subdivision layout...",
+          "progress": 45
+        }
+      }
+    }
+  },
+  "implementation": {
+    "mainProcess": "src/main/ipc-handlers.ts",
+    "preloadScript": "src/preload/index.ts",
+    "rendererAPI": "window.aiService",
+    "validation": "Zod schemas in src/shared/ai-contracts.ts",
+    "database": "src/main/storage.ts (better-sqlite3)",
+    "aiService": "src/main/ai-services/gemini-client.ts"
+  },
+  "examples": {
+    "basic-flow": {
+      "description": "Typical workflow for generating and approving a subdivision plan",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Generate plan",
+          "channel": "ai:generate-subdivision-plan",
+          "request": {
+            "projectId": "550e8400-e29b-41d4-a716-446655440000",
+            "landParcelId": "550e8400-e29b-41d4-a716-446655440001",
+            "landWidth": 50,
+            "landLength": 40,
+            "landArea": 2000,
+            "socialClubPercent": 20
+          }
+        },
+        {
+          "step": 2,
+          "action": "Listen for progress",
+          "channel": "ai:generation-progress",
+          "event": {
+            "operationType": "subdivision-plan",
+            "status": "processing",
+            "message": "Calling Gemini API...",
+            "progress": 30
+          }
+        },
+        {
+          "step": 3,
+          "action": "Receive completed plan",
+          "response": {
+            "planId": "550e8400-e29b-41d4-a716-446655440002",
+            "status": "completed",
+            "validationStatus": "valid"
+          }
+        },
+        {
+          "step": 4,
+          "action": "Approve plan",
+          "channel": "ai:approve-plan",
+          "request": {
+            "planId": "550e8400-e29b-41d4-a716-446655440002"
+          }
+        },
+        {
+          "step": 5,
+          "action": "Plan activated",
+          "response": {
+            "success": true,
+            "planId": "550e8400-e29b-41d4-a716-446655440002",
+            "approvedAt": "2026-01-12T15:30:00.000Z"
+          }
+        }
+      ]
+    }
+  }
+}

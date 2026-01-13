@@ -98,11 +98,17 @@ export class AIDescriptionGenerator {
    * Creates a JSON file with all constraints and current configuration
    */
   static generateClaudeCodePrompt(project: Project): ClaudeCodePrompt {
-    const { landParcel, subdivisionScenarios, selectedScenarioId, socialClubDesign, financialAnalysis } = project;
+    const {
+      landParcel,
+      subdivisionScenarios,
+      selectedScenarioId,
+      socialClubDesign,
+      financialAnalysis,
+    } = project;
 
     // Find selected scenario
     const selectedScenario = selectedScenarioId
-      ? subdivisionScenarios.find(s => s.id === selectedScenarioId)
+      ? subdivisionScenarios.find((s) => s.id === selectedScenarioId)
       : null;
 
     const prompt: ClaudeCodePrompt = {
@@ -119,7 +125,7 @@ export class AIDescriptionGenerator {
         socialClub: {
           percentageRange: [10, 30],
           currentSelection: selectedScenario?.socialClubPercent,
-          minimumArea: landParcel.area * 0.10, // 10% minimum
+          minimumArea: landParcel.area * 0.1, // 10% minimum
         },
         parking: {
           spacesPerVilla: 2,
@@ -128,7 +134,8 @@ export class AIDescriptionGenerator {
         },
         storage: {
           type: socialClubDesign?.storageType || 'centralized',
-          location: socialClubDesign?.storageType === 'centralized' ? 'social-club' : 'individual-patios',
+          location:
+            socialClubDesign?.storageType === 'centralized' ? 'social-club' : 'individual-patios',
         },
         maintenanceRoom: {
           required: true,
@@ -195,7 +202,7 @@ export class AIDescriptionGenerator {
     const { landParcel, subdivisionScenarios, selectedScenarioId, socialClubDesign } = project;
 
     const selectedScenario = selectedScenarioId
-      ? subdivisionScenarios.find(s => s.id === selectedScenarioId)
+      ? subdivisionScenarios.find((s) => s.id === selectedScenarioId)
       : null;
 
     if (!selectedScenario) {
@@ -223,7 +230,7 @@ export class AIDescriptionGenerator {
         `Centralized parking: ${selectedScenario.lots.count * 2} spaces`,
       ],
       visualElements: [
-        'Aerial/bird\'s-eye view perspective',
+        "Aerial/bird's-eye view perspective",
         'Modern Caribbean residential architecture',
         'Lush tropical landscaping',
         'Clear lot boundaries and walkways',
@@ -251,7 +258,9 @@ export class AIDescriptionGenerator {
         'Modern single-story villa design',
         'Small front garden/patio area',
         'Clear property boundaries',
-        socialClubDesign?.storageType === 'individual-patios' ? 'Outdoor storage shed' : 'Clean lot perimeter',
+        socialClubDesign?.storageType === 'individual-patios'
+          ? 'Outdoor storage shed'
+          : 'Clean lot perimeter',
         'Tropical landscaping elements',
         'Contemporary Dominican architectural style',
       ],
@@ -260,7 +269,7 @@ export class AIDescriptionGenerator {
     // 3. Social Club Prompt
     if (socialClubDesign && socialClubDesign.selectedAmenities.length > 0) {
       const amenitiesList = socialClubDesign.selectedAmenities
-        .map(a => `${a.quantity}x ${a.name}`)
+        .map((a) => `${a.quantity}x ${a.name}`)
         .join(', ');
 
       prompts.prompts.push({
@@ -323,9 +332,14 @@ export class AIDescriptionGenerator {
     });
 
     // 5. Land Parcel Context Prompt
-    const landmarks = landParcel.landmarks.length > 0
-      ? landParcel.landmarks.map(l => `${l.name} (${l.type}${l.distance ? `, ${l.distance.toFixed(1)}km away` : ''})`).join(', ')
-      : 'No specific landmarks recorded';
+    const landmarks =
+      landParcel.landmarks.length > 0
+        ? landParcel.landmarks
+            .map(
+              (l) => `${l.name} (${l.type}${l.distance ? `, ${l.distance.toFixed(1)}km away` : ''})`
+            )
+            .join(', ')
+        : 'No specific landmarks recorded';
 
     prompts.prompts.push({
       id: 'land-parcel',
@@ -360,7 +374,7 @@ export class AIDescriptionGenerator {
   private static groupAmenitiesByCategory(socialClubDesign: SocialClubDesign): string {
     const categoryCount: Record<string, number> = {};
 
-    socialClubDesign.selectedAmenities.forEach(amenity => {
+    socialClubDesign.selectedAmenities.forEach((amenity) => {
       categoryCount[amenity.category] = (categoryCount[amenity.category] || 0) + amenity.quantity;
     });
 

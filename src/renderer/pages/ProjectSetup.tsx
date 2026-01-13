@@ -74,7 +74,9 @@ export const ProjectSetup: React.FC = () => {
         if (loadedProject.landParcelId) {
           console.log('[ProjectSetup] Project has land parcel ID:', loadedProject.landParcelId);
           try {
-            const loadedLandParcel = await window.electronAPI.loadLandParcel(loadedProject.landParcelId);
+            const loadedLandParcel = await window.electronAPI.loadLandParcel(
+              loadedProject.landParcelId
+            );
             console.log('[ProjectSetup] Loaded land parcel:', loadedLandParcel);
             setLandParcel(loadedLandParcel);
           } catch (error) {
@@ -105,7 +107,7 @@ export const ProjectSetup: React.FC = () => {
 
       const newProject = await window.electronAPI.createProject({
         name: projectName,
-        notes: projectNotes || undefined
+        notes: projectNotes || undefined,
       });
 
       setProject(newProject);
@@ -127,21 +129,15 @@ export const ProjectSetup: React.FC = () => {
     setLandParcel(savedLandParcel);
     console.log('Land parcel saved:', savedLandParcel);
 
-    // Reload project to get updated landParcelId from database
-    if (project) {
-      try {
-        const updatedProject = await window.electronAPI.loadProject(project.id);
-        setProject(updatedProject);
-        console.log('Project updated with land parcel ID:', updatedProject.landParcelId);
-      } catch (error) {
-        console.error('Error reloading project:', error);
-        // Fallback: update local state
-        setProject({
-          ...project,
-          landParcelId: savedLandParcel.id,
-          modified: new Date()
-        });
-      }
+    // Update local project state with land parcel ID (no need to reload entire project)
+    if (project && !project.landParcelId) {
+      // Only update if landParcelId isn't set yet (first-time save)
+      setProject({
+        ...project,
+        landParcelId: savedLandParcel.id,
+        modified: new Date(),
+      });
+      console.log('Project updated with land parcel ID:', savedLandParcel.id);
     }
   };
 
@@ -177,7 +173,9 @@ export const ProjectSetup: React.FC = () => {
       // Load land parcel if exists
       if (selectedProject.landParcelId) {
         try {
-          const loadedLandParcel = await window.electronAPI.loadLandParcel(selectedProject.landParcelId);
+          const loadedLandParcel = await window.electronAPI.loadLandParcel(
+            selectedProject.landParcelId
+          );
           setLandParcel(loadedLandParcel);
           console.log('Loaded land parcel:', loadedLandParcel);
         } catch (error) {
@@ -209,7 +207,9 @@ export const ProjectSetup: React.FC = () => {
             <h2>Open Project</h2>
             <div className="project-list">
               {availableProjects.length === 0 ? (
-                <p className="empty-state">No projects found. Create a new project to get started.</p>
+                <p className="empty-state">
+                  No projects found. Create a new project to get started.
+                </p>
               ) : (
                 availableProjects.map((proj) => (
                   <div
@@ -242,11 +242,7 @@ export const ProjectSetup: React.FC = () => {
         <div className="create-project-section">
           <div className="create-project-header">
             <h2>Create New Project</h2>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={handleOpenProjectDialog}
-            >
+            <button type="button" className="btn-secondary" onClick={handleOpenProjectDialog}>
               Open Existing Project
             </button>
           </div>
@@ -276,16 +272,10 @@ export const ProjectSetup: React.FC = () => {
               />
             </div>
 
-            {error && (
-              <div className="error-message">{error}</div>
-            )}
+            {error && <div className="error-message">{error}</div>}
 
             <div className="form-actions">
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={isCreatingProject}
-              >
+              <button type="submit" className="btn-primary" disabled={isCreatingProject}>
                 {isCreatingProject ? 'Creating...' : 'Create Project'}
               </button>
             </div>
@@ -299,15 +289,11 @@ export const ProjectSetup: React.FC = () => {
                 <h2>{project?.name}</h2>
                 {project?.notes && <p className="project-notes">{project.notes}</p>}
                 <p className="project-meta">
-                  Created: {project && new Date(project.created).toLocaleDateString()} |
-                  Status: <span className="status-badge">{project?.status}</span>
+                  Created: {project && new Date(project.created).toLocaleDateString()} | Status:{' '}
+                  <span className="status-badge">{project?.status}</span>
                 </p>
               </div>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={handleNewProject}
-              >
+              <button type="button" className="btn-secondary" onClick={handleNewProject}>
                 New Project
               </button>
             </div>
@@ -339,11 +325,7 @@ export const ProjectSetup: React.FC = () => {
               <div className="success-message">
                 ✓ Land parcel configured successfully! Ready to proceed.
               </div>
-              <button
-                type="button"
-                className="btn-primary btn-large"
-                onClick={handleNextStep}
-              >
+              <button type="button" className="btn-primary btn-large" onClick={handleNextStep}>
                 Next: Subdivision Planning →
               </button>
             </div>

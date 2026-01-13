@@ -138,12 +138,12 @@ export function getEncryptionStatus(): {
     const available = safeStorage.isEncryptionAvailable();
     return {
       available,
-      method: available ? 'safeStorage' : 'base64-fallback'
+      method: available ? 'safeStorage' : 'base64-fallback',
     };
   } catch {
     return {
       available: false,
-      method: 'none'
+      method: 'none',
     };
   }
 }

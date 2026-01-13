@@ -26,7 +26,7 @@ const CATEGORY_NAMES: Record<AmenityCategory, string> = {
   furniture: 'Furniture',
   landscaping: 'Landscaping',
   utilities: 'Utilities',
-  storage: 'Storage'
+  storage: 'Storage',
 };
 
 /**
@@ -35,7 +35,7 @@ const CATEGORY_NAMES: Record<AmenityCategory, string> = {
 export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
   projectId,
   scenarioId,
-  onSave
+  onSave,
 }) => {
   // State
   const [catalog, setCatalog] = useState<Amenity[]>([]);
@@ -43,7 +43,9 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
   const [storageType, setStorageType] = useState<StorageType>('centralized');
   const [dedicatedStorageArea, setDedicatedStorageArea] = useState<number>(50);
   const [maintenanceRoomSize, setMaintenanceRoomSize] = useState<number>(20);
-  const [maintenanceRoomLocation, setMaintenanceRoomLocation] = useState<'in-social-club' | 'separate'>('in-social-club');
+  const [maintenanceRoomLocation, setMaintenanceRoomLocation] = useState<
+    'in-social-club' | 'separate'
+  >('in-social-club');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -72,11 +74,11 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
    * Toggle amenity selection
    */
   const toggleAmenity = (amenity: Amenity) => {
-    const existingIndex = selectedAmenities.findIndex(a => a.amenityId === amenity.id);
+    const existingIndex = selectedAmenities.findIndex((a) => a.amenityId === amenity.id);
 
     if (existingIndex >= 0) {
       // Remove amenity
-      setSelectedAmenities(prev => prev.filter(a => a.amenityId !== amenity.id));
+      setSelectedAmenities((prev) => prev.filter((a) => a.amenityId !== amenity.id));
     } else {
       // Add amenity with default quantity of 1
       const newAmenity: SelectedAmenity = {
@@ -86,9 +88,9 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
         quantity: 1,
         unitCost: amenity.defaultCost,
         totalCost: amenity.defaultCost,
-        spaceRequirement: amenity.spaceRequirement
+        spaceRequirement: amenity.spaceRequirement,
       };
-      setSelectedAmenities(prev => [...prev, newAmenity]);
+      setSelectedAmenities((prev) => [...prev, newAmenity]);
     }
   };
 
@@ -96,35 +98,39 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
    * Update amenity quantity
    */
   const updateQuantity = (amenityId: string, quantity: number) => {
-    setSelectedAmenities(prev => prev.map(amenity => {
-      if (amenity.amenityId === amenityId) {
-        const totalCost = multiplyMoney(amenity.unitCost, quantity);
-        return {
-          ...amenity,
-          quantity,
-          totalCost
-        };
-      }
-      return amenity;
-    }));
+    setSelectedAmenities((prev) =>
+      prev.map((amenity) => {
+        if (amenity.amenityId === amenityId) {
+          const totalCost = multiplyMoney(amenity.unitCost, quantity);
+          return {
+            ...amenity,
+            quantity,
+            totalCost,
+          };
+        }
+        return amenity;
+      })
+    );
   };
 
   /**
    * Update amenity unit cost (custom override)
    */
   const updateUnitCost = (amenityId: string, amount: number) => {
-    setSelectedAmenities(prev => prev.map(amenity => {
-      if (amenity.amenityId === amenityId) {
-        const unitCost = createMoney(amount, amenity.unitCost.currency);
-        const totalCost = multiplyMoney(unitCost, amenity.quantity);
-        return {
-          ...amenity,
-          unitCost,
-          totalCost
-        };
-      }
-      return amenity;
-    }));
+    setSelectedAmenities((prev) =>
+      prev.map((amenity) => {
+        if (amenity.amenityId === amenityId) {
+          const unitCost = createMoney(amount, amenity.unitCost.currency);
+          const totalCost = multiplyMoney(unitCost, amenity.quantity);
+          return {
+            ...amenity,
+            unitCost,
+            totalCost,
+          };
+        }
+        return amenity;
+      })
+    );
   };
 
   /**
@@ -164,7 +170,7 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
         storageType,
         dedicatedStorageArea: storageType === 'centralized' ? dedicatedStorageArea : undefined,
         maintenanceRoomSize,
-        maintenanceRoomLocation
+        maintenanceRoomLocation,
       };
 
       await window.electronAPI.saveSocialClubDesign(data);
@@ -186,26 +192,29 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
   /**
    * Group amenities by category
    */
-  const amenitiesByCategory = catalog.reduce((acc, amenity) => {
-    if (!acc[amenity.category]) {
-      acc[amenity.category] = [];
-    }
-    acc[amenity.category].push(amenity);
-    return acc;
-  }, {} as Record<AmenityCategory, Amenity[]>);
+  const amenitiesByCategory = catalog.reduce(
+    (acc, amenity) => {
+      if (!acc[amenity.category]) {
+        acc[amenity.category] = [];
+      }
+      acc[amenity.category].push(amenity);
+      return acc;
+    },
+    {} as Record<AmenityCategory, Amenity[]>
+  );
 
   /**
    * Check if amenity is selected
    */
   const isAmenitySelected = (amenityId: string): boolean => {
-    return selectedAmenities.some(a => a.amenityId === amenityId);
+    return selectedAmenities.some((a) => a.amenityId === amenityId);
   };
 
   /**
    * Get selected amenity details
    */
   const getSelectedAmenity = (amenityId: string): SelectedAmenity | undefined => {
-    return selectedAmenities.find(a => a.amenityId === amenityId);
+    return selectedAmenities.find((a) => a.amenityId === amenityId);
   };
 
   if (loading) {
@@ -225,7 +234,7 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
             <h4>{CATEGORY_NAMES[category as AmenityCategory]}</h4>
 
             <div className="amenity-list">
-              {amenities.map(amenity => {
+              {amenities.map((amenity) => {
                 const selected = isAmenitySelected(amenity.id);
                 const selectedDetails = getSelectedAmenity(amenity.id);
 
@@ -259,7 +268,9 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
                             type="number"
                             min="1"
                             value={selectedDetails.quantity}
-                            onChange={(e) => updateQuantity(amenity.id, parseInt(e.target.value) || 1)}
+                            onChange={(e) =>
+                              updateQuantity(amenity.id, parseInt(e.target.value) || 1)
+                            }
                           />
                         </div>
 
@@ -270,14 +281,18 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
                             min="0"
                             step="100"
                             value={selectedDetails.unitCost.amount}
-                            onChange={(e) => updateUnitCost(amenity.id, parseFloat(e.target.value) || 0)}
+                            onChange={(e) =>
+                              updateUnitCost(amenity.id, parseFloat(e.target.value) || 0)
+                            }
                           />
                           <span className="currency">{selectedDetails.unitCost.currency}</span>
                         </div>
 
                         <div className="form-group">
                           <label>Total Cost:</label>
-                          <span className="total-cost">{formatMoney(selectedDetails.totalCost)}</span>
+                          <span className="total-cost">
+                            {formatMoney(selectedDetails.totalCost)}
+                          </span>
                         </div>
                       </div>
                     )}
@@ -364,7 +379,9 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
               name="maintenance-location"
               value="in-social-club"
               checked={maintenanceRoomLocation === 'in-social-club'}
-              onChange={(e) => setMaintenanceRoomLocation(e.target.value as 'in-social-club' | 'separate')}
+              onChange={(e) =>
+                setMaintenanceRoomLocation(e.target.value as 'in-social-club' | 'separate')
+              }
             />
             <label htmlFor="maintenance-social-club">
               <strong>In Social Club</strong>
@@ -379,7 +396,9 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
               name="maintenance-location"
               value="separate"
               checked={maintenanceRoomLocation === 'separate'}
-              onChange={(e) => setMaintenanceRoomLocation(e.target.value as 'in-social-club' | 'separate')}
+              onChange={(e) =>
+                setMaintenanceRoomLocation(e.target.value as 'in-social-club' | 'separate')
+              }
             />
             <label htmlFor="maintenance-separate">
               <strong>Separate Area</strong>
@@ -393,9 +412,16 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
       <div className="parking-section">
         <h3>Parking Configuration</h3>
         <div className="parking-info">
-          <p><strong>Type:</strong> Centralized Parking</p>
-          <p><strong>Configuration:</strong> 2 spaces per villa (auto-calculated from lot count)</p>
-          <p className="note">Parking configuration is automatically calculated based on the selected subdivision scenario.</p>
+          <p>
+            <strong>Type:</strong> Centralized Parking
+          </p>
+          <p>
+            <strong>Configuration:</strong> 2 spaces per villa (auto-calculated from lot count)
+          </p>
+          <p className="note">
+            Parking configuration is automatically calculated based on the selected subdivision
+            scenario.
+          </p>
         </div>
       </div>
 
@@ -403,13 +429,29 @@ export const AmenitiesCatalog: React.FC<AmenitiesCatalogProps> = ({
       <div className="summary-section">
         <h3>Summary</h3>
         <div className="summary-details">
-          <p><strong>Selected Amenities:</strong> {selectedAmenities.length}</p>
-          <p><strong>Total Cost:</strong> ${calculateTotalCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-          <p><strong>Storage Type:</strong> {storageType === 'centralized' ? 'Centralized' : 'Individual Patios'}</p>
+          <p>
+            <strong>Selected Amenities:</strong> {selectedAmenities.length}
+          </p>
+          <p>
+            <strong>Total Cost:</strong> $
+            {calculateTotalCost().toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </p>
+          <p>
+            <strong>Storage Type:</strong>{' '}
+            {storageType === 'centralized' ? 'Centralized' : 'Individual Patios'}
+          </p>
           {storageType === 'centralized' && (
-            <p><strong>Storage Area:</strong> {dedicatedStorageArea} sqm</p>
+            <p>
+              <strong>Storage Area:</strong> {dedicatedStorageArea} sqm
+            </p>
           )}
-          <p><strong>Maintenance Room:</strong> {maintenanceRoomSize} sqm ({maintenanceRoomLocation === 'in-social-club' ? 'In Social Club' : 'Separate Area'})</p>
+          <p>
+            <strong>Maintenance Room:</strong> {maintenanceRoomSize} sqm (
+            {maintenanceRoomLocation === 'in-social-club' ? 'In Social Club' : 'Separate Area'})
+          </p>
         </div>
       </div>
 

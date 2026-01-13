@@ -44,7 +44,7 @@ export const Export: React.FC<ExportProps> = ({ projectId, projectName }) => {
         exportPath: '',
         files: { projectJson: '', images: [] },
         metadata: { exportDate: new Date(), fileCount: 0, totalSize: 0, checksum: '' },
-        errors: [error.message]
+        errors: [error.message],
       });
     }
   };
@@ -62,7 +62,7 @@ export const Export: React.FC<ExportProps> = ({ projectId, projectName }) => {
     try {
       const result = await window.electronAPI.exportProject({
         projectId,
-        targetDirectory: selectedDirectory
+        targetDirectory: selectedDirectory,
       });
 
       const duration = Date.now() - Date.now();
@@ -80,7 +80,7 @@ export const Export: React.FC<ExportProps> = ({ projectId, projectName }) => {
         exportPath: '',
         files: { projectJson: '', images: [] },
         metadata: { exportDate: new Date(), fileCount: 0, totalSize: 0, checksum: '' },
-        errors: [error.message]
+        errors: [error.message],
       });
     } finally {
       setIsExporting(false);
@@ -196,7 +196,9 @@ export const Export: React.FC<ExportProps> = ({ projectId, projectName }) => {
                     </div>
                     <div className="stat">
                       <span className="stat-label">Total Size:</span>
-                      <span className="stat-value">{formatFileSize(exportResult.metadata.totalSize)}</span>
+                      <span className="stat-value">
+                        {formatFileSize(exportResult.metadata.totalSize)}
+                      </span>
                     </div>
                     <div className="stat">
                       <span className="stat-label">Export Time:</span>
@@ -375,8 +377,12 @@ export const Export: React.FC<ExportProps> = ({ projectId, projectName }) => {
         }
 
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .export-result {

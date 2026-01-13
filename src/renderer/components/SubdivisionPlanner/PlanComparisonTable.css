@@ -1,0 +1,208 @@
+/**
+ * PlanComparisonTable Styles
+ *
+ * Side-by-side comparison table for multiple subdivision plans
+ */
+
+.plan-comparison-table {
+  width: 100%;
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: var(--surface-color, #ffffff);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.comparison-title {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.plan-comparison-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary, #666);
+  font-style: italic;
+}
+
+/* Table Styles */
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.comparison-table thead th {
+  background: var(--header-bg, #f5f5f5);
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+  border-bottom: 2px solid var(--primary-color, #2196f3);
+}
+
+.metric-column {
+  width: 180px;
+  font-weight: 500;
+}
+
+.plan-column {
+  text-align: center;
+  min-width: 120px;
+}
+
+.metric-label {
+  font-weight: 500;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.plan-value {
+  text-align: center;
+  color: var(--text-secondary, #666);
+}
+
+/* Selection Row */
+.selection-row {
+  background: var(--highlight-bg, #f9f9f9);
+}
+
+.selection-row td {
+  padding: 1rem;
+}
+
+.plan-radio {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--primary-color, #2196f3);
+}
+
+/* Value Status Colors */
+.value-good {
+  color: var(--success-color, #4caf50);
+  font-weight: 500;
+}
+
+.value-warning {
+  color: var(--warning-color, #ff9800);
+  font-weight: 500;
+}
+
+.value-info {
+  color: var(--info-color, #2196f3);
+}
+
+.text-muted {
+  color: var(--text-muted, #999);
+  font-size: 0.9em;
+}
+
+/* Validation Status */
+.status-valid {
+  color: var(--success-color, #4caf50);
+  font-weight: 500;
+}
+
+.status-warnings {
+  color: var(--warning-color, #ff9800);
+  font-weight: 500;
+}
+
+.status-invalid {
+  color: var(--error-color, #f44336);
+  font-weight: 500;
+}
+
+/* Legend */
+.comparison-legend {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--info-bg, #e3f2fd);
+  border-radius: 4px;
+}
+
+.legend-title {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.legend-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.legend-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9em;
+  color: var(--text-secondary, #666);
+}
+
+.legend-list li span {
+  font-size: 1.2em;
+}
+
+.legend-list li .value-good {
+  color: var(--success-color, #4caf50);
+}
+
+.legend-list li .value-warning {
+  color: var(--warning-color, #ff9800);
+}
+
+.legend-list li .value-info {
+  color: var(--info-color, #2196f3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .plan-comparison-table {
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  .comparison-table {
+    font-size: 0.9em;
+  }
+
+  .comparison-table th,
+  .comparison-table td {
+    padding: 0.5rem;
+  }
+
+  .metric-column {
+    width: 140px;
+  }
+
+  .plan-column {
+    min-width: 100px;
+  }
+
+  .legend-list {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+/* Hover Effects */
+.comparison-table tbody tr:hover {
+  background: var(--hover-bg, #fafafa);
+}
+
+.plan-radio:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}

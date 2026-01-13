@@ -7,27 +7,37 @@ import { ipcMain, dialog, BrowserWindow } from 'electron';
 import { getDatabase } from './storage';
 import { logger } from './logger';
 import { validateIPCRequest } from '../shared/ai-contracts';
+
+// Import types
 import type {
   GenerateSubdivisionPlanRequest,
-  GenerateSubdivisionPlanRequestSchema,
   GenerateSitePlanImageRequest,
-  GenerateSitePlanImageRequestSchema,
   ApprovePlanRequest,
-  ApprovePlanRequestSchema,
   RejectPlanRequest,
-  RejectPlanRequestSchema,
   GetGenerationHistoryRequest,
-  GetGenerationHistoryRequestSchema,
+  GetArchivedPlansRequest,
+  SwitchToArchivedPlanRequest,
   GetSessionCostRequest,
-  GetSessionCostRequestSchema,
   GetAISettingsRequest,
-  GetAISettingsRequestSchema,
   UpdateAISettingsRequest,
-  UpdateAISettingsRequestSchema,
   SetAPIKeyRequest,
-  SetAPIKeyRequestSchema,
   TestAPIKeyRequest,
-  TestAPIKeyRequestSchema
+} from '../shared/ai-contracts';
+
+// Import Zod schemas (runtime values)
+import {
+  GenerateSubdivisionPlanRequestSchema,
+  GenerateSitePlanImageRequestSchema,
+  ApprovePlanRequestSchema,
+  RejectPlanRequestSchema,
+  GetGenerationHistoryRequestSchema,
+  GetArchivedPlansRequestSchema,
+  SwitchToArchivedPlanRequestSchema,
+  GetSessionCostRequestSchema,
+  GetAISettingsRequestSchema,
+  UpdateAISettingsRequestSchema,
+  SetAPIKeyRequestSchema,
+  TestAPIKeyRequestSchema,
 } from '../shared/ai-contracts';
 
 // Global flag to track if handlers have been registered (for hot reload)
@@ -40,24 +50,61 @@ declare global {
  */
 function removeAllHandlers() {
   const channels = [
-    'project:create', 'project:list', 'project:get', 'project:update', 'project:delete',
-    'land:save', 'land:get', 'land:getByProject',
-    'subdivision:calculate', 'subdivision:save', 'subdivision:getByProject', 'subdivision:selectScenario',
-    'social-club:save', 'social-club:get', 'social-club:getByProject',
-    'financial:save', 'financial:get', 'financial:getByProject',
-    'ai-prompt:generate', 'ai-prompt:save', 'ai-prompt:getByProject',
-    'file:saveImage', 'file:getImagePath',
-    'export:project', 'import:project',
-    'telemetry:isEnabled', 'telemetry:enable', 'telemetry:disable',
-    'telemetry:getStatistics', 'telemetry:getRecentEvents', 'telemetry:clearData', 'telemetry:trackEvent',
+    'project:create',
+    'project:list',
+    'project:get',
+    'project:update',
+    'project:delete',
+    'land:save',
+    'land:get',
+    'land:getByProject',
+    'subdivision:calculate',
+    'subdivision:save',
+    'subdivision:getByProject',
+    'subdivision:selectScenario',
+    'social-club:save',
+    'social-club:get',
+    'social-club:getByProject',
+    'financial:save',
+    'financial:get',
+    'financial:getByProject',
+    'ai-prompt:generate',
+    'ai-prompt:save',
+    'ai-prompt:getByProject',
+    'file:saveImage',
+    'file:getImagePath',
+    'export:project',
+    'import:project',
+    'telemetry:isEnabled',
+    'telemetry:enable',
+    'telemetry:disable',
+    'telemetry:getStatistics',
+    'telemetry:getRecentEvents',
+    'telemetry:clearData',
+    'telemetry:trackEvent',
     // AI subdivision planning channels
-    'ai:generate-subdivision-plan', 'ai:generate-site-plan-image',
-    'ai:approve-plan', 'ai:reject-plan', 'ai:get-generation-history',
-    'ai:get-session-cost', 'ai:get-settings', 'ai:update-settings',
-    'ai:set-api-key', 'ai:test-api-key'
+    'ai:generate-subdivision-plan',
+    'ai:generate-site-plan-image',
+    'ai:preview-image-prompt',
+    'ai:approve-plan',
+    'ai:reject-plan',
+    'ai:get-generation-history',
+    'ai:get-archived-plans',
+    'ai:switch-to-archived-plan',
+    'ai:get-session-cost',
+    'ai:get-settings',
+    'ai:update-settings',
+    'ai:set-api-key',
+    'ai:test-api-key',
+    // AI image generation channels (Phase 4)
+    'ai:get-image-generation-status',
+    'ai:get-project-visualizations',
+    'ai:save-image-to-project',
+    'ai:approve-visualization',
+    'ai:load-image-as-data-url',
   ];
 
-  channels.forEach(channel => {
+  channels.forEach((channel) => {
     try {
       ipcMain.removeHandler(channel);
     } catch (error) {
@@ -92,17 +139,7 @@ ipcMain.handle('project:create', async (event, input: { name: string; notes?: st
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(
-      projectId,
-      input.name,
-      now,
-      now,
-      '1.0.0',
-      null,
-      null,
-      'draft',
-      input.notes || null
-    );
+    stmt.run(projectId, input.name, now, now, '1.0.0', null, null, 'draft', input.notes || null);
 
     return {
       id: projectId,
@@ -113,7 +150,7 @@ ipcMain.handle('project:create', async (event, input: { name: string; notes?: st
       landParcelId: null,
       selectedScenarioId: null,
       status: 'draft',
-      notes: input.notes
+      notes: input.notes,
     };
   } catch (error: any) {
     console.error('Error creating project:', error);
@@ -147,7 +184,7 @@ ipcMain.handle('project:load', async (event, id: string) => {
       landParcelId: project.land_parcel_id,
       selectedScenarioId: project.selected_scenario_id,
       status: project.status,
-      notes: project.notes
+      notes: project.notes,
     };
 
     console.log('[IPC] Loaded project:', result);
@@ -178,7 +215,7 @@ ipcMain.handle('project:list', async () => {
       modified: project.modified,
       version: project.version,
       status: project.status,
-      notes: project.notes
+      notes: project.notes,
     }));
   } catch (error: any) {
     console.error('Error listing projects:', error);
@@ -246,7 +283,11 @@ ipcMain.handle('land:save', async (event, data: any) => {
         WHERE id = ?
       `);
 
-      const updateResult = updateProjectStmt.run(landParcelId, new Date().toISOString(), data.projectId);
+      const updateResult = updateProjectStmt.run(
+        landParcelId,
+        new Date().toISOString(),
+        data.projectId
+      );
       console.log('[IPC] Updated project with land parcel ID. Changes:', updateResult.changes);
 
       // Commit transaction
@@ -262,7 +303,7 @@ ipcMain.handle('land:save', async (event, data: any) => {
         landmarks: data.landmarks || [],
         isUrbanized: data.isUrbanized,
         acquisitionCost: data.acquisitionCost,
-        displayUnit: data.displayUnit || 'sqm'
+        displayUnit: data.displayUnit || 'sqm',
       };
     } catch (error) {
       db.prepare('ROLLBACK').run();
@@ -337,8 +378,10 @@ ipcMain.handle('land:update', async (event, id: string, data: any) => {
       const projectRow = projectIdStmt.get(id) as any;
 
       if (projectRow) {
-        db.prepare('UPDATE projects SET modified = ? WHERE id = ?')
-          .run(new Date().toISOString(), projectRow.project_id);
+        db.prepare('UPDATE projects SET modified = ? WHERE id = ?').run(
+          new Date().toISOString(),
+          projectRow.project_id
+        );
       }
 
       // Commit transaction
@@ -354,7 +397,7 @@ ipcMain.handle('land:update', async (event, id: string, data: any) => {
         landmarks: data.landmarks || [],
         isUrbanized: data.isUrbanized,
         acquisitionCost: data.acquisitionCost,
-        displayUnit: data.displayUnit || 'sqm'
+        displayUnit: data.displayUnit || 'sqm',
       };
     } catch (error) {
       db.prepare('ROLLBACK').run();
@@ -410,7 +453,7 @@ ipcMain.handle('land:load', async (event, id: string) => {
       isUrbanized: landParcel.is_urbanized === 1,
       acquisitionCost: {
         amount: landParcel.acquisition_cost_amount,
-        currency: landParcel.acquisition_cost_currency
+        currency: landParcel.acquisition_cost_currency,
       },
       displayUnit: landParcel.display_unit || 'sqm',
       targetMicrovillasCount: landParcel.target_microvillas_count,
@@ -418,8 +461,8 @@ ipcMain.handle('land:load', async (event, id: string) => {
         type: lm.type,
         name: lm.name,
         distance: lm.distance_km,
-        description: lm.description
-      }))
+        description: lm.description,
+      })),
     };
 
     console.log('[IPC] Returning land parcel:', result);
@@ -511,8 +554,10 @@ ipcMain.handle('subdivision:calculate', async (event, landParcelId: string, opti
 
       // 6. Update project modified timestamp
       const projectId = parcel.project_id;
-      db.prepare('UPDATE projects SET modified = ? WHERE id = ?')
-        .run(new Date().toISOString(), projectId);
+      db.prepare('UPDATE projects SET modified = ? WHERE id = ?').run(
+        new Date().toISOString(),
+        projectId
+      );
 
       db.prepare('COMMIT').run();
 
@@ -658,22 +703,55 @@ ipcMain.handle('socialclub:save', async (event, data: any) => {
 
     // Calculate total cost from selected amenities
     let totalCostAmount = 0;
-    const totalCostCurrency = data.selectedAmenities.length > 0
-      ? data.selectedAmenities[0].totalCost.currency
-      : 'USD';
+    const totalCostCurrency =
+      data.selectedAmenities.length > 0 ? data.selectedAmenities[0].totalCost.currency : 'USD';
 
     for (const amenity of data.selectedAmenities) {
       totalCostAmount += amenity.totalCost.amount;
     }
 
-    // Get scenario area from the database
+    // Provide default values for optional fields
+    const maintenanceRoomLocation = data.maintenanceRoomLocation || 'in-social-club';
+
+    // Get social club area from either traditional scenario or AI subdivision plan
+    let socialClubArea: number;
+
+    // First, try traditional subdivision scenarios
     const scenarioStmt = db.prepare(`
       SELECT social_club_area FROM subdivision_scenarios WHERE id = ?
     `);
     const scenario = scenarioStmt.get(data.scenarioId) as any;
 
-    if (!scenario) {
-      throw new Error(`Scenario with id ${data.scenarioId} not found`);
+    if (scenario) {
+      // Traditional subdivision scenario
+      socialClubArea = scenario.social_club_area;
+      console.log(
+        '[socialclub:save] Using traditional scenario, social club area:',
+        socialClubArea
+      );
+    } else {
+      // Not a traditional scenario - check if it's an AI subdivision plan
+      const aiPlanStmt = db.prepare(`
+        SELECT plan_json FROM ai_subdivision_plans WHERE id = ?
+      `);
+      const aiPlan = aiPlanStmt.get(data.scenarioId) as any;
+
+      if (!aiPlan) {
+        throw new Error(`Scenario/Plan with id ${data.scenarioId} not found`);
+      }
+
+      // Extract social club area from AI plan JSON
+      const planData = JSON.parse(aiPlan.plan_json);
+      const socialClubAmenity = planData.amenityAreas?.find(
+        (area: any) => area.type === 'social-club'
+      );
+
+      if (!socialClubAmenity) {
+        throw new Error('Social club area not found in AI subdivision plan');
+      }
+
+      socialClubArea = socialClubAmenity.areaSqm;
+      console.log('[socialclub:save] Using AI subdivision plan, social club area:', socialClubArea);
     }
 
     // Begin transaction
@@ -701,10 +779,10 @@ ipcMain.handle('socialclub:save', async (event, data: any) => {
           data.storageType,
           data.dedicatedStorageArea || null,
           data.maintenanceRoomSize,
-          data.maintenanceRoomLocation,
+          maintenanceRoomLocation,
           totalCostAmount,
           totalCostCurrency,
-          scenario.social_club_area,
+          socialClubArea,
           existing.id
         );
 
@@ -726,7 +804,7 @@ ipcMain.handle('socialclub:save', async (event, data: any) => {
           amenityStmt.run(
             crypto.randomUUID(),
             existing.id,
-            amenity.amenityId,
+            amenity.id,
             amenity.category,
             amenity.name,
             amenity.quantity,
@@ -748,9 +826,9 @@ ipcMain.handle('socialclub:save', async (event, data: any) => {
           storageType: data.storageType,
           dedicatedStorageArea: data.dedicatedStorageArea,
           maintenanceRoomSize: data.maintenanceRoomSize,
-          maintenanceRoomLocation: data.maintenanceRoomLocation,
+          maintenanceRoomLocation: maintenanceRoomLocation,
           totalCost: { amount: totalCostAmount, currency: totalCostCurrency },
-          totalArea: scenario.social_club_area
+          totalArea: socialClubArea,
         };
       } else {
         // Insert new social club design
@@ -769,10 +847,10 @@ ipcMain.handle('socialclub:save', async (event, data: any) => {
           data.storageType,
           data.dedicatedStorageArea || null,
           data.maintenanceRoomSize,
-          data.maintenanceRoomLocation,
+          maintenanceRoomLocation,
           totalCostAmount,
           totalCostCurrency,
-          scenario.social_club_area
+          socialClubArea
         );
 
         // Insert amenities
@@ -787,7 +865,7 @@ ipcMain.handle('socialclub:save', async (event, data: any) => {
           amenityStmt.run(
             crypto.randomUUID(),
             socialClubId,
-            amenity.amenityId,
+            amenity.id,
             amenity.category,
             amenity.name,
             amenity.quantity,
@@ -815,9 +893,9 @@ ipcMain.handle('socialclub:save', async (event, data: any) => {
           storageType: data.storageType,
           dedicatedStorageArea: data.dedicatedStorageArea,
           maintenanceRoomSize: data.maintenanceRoomSize,
-          maintenanceRoomLocation: data.maintenanceRoomLocation,
+          maintenanceRoomLocation: maintenanceRoomLocation,
           totalCost: { amount: totalCostAmount, currency: totalCostCurrency },
-          totalArea: scenario.social_club_area
+          totalArea: socialClubArea,
         };
       }
     } catch (error) {
@@ -830,115 +908,198 @@ ipcMain.handle('socialclub:save', async (event, data: any) => {
   }
 });
 
+// Load social club design
+ipcMain.handle('socialclub:load', async (event, projectId: string) => {
+  console.log('IPC: socialclub:load called for project:', projectId);
+
+  try {
+    const db = getDatabase();
+
+    // Get the social club design
+    const designStmt = db.prepare(`
+      SELECT * FROM social_club_designs WHERE project_id = ?
+    `);
+    const design = designStmt.get(projectId) as any;
+
+    if (!design) {
+      return { found: false };
+    }
+
+    // Get the selected amenities
+    const amenitiesStmt = db.prepare(`
+      SELECT * FROM selected_amenities WHERE social_club_design_id = ?
+    `);
+    const amenities = amenitiesStmt.all(design.id) as any[];
+
+    // Get the generated images from social_club_images table
+    const imagesStmt = db.prepare(`
+      SELECT image_path, prompt FROM social_club_images
+      WHERE project_id = ? AND scenario_id = ?
+      ORDER BY generated_at DESC
+    `);
+    const images = imagesStmt.all(projectId, design.scenario_id) as any[];
+
+    return {
+      found: true,
+      design: {
+        id: design.id,
+        projectId: design.project_id,
+        scenarioId: design.scenario_id,
+        storageType: design.storage_type,
+        dedicatedStorageArea: design.dedicated_storage_area,
+        maintenanceRoomSize: design.maintenance_room_size,
+        maintenanceRoomLocation: design.maintenance_room_location,
+        totalCost: {
+          amount: design.total_cost_amount,
+          currency: design.total_cost_currency,
+        },
+        totalArea: design.total_area,
+      },
+      amenities: amenities.map((a) => ({
+        id: a.amenity_id,
+        name: a.name,
+        category: a.category,
+        quantity: a.quantity,
+        unitCost: {
+          amount: a.unit_cost_amount,
+          currency: a.unit_cost_currency,
+        },
+        totalCost: {
+          amount: a.total_cost_amount,
+          currency: a.total_cost_currency,
+        },
+        spaceRequirement: a.space_requirement,
+      })),
+      generatedImages: images.map((img) => img.image_path),
+      designPrompt: images.length > 0 ? images[0].prompt : '',
+    };
+  } catch (error: any) {
+    console.error('Error loading social club design:', error);
+    throw new Error(`Failed to load social club design: ${error.message}`);
+  }
+});
+
 // AI integration
-ipcMain.handle('ai:generateSubdivisionPrompt', async (event, projectId: string, targetDirectory: string) => {
-  console.log('IPC: ai:generateSubdivisionPrompt called for project:', projectId);
+ipcMain.handle(
+  'ai:generateSubdivisionPrompt',
+  async (event, projectId: string, targetDirectory: string) => {
+    console.log('IPC: ai:generateSubdivisionPrompt called for project:', projectId);
 
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const db = getDatabase();
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const db = getDatabase();
 
-    // 1. Load complete project data
-    const projectData = await loadCompleteProject(db, projectId);
+      // 1. Load complete project data
+      const projectData = await loadCompleteProject(db, projectId);
 
-    if (!projectData) {
-      throw new Error(`Project with id ${projectId} not found`);
+      if (!projectData) {
+        throw new Error(`Project with id ${projectId} not found`);
+      }
+
+      // 2. Validate project has required data
+      if (!projectData.landParcel) {
+        throw new Error('Project must have land parcel configured');
+      }
+
+      if (!projectData.subdivisionScenarios || projectData.subdivisionScenarios.length === 0) {
+        throw new Error('Project must have at least one subdivision scenario');
+      }
+
+      // 3. Generate Claude Code prompt using AIDescriptionGenerator logic
+      const prompt = generateClaudeCodePromptData(projectData);
+
+      // 4. Ensure target directory exists
+      if (!fs.existsSync(targetDirectory)) {
+        fs.mkdirSync(targetDirectory, { recursive: true });
+      }
+
+      // 5. Write ai-subdivision-prompt.json to target directory
+      const promptPath = path.join(targetDirectory, 'ai-subdivision-prompt.json');
+      fs.writeFileSync(promptPath, JSON.stringify(prompt, null, 2), 'utf-8');
+
+      // 6. Update project target_directory if not already set
+      db.prepare('UPDATE projects SET target_directory = ?, modified = ? WHERE id = ?').run(
+        targetDirectory,
+        new Date().toISOString(),
+        projectId
+      );
+
+      console.log(`[IPC] Generated AI subdivision prompt at: ${promptPath}`);
+
+      return {
+        success: true,
+        filePath: promptPath,
+        fileName: 'ai-subdivision-prompt.json',
+      };
+    } catch (error: any) {
+      console.error('Error generating AI subdivision prompt:', error);
+      throw new Error(`Failed to generate AI subdivision prompt: ${error.message}`);
     }
-
-    // 2. Validate project has required data
-    if (!projectData.landParcel) {
-      throw new Error('Project must have land parcel configured');
-    }
-
-    if (!projectData.subdivisionScenarios || projectData.subdivisionScenarios.length === 0) {
-      throw new Error('Project must have at least one subdivision scenario');
-    }
-
-    // 3. Generate Claude Code prompt using AIDescriptionGenerator logic
-    const prompt = generateClaudeCodePromptData(projectData);
-
-    // 4. Ensure target directory exists
-    if (!fs.existsSync(targetDirectory)) {
-      fs.mkdirSync(targetDirectory, { recursive: true });
-    }
-
-    // 5. Write ai-subdivision-prompt.json to target directory
-    const promptPath = path.join(targetDirectory, 'ai-subdivision-prompt.json');
-    fs.writeFileSync(promptPath, JSON.stringify(prompt, null, 2), 'utf-8');
-
-    // 6. Update project target_directory if not already set
-    db.prepare('UPDATE projects SET target_directory = ?, modified = ? WHERE id = ?')
-      .run(targetDirectory, new Date().toISOString(), projectId);
-
-    console.log(`[IPC] Generated AI subdivision prompt at: ${promptPath}`);
-
-    return {
-      success: true,
-      filePath: promptPath,
-      fileName: 'ai-subdivision-prompt.json',
-    };
-  } catch (error: any) {
-    console.error('Error generating AI subdivision prompt:', error);
-    throw new Error(`Failed to generate AI subdivision prompt: ${error.message}`);
   }
-});
+);
 
-ipcMain.handle('ai:generateImagePrompts', async (event, projectId: string, targetDirectory: string) => {
-  console.log('IPC: ai:generateImagePrompts called for project:', projectId);
+ipcMain.handle(
+  'ai:generateImagePrompts',
+  async (event, projectId: string, targetDirectory: string) => {
+    console.log('IPC: ai:generateImagePrompts called for project:', projectId);
 
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const db = getDatabase();
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const db = getDatabase();
 
-    // 1. Load complete project data
-    const projectData = await loadCompleteProject(db, projectId);
+      // 1. Load complete project data
+      const projectData = await loadCompleteProject(db, projectId);
 
-    if (!projectData) {
-      throw new Error(`Project with id ${projectId} not found`);
+      if (!projectData) {
+        throw new Error(`Project with id ${projectId} not found`);
+      }
+
+      // 2. Validate project has required data
+      if (!projectData.landParcel) {
+        throw new Error('Project must have land parcel configured');
+      }
+
+      if (!projectData.selectedScenarioId) {
+        throw new Error('Project must have a selected subdivision scenario');
+      }
+
+      // 3. Generate Google Nano prompts using AIDescriptionGenerator logic
+      const prompts = generateGoogleNanoPromptsData(projectData);
+
+      // 4. Ensure target directory exists
+      if (!fs.existsSync(targetDirectory)) {
+        fs.mkdirSync(targetDirectory, { recursive: true });
+      }
+
+      // 5. Convert prompts to text format
+      const promptText = formatPromptsAsText(prompts);
+
+      // 6. Write ai-image-prompts.txt to target directory
+      const promptPath = path.join(targetDirectory, 'ai-image-prompts.txt');
+      fs.writeFileSync(promptPath, promptText, 'utf-8');
+
+      // 7. Update project target_directory if not already set
+      db.prepare('UPDATE projects SET target_directory = ?, modified = ? WHERE id = ?').run(
+        targetDirectory,
+        new Date().toISOString(),
+        projectId
+      );
+
+      console.log(`[IPC] Generated AI image prompts at: ${promptPath}`);
+
+      return {
+        success: true,
+        filePath: promptPath,
+        fileName: 'ai-image-prompts.txt',
+      };
+    } catch (error: any) {
+      console.error('Error generating AI image prompts:', error);
+      throw new Error(`Failed to generate AI image prompts: ${error.message}`);
     }
-
-    // 2. Validate project has required data
-    if (!projectData.landParcel) {
-      throw new Error('Project must have land parcel configured');
-    }
-
-    if (!projectData.selectedScenarioId) {
-      throw new Error('Project must have a selected subdivision scenario');
-    }
-
-    // 3. Generate Google Nano prompts using AIDescriptionGenerator logic
-    const prompts = generateGoogleNanoPromptsData(projectData);
-
-    // 4. Ensure target directory exists
-    if (!fs.existsSync(targetDirectory)) {
-      fs.mkdirSync(targetDirectory, { recursive: true });
-    }
-
-    // 5. Convert prompts to text format
-    const promptText = formatPromptsAsText(prompts);
-
-    // 6. Write ai-image-prompts.txt to target directory
-    const promptPath = path.join(targetDirectory, 'ai-image-prompts.txt');
-    fs.writeFileSync(promptPath, promptText, 'utf-8');
-
-    // 7. Update project target_directory if not already set
-    db.prepare('UPDATE projects SET target_directory = ?, modified = ? WHERE id = ?')
-      .run(targetDirectory, new Date().toISOString(), projectId);
-
-    console.log(`[IPC] Generated AI image prompts at: ${promptPath}`);
-
-    return {
-      success: true,
-      filePath: promptPath,
-      fileName: 'ai-image-prompts.txt',
-    };
-  } catch (error: any) {
-    console.error('Error generating AI image prompts:', error);
-    throw new Error(`Failed to generate AI image prompts: ${error.message}`);
   }
-});
+);
 
 ipcMain.handle('ai:importOptimizedSubdivision', async (event, filePath: string) => {
   console.log('IPC: ai:importOptimizedSubdivision called for file:', filePath);
@@ -964,7 +1125,9 @@ ipcMain.handle('ai:importOptimizedSubdivision', async (event, filePath: string) 
     const scenario = optimizedData.subdivisionScenario;
 
     // 3. Verify project exists
-    const project = db.prepare('SELECT id, land_parcel_id FROM projects WHERE id = ?').get(projectId) as any;
+    const project = db
+      .prepare('SELECT id, land_parcel_id FROM projects WHERE id = ?')
+      .get(projectId) as any;
 
     if (!project) {
       throw new Error(`Project with id ${projectId} not found`);
@@ -1014,8 +1177,11 @@ ipcMain.handle('ai:importOptimizedSubdivision', async (event, filePath: string) 
       );
 
       // 5. Update project to select this new scenario
-      db.prepare('UPDATE projects SET selected_scenario_id = ?, modified = ? WHERE id = ?')
-        .run(scenarioId, now, projectId);
+      db.prepare('UPDATE projects SET selected_scenario_id = ?, modified = ? WHERE id = ?').run(
+        scenarioId,
+        now,
+        projectId
+      );
 
       db.prepare('COMMIT').run();
 
@@ -1046,7 +1212,9 @@ ipcMain.handle('financial:save', async (event, data: any) => {
     const now = new Date().toISOString();
 
     // Check if financial analysis exists
-    const existing = db.prepare('SELECT id FROM financial_analyses WHERE project_id = ?').get(data.projectId);
+    const existing = db
+      .prepare('SELECT id FROM financial_analyses WHERE project_id = ?')
+      .get(data.projectId);
 
     if (existing) {
       // Update existing financial analysis
@@ -1196,8 +1364,12 @@ ipcMain.handle('financial:save', async (event, data: any) => {
     }
 
     // Delete existing other costs and pricing scenarios
-    db.prepare('DELETE FROM other_costs WHERE financial_analysis_id = ?').run(existing ? existing.id : financialId);
-    db.prepare('DELETE FROM pricing_scenarios WHERE financial_analysis_id = ?').run(existing ? existing.id : financialId);
+    db.prepare('DELETE FROM other_costs WHERE financial_analysis_id = ?').run(
+      existing ? existing.id : financialId
+    );
+    db.prepare('DELETE FROM pricing_scenarios WHERE financial_analysis_id = ?').run(
+      existing ? existing.id : financialId
+    );
 
     // Insert other costs
     if (data.costs.other && data.costs.other.length > 0) {
@@ -1274,23 +1446,35 @@ ipcMain.handle('financial:load', async (event, projectId: string) => {
     const db = getDatabase();
 
     // Load financial analysis
-    const financial = db.prepare(`
+    const financial = db
+      .prepare(
+        `
       SELECT * FROM financial_analyses WHERE project_id = ?
-    `).get(projectId) as any;
+    `
+      )
+      .get(projectId) as any;
 
     if (!financial) {
       return null;
     }
 
     // Load other costs
-    const otherCosts = db.prepare(`
+    const otherCosts = db
+      .prepare(
+        `
       SELECT * FROM other_costs WHERE financial_analysis_id = ?
-    `).all(financial.id) as any[];
+    `
+      )
+      .all(financial.id) as any[];
 
     // Load pricing scenarios
-    const pricingScenarios = db.prepare(`
+    const pricingScenarios = db
+      .prepare(
+        `
       SELECT * FROM pricing_scenarios WHERE financial_analysis_id = ?
-    `).all(financial.id) as any[];
+    `
+      )
+      .all(financial.id) as any[];
 
     // Transform to match interface
     return {
@@ -1299,105 +1483,114 @@ ipcMain.handle('financial:load', async (event, projectId: string) => {
       costs: {
         landAcquisition: {
           amount: financial.land_acquisition_amount,
-          currency: financial.land_acquisition_currency
+          currency: financial.land_acquisition_currency,
         },
         amenities: {
           amount: financial.amenities_amount,
-          currency: financial.amenities_currency
+          currency: financial.amenities_currency,
         },
         parkingArea: {
           amount: financial.parking_area_cost_amount,
-          currency: financial.parking_area_cost_currency
+          currency: financial.parking_area_cost_currency,
         },
         walkways: {
           amount: financial.walkways_cost_amount,
-          currency: financial.walkways_cost_currency
+          currency: financial.walkways_cost_currency,
         },
         landscaping: {
           amount: financial.landscaping_cost_amount,
-          currency: financial.landscaping_cost_currency
+          currency: financial.landscaping_cost_currency,
         },
         maintenanceRoom: {
           amount: financial.maintenance_room_cost_amount,
-          currency: financial.maintenance_room_cost_currency
+          currency: financial.maintenance_room_cost_currency,
         },
         storage: {
           amount: financial.storage_cost_amount,
-          currency: financial.storage_cost_currency
+          currency: financial.storage_cost_currency,
         },
         legal: {
           notaryFees: {
             amount: financial.legal_notary_amount,
-            currency: financial.legal_notary_currency
+            currency: financial.legal_notary_currency,
           },
           permits: {
             amount: financial.legal_permits_amount,
-            currency: financial.legal_permits_currency
+            currency: financial.legal_permits_currency,
           },
           registrations: {
             amount: financial.legal_registrations_amount,
-            currency: financial.legal_registrations_currency
+            currency: financial.legal_registrations_currency,
           },
           total: {
-            amount: financial.legal_notary_amount + financial.legal_permits_amount + financial.legal_registrations_amount,
-            currency: financial.legal_notary_currency
-          }
+            amount:
+              financial.legal_notary_amount +
+              financial.legal_permits_amount +
+              financial.legal_registrations_amount,
+            currency: financial.legal_notary_currency,
+          },
         },
-        other: otherCosts.map(cost => ({
+        other: otherCosts.map((cost) => ({
           id: cost.id,
           label: cost.label,
           amount: {
             amount: cost.amount,
-            currency: cost.currency
+            currency: cost.currency,
           },
-          description: cost.description
-        }))
+          description: cost.description,
+        })),
       },
       totalProjectCost: {
         amount: financial.total_project_cost_amount,
-        currency: financial.total_project_cost_currency
+        currency: financial.total_project_cost_currency,
       },
       costPerSqm: {
         amount: financial.cost_per_sqm_amount,
-        currency: financial.cost_per_sqm_currency
+        currency: financial.cost_per_sqm_currency,
       },
       baseLotCost: {
         amount: financial.base_lot_cost_amount,
-        currency: financial.base_lot_cost_currency
+        currency: financial.base_lot_cost_currency,
       },
-      pricingScenarios: pricingScenarios.map(scenario => ({
+      pricingScenarios: pricingScenarios.map((scenario) => ({
         id: scenario.id,
         profitMarginPercent: scenario.profit_margin_percent,
         lotSalePrice: {
           amount: scenario.lot_sale_price_amount,
-          currency: scenario.lot_sale_price_currency
+          currency: scenario.lot_sale_price_currency,
         },
         totalRevenue: {
           amount: scenario.total_revenue_amount,
-          currency: scenario.total_revenue_currency
+          currency: scenario.total_revenue_currency,
         },
         expectedProfit: {
           amount: scenario.expected_profit_amount,
-          currency: scenario.expected_profit_currency
+          currency: scenario.expected_profit_currency,
         },
-        roi: scenario.roi
+        roi: scenario.roi,
       })),
-      monthlyMaintenanceCost: financial.monthly_maintenance_amount ? {
-        amount: financial.monthly_maintenance_amount,
-        currency: financial.monthly_maintenance_currency
-      } : undefined,
-      monthlyMaintenancePerOwner: financial.monthly_maintenance_per_owner_amount ? {
-        amount: financial.monthly_maintenance_per_owner_amount,
-        currency: financial.monthly_maintenance_per_owner_currency
-      } : undefined,
-      exchangeRate: financial.exchange_rate_from ? {
-        from: financial.exchange_rate_from,
-        to: financial.exchange_rate_to,
-        rate: financial.exchange_rate_value,
-        effectiveDate: financial.exchange_rate_date
-      } : undefined,
+      monthlyMaintenanceCost: financial.monthly_maintenance_amount
+        ? {
+            amount: financial.monthly_maintenance_amount,
+            currency: financial.monthly_maintenance_currency,
+          }
+        : undefined,
+      monthlyMaintenancePerOwner: financial.monthly_maintenance_per_owner_amount
+        ? {
+            amount: financial.monthly_maintenance_per_owner_amount,
+            currency: financial.monthly_maintenance_per_owner_currency,
+          }
+        : undefined,
+      exchangeRate: financial.exchange_rate_from
+        ? {
+            from: financial.exchange_rate_from,
+            to: financial.exchange_rate_to,
+            rate: financial.exchange_rate_value,
+            effectiveDate: financial.exchange_rate_date,
+          }
+        : undefined,
       calculatedAt: new Date(financial.calculated_at),
-      lastModified: new Date(financial.last_modified)
+      lastModified: new Date(financial.last_modified),
     };
   } catch (error: any) {
     console.error('Error loading financial analysis:', error);
@@ -1420,10 +1613,14 @@ async function loadCompleteProject(db: any, projectId: string) {
   // Load land parcel
   let landParcel = null;
   if (project.land_parcel_id) {
-    const parcel = db.prepare('SELECT * FROM land_parcels WHERE id = ?').get(project.land_parcel_id) as any;
+    const parcel = db
+      .prepare('SELECT * FROM land_parcels WHERE id = ?')
+      .get(project.land_parcel_id) as any;
     if (parcel) {
       // Load landmarks
-      const landmarks = db.prepare('SELECT * FROM landmarks WHERE land_parcel_id = ?').all(project.land_parcel_id) as any[];
+      const landmarks = db
+        .prepare('SELECT * FROM landmarks WHERE land_parcel_id = ?')
+        .all(project.land_parcel_id) as any[];
 
       landParcel = {
         id: parcel.id,
@@ -1435,7 +1632,7 @@ async function loadCompleteProject(db: any, projectId: string) {
         isUrbanized: parcel.is_urbanized === 1,
         acquisitionCost: {
           amount: parcel.acquisition_cost_amount,
-          currency: parcel.acquisition_cost_currency
+          currency: parcel.acquisition_cost_currency,
         },
         displayUnit: parcel.display_unit,
         targetMicroVillas: parcel.target_microvillas_count,
@@ -1443,14 +1640,16 @@ async function loadCompleteProject(db: any, projectId: string) {
           type: l.type,
           name: l.name,
           distance: l.distance_km,
-          description: l.description
-        }))
+          description: l.description,
+        })),
       };
     }
   }
 
   // Load subdivision scenarios
-  const scenarios = db.prepare('SELECT * FROM subdivision_scenarios WHERE land_parcel_id = ?').all(project.land_parcel_id) as any[];
+  const scenarios = db
+    .prepare('SELECT * FROM subdivision_scenarios WHERE land_parcel_id = ?')
+    .all(project.land_parcel_id) as any[];
   const subdivisionScenarios = scenarios.map((s: any) => ({
     id: s.id,
     socialClubPercent: s.social_club_percent,
@@ -1458,7 +1657,7 @@ async function loadCompleteProject(db: any, projectId: string) {
       width: s.social_club_width,
       length: s.social_club_length,
       area: s.social_club_area,
-      position: { x: s.social_club_pos_x, y: s.social_club_pos_y }
+      position: { x: s.social_club_pos_x, y: s.social_club_pos_y },
     },
     lots: {
       count: s.lot_count,
@@ -1469,21 +1668,25 @@ async function loadCompleteProject(db: any, projectId: string) {
       grid: {
         rows: s.grid_rows,
         columns: s.grid_columns,
-        distribution: s.grid_distribution
-      }
+        distribution: s.grid_distribution,
+      },
     },
     totalLotsArea: s.total_lots_area,
     commonAreaPercentPerLot: s.common_area_percent_per_lot,
     parkingSpaces: s.parking_spaces,
-    isViable: s.is_viable === 1
+    isViable: s.is_viable === 1,
   }));
 
   // Load social club design
   let socialClubDesign = null;
   if (project.selected_scenario_id) {
-    const design = db.prepare('SELECT * FROM social_club_designs WHERE project_id = ?').get(projectId) as any;
+    const design = db
+      .prepare('SELECT * FROM social_club_designs WHERE project_id = ?')
+      .get(projectId) as any;
     if (design) {
-      const amenities = db.prepare('SELECT * FROM selected_amenities WHERE social_club_design_id = ?').all(design.id) as any[];
+      const amenities = db
+        .prepare('SELECT * FROM selected_amenities WHERE social_club_design_id = ?')
+        .all(design.id) as any[];
 
       socialClubDesign = {
         id: design.id,
@@ -1491,10 +1694,12 @@ async function loadCompleteProject(db: any, projectId: string) {
         scenarioId: design.scenario_id,
         storageType: design.storage_type,
         dedicatedStorageArea: design.dedicated_storage_area,
-        maintenanceRoom: design.maintenance_room_size ? {
-          size: design.maintenance_room_size,
-          location: design.maintenance_room_location
-        } : undefined,
+        maintenanceRoom: design.maintenance_room_size
+          ? {
+              size: design.maintenance_room_size,
+              location: design.maintenance_room_location,
+            }
+          : undefined,
         selectedAmenities: amenities.map((a: any) => ({
           amenityId: a.amenity_id,
           category: a.category,
@@ -1502,33 +1707,37 @@ async function loadCompleteProject(db: any, projectId: string) {
           quantity: a.quantity,
           unitCost: { amount: a.unit_cost_amount, currency: a.unit_cost_currency },
           totalCost: { amount: a.total_cost_amount, currency: a.total_cost_currency },
-          spaceRequirement: a.space_requirement
+          spaceRequirement: a.space_requirement,
         })),
         totalCost: { amount: design.total_cost_amount, currency: design.total_cost_currency },
-        totalArea: design.total_area
+        totalArea: design.total_area,
       };
     }
   }
 
   // Load financial analysis
   let financialAnalysis = null;
-  const financial = db.prepare('SELECT * FROM financial_analyses WHERE project_id = ?').get(projectId) as any;
+  const financial = db
+    .prepare('SELECT * FROM financial_analyses WHERE project_id = ?')
+    .get(projectId) as any;
   if (financial) {
-    const pricingScenarios = db.prepare('SELECT * FROM pricing_scenarios WHERE financial_analysis_id = ?').all(financial.id) as any[];
+    const pricingScenarios = db
+      .prepare('SELECT * FROM pricing_scenarios WHERE financial_analysis_id = ?')
+      .all(financial.id) as any[];
 
     financialAnalysis = {
       id: financial.id,
       totalProjectCost: {
         amount: financial.total_project_cost_amount,
-        currency: financial.total_project_cost_currency
+        currency: financial.total_project_cost_currency,
       },
       costPerSqm: {
         amount: financial.cost_per_sqm_amount,
-        currency: financial.cost_per_sqm_currency
+        currency: financial.cost_per_sqm_currency,
       },
       pricingScenarios: pricingScenarios.map((ps: any) => ({
-        profitMarginPercent: ps.profit_margin_percent
-      }))
+        profitMarginPercent: ps.profit_margin_percent,
+      })),
     };
   }
 
@@ -1540,12 +1749,18 @@ async function loadCompleteProject(db: any, projectId: string) {
     selectedScenarioId: project.selected_scenario_id,
     socialClubDesign,
     financialAnalysis,
-    targetDirectory: project.target_directory
+    targetDirectory: project.target_directory,
   };
 }
 
 function generateClaudeCodePromptData(projectData: any) {
-  const { landParcel, subdivisionScenarios, selectedScenarioId, socialClubDesign, financialAnalysis } = projectData;
+  const {
+    landParcel,
+    subdivisionScenarios,
+    selectedScenarioId,
+    socialClubDesign,
+    financialAnalysis,
+  } = projectData;
 
   const selectedScenario = selectedScenarioId
     ? subdivisionScenarios.find((s: any) => s.id === selectedScenarioId)
@@ -1565,7 +1780,7 @@ function generateClaudeCodePromptData(projectData: any) {
       socialClub: {
         percentageRange: [10, 30],
         currentSelection: selectedScenario?.socialClubPercent,
-        minimumArea: landParcel.area * 0.10,
+        minimumArea: landParcel.area * 0.1,
       },
       parking: {
         spacesPerVilla: 2,
@@ -1574,7 +1789,8 @@ function generateClaudeCodePromptData(projectData: any) {
       },
       storage: {
         type: socialClubDesign?.storageType || 'centralized',
-        location: socialClubDesign?.storageType === 'centralized' ? 'social-club' : 'individual-patios',
+        location:
+          socialClubDesign?.storageType === 'centralized' ? 'social-club' : 'individual-patios',
       },
       maintenanceRoom: {
         required: true,
@@ -1638,7 +1854,7 @@ function generateGoogleNanoPromptsData(projectData: any) {
 
   const prompts: any = {
     version: '1.0.0',
-    prompts: []
+    prompts: [],
   };
 
   // Overall layout prompt
@@ -1655,7 +1871,7 @@ function generateGoogleNanoPromptsData(projectData: any) {
       `Centralized parking: ${selectedScenario.lots.count * 2} spaces`,
     ],
     visualElements: [
-      'Aerial/bird\'s-eye view perspective',
+      "Aerial/bird's-eye view perspective",
       'Modern Caribbean residential architecture',
       'Lush tropical landscaping',
       'Clear lot boundaries and walkways',
@@ -1682,7 +1898,9 @@ function generateGoogleNanoPromptsData(projectData: any) {
       'Modern single-story villa design',
       'Small front garden/patio area',
       'Clear property boundaries',
-      socialClubDesign?.storageType === 'individual-patios' ? 'Outdoor storage shed' : 'Clean lot perimeter',
+      socialClubDesign?.storageType === 'individual-patios'
+        ? 'Outdoor storage shed'
+        : 'Clean lot perimeter',
       'Tropical landscaping elements',
       'Contemporary Dominican architectural style',
     ],
@@ -1741,9 +1959,15 @@ function generateGoogleNanoPromptsData(projectData: any) {
   });
 
   // Land parcel context prompt
-  const landmarks = landParcel.landmarks && landParcel.landmarks.length > 0
-    ? landParcel.landmarks.map((l: any) => `${l.name} (${l.type}${l.distance ? `, ${l.distance.toFixed(1)}km away` : ''})`).join(', ')
-    : 'No specific landmarks recorded';
+  const landmarks =
+    landParcel.landmarks && landParcel.landmarks.length > 0
+      ? landParcel.landmarks
+          .map(
+            (l: any) =>
+              `${l.name} (${l.type}${l.distance ? `, ${l.distance.toFixed(1)}km away` : ''})`
+          )
+          .join(', ')
+      : 'No specific landmarks recorded';
 
   prompts.prompts.push({
     id: 'land-parcel',
@@ -1807,14 +2031,12 @@ ipcMain.handle('dialog:selectImages', async (event) => {
     const result = await dialog.showOpenDialog({
       title: 'Select Images',
       properties: ['openFile', 'multiSelections'],
-      filters: [
-        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp'] }
-      ]
+      filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp'] }],
     });
 
     return {
       canceled: result.canceled,
-      filePaths: result.filePaths
+      filePaths: result.filePaths,
     };
   } catch (error: any) {
     console.error('Error selecting images:', error);
@@ -1822,74 +2044,77 @@ ipcMain.handle('dialog:selectImages', async (event) => {
   }
 });
 
-ipcMain.handle('images:attachToLand', async (event, data: {
-  projectId: string;
-  filePaths: string[];
-  captions?: string[];
-}) => {
-  console.log('IPC: images:attachToLand called with data:', data);
+ipcMain.handle(
+  'images:attachToLand',
+  async (
+    event,
+    data: {
+      projectId: string;
+      filePaths: string[];
+      captions?: string[];
+    }
+  ) => {
+    console.log('IPC: images:attachToLand called with data:', data);
 
-  try {
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    const sharp = await import('sharp');
-    const db = getDatabase();
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const sharp = await import('sharp');
+      const db = getDatabase();
 
-    // Create images directory for this project
-    const projectImagesDir = path.join(process.cwd(), 'project-data', 'images', data.projectId);
-    await fs.mkdir(projectImagesDir, { recursive: true });
+      // Create images directory for this project
+      const projectImagesDir = path.join(process.cwd(), 'project-data', 'images', data.projectId);
+      await fs.mkdir(projectImagesDir, { recursive: true });
 
-    const results = [];
+      const results = [];
 
-    for (let i = 0; i < data.filePaths.length; i++) {
-      const filePath = data.filePaths[i];
-      const caption = data.captions?.[i];
+      for (let i = 0; i < data.filePaths.length; i++) {
+        const filePath = data.filePaths[i];
+        const caption = data.captions?.[i];
 
-      // Validate file size (10 MB max - FR-077)
-      const stats = await fs.stat(filePath);
-      if (stats.size > 10 * 1024 * 1024) {
-        results.push({
-          success: false,
-          error: `File ${path.basename(filePath)} exceeds 10 MB limit`,
-          filePath
-        });
-        continue;
-      }
+        // Validate file size (10 MB max - FR-077)
+        const stats = await fs.stat(filePath);
+        if (stats.size > 10 * 1024 * 1024) {
+          results.push({
+            success: false,
+            error: `File ${path.basename(filePath)} exceeds 10 MB limit`,
+            filePath,
+          });
+          continue;
+        }
 
-      // Get image metadata
-      const imageBuffer = await fs.readFile(filePath);
-      const metadata = await sharp(imageBuffer).metadata();
+        // Get image metadata
+        const imageBuffer = await fs.readFile(filePath);
+        const metadata = await sharp(imageBuffer).metadata();
 
-      // Validate format (FR-076)
-      const allowedFormats = ['jpeg', 'png', 'webp'];
-      if (!metadata.format || !allowedFormats.includes(metadata.format)) {
-        results.push({
-          success: false,
-          error: `Unsupported format: ${metadata.format}`,
-          filePath
-        });
-        continue;
-      }
+        // Validate format (FR-076)
+        const allowedFormats = ['jpeg', 'png', 'webp'];
+        if (!metadata.format || !allowedFormats.includes(metadata.format)) {
+          results.push({
+            success: false,
+            error: `Unsupported format: ${metadata.format}`,
+            filePath,
+          });
+          continue;
+        }
 
-      // Generate unique filename
-      const imageId = crypto.randomUUID();
-      const ext = path.extname(filePath);
-      const filename = path.basename(filePath);
-      const newFilename = `${imageId}${ext}`;
-      const newPath = path.join(projectImagesDir, newFilename);
+        // Generate unique filename
+        const imageId = crypto.randomUUID();
+        const ext = path.extname(filePath);
+        const filename = path.basename(filePath);
+        const newFilename = `${imageId}${ext}`;
+        const newPath = path.join(projectImagesDir, newFilename);
 
-      // Copy file to project directory
-      await fs.copyFile(filePath, newPath);
+        // Copy file to project directory
+        await fs.copyFile(filePath, newPath);
 
-      // Generate thumbnail (200x200 max - FR-074)
-      const thumbnailFilename = `${imageId}_thumb${ext}`;
-      const thumbnailPath = path.join(projectImagesDir, thumbnailFilename);
-      await sharp(imageBuffer)
-        .resize(200, 200, { fit: 'inside' })
-        .toFile(thumbnailPath);
+        // Generate thumbnail (200x200 max - FR-074)
+        const thumbnailFilename = `${imageId}_thumb${ext}`;
+        const thumbnailPath = path.join(projectImagesDir, thumbnailFilename);
+        await sharp(imageBuffer).resize(200, 200, { fit: 'inside' }).toFile(thumbnailPath);
 
-      // Insert into database
-      const stmt = db.prepare(`
+        // Insert into database
+        const stmt = db.prepare(`
         INSERT INTO project_images (
           id, project_id, associated_with, lot_id, filename, format,
           size_bytes, width_pixels, height_pixels, local_path,
@@ -1897,122 +2122,126 @@ ipcMain.handle('images:attachToLand', async (event, data: {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      stmt.run(
-        imageId,
-        data.projectId,
-        'land-parcel',
-        null,
-        filename,
-        metadata.format,
-        stats.size,
-        metadata.width || 0,
-        metadata.height || 0,
-        newPath,
-        thumbnailPath,
-        new Date().toISOString(),
-        caption || null
-      );
-
-      results.push({
-        success: true,
-        imageId,
-        filePath,
-        image: {
-          id: imageId,
-          projectId: data.projectId,
-          associatedWith: 'land-parcel',
+        stmt.run(
+          imageId,
+          data.projectId,
+          'land-parcel',
+          null,
           filename,
-          format: metadata.format,
-          size: stats.size,
-          width: metadata.width || 0,
-          height: metadata.height || 0,
-          localPath: newPath,
+          metadata.format,
+          stats.size,
+          metadata.width || 0,
+          metadata.height || 0,
+          newPath,
           thumbnailPath,
-          uploadedAt: new Date().toISOString(),
-          caption
-        }
-      });
+          new Date().toISOString(),
+          caption || null
+        );
+
+        results.push({
+          success: true,
+          imageId,
+          filePath,
+          image: {
+            id: imageId,
+            projectId: data.projectId,
+            associatedWith: 'land-parcel',
+            filename,
+            format: metadata.format,
+            size: stats.size,
+            width: metadata.width || 0,
+            height: metadata.height || 0,
+            localPath: newPath,
+            thumbnailPath,
+            uploadedAt: new Date().toISOString(),
+            caption,
+          },
+        });
+      }
+
+      return {
+        success: results.every((r) => r.success),
+        results,
+      };
+    } catch (error: any) {
+      console.error('Error attaching images to land:', error);
+      throw new Error(`Failed to attach images: ${error.message}`);
     }
-
-    return {
-      success: results.every(r => r.success),
-      results
-    };
-  } catch (error: any) {
-    console.error('Error attaching images to land:', error);
-    throw new Error(`Failed to attach images: ${error.message}`);
   }
-});
+);
 
-ipcMain.handle('images:attachToLot', async (event, data: {
-  projectId: string;
-  lotId: string;
-  filePaths: string[];
-  captions?: string[];
-}) => {
-  console.log('IPC: images:attachToLot called with data:', data);
+ipcMain.handle(
+  'images:attachToLot',
+  async (
+    event,
+    data: {
+      projectId: string;
+      lotId: string;
+      filePaths: string[];
+      captions?: string[];
+    }
+  ) => {
+    console.log('IPC: images:attachToLot called with data:', data);
 
-  try {
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    const sharp = await import('sharp');
-    const db = getDatabase();
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const sharp = await import('sharp');
+      const db = getDatabase();
 
-    // Create images directory for this project
-    const projectImagesDir = path.join(process.cwd(), 'project-data', 'images', data.projectId);
-    await fs.mkdir(projectImagesDir, { recursive: true });
+      // Create images directory for this project
+      const projectImagesDir = path.join(process.cwd(), 'project-data', 'images', data.projectId);
+      await fs.mkdir(projectImagesDir, { recursive: true });
 
-    const results = [];
+      const results = [];
 
-    for (let i = 0; i < data.filePaths.length; i++) {
-      const filePath = data.filePaths[i];
-      const caption = data.captions?.[i];
+      for (let i = 0; i < data.filePaths.length; i++) {
+        const filePath = data.filePaths[i];
+        const caption = data.captions?.[i];
 
-      // Validate file size (10 MB max - FR-077)
-      const stats = await fs.stat(filePath);
-      if (stats.size > 10 * 1024 * 1024) {
-        results.push({
-          success: false,
-          error: `File ${path.basename(filePath)} exceeds 10 MB limit`,
-          filePath
-        });
-        continue;
-      }
+        // Validate file size (10 MB max - FR-077)
+        const stats = await fs.stat(filePath);
+        if (stats.size > 10 * 1024 * 1024) {
+          results.push({
+            success: false,
+            error: `File ${path.basename(filePath)} exceeds 10 MB limit`,
+            filePath,
+          });
+          continue;
+        }
 
-      // Get image metadata
-      const imageBuffer = await fs.readFile(filePath);
-      const metadata = await sharp(imageBuffer).metadata();
+        // Get image metadata
+        const imageBuffer = await fs.readFile(filePath);
+        const metadata = await sharp(imageBuffer).metadata();
 
-      // Validate format (FR-076)
-      const allowedFormats = ['jpeg', 'png', 'webp'];
-      if (!metadata.format || !allowedFormats.includes(metadata.format)) {
-        results.push({
-          success: false,
-          error: `Unsupported format: ${metadata.format}`,
-          filePath
-        });
-        continue;
-      }
+        // Validate format (FR-076)
+        const allowedFormats = ['jpeg', 'png', 'webp'];
+        if (!metadata.format || !allowedFormats.includes(metadata.format)) {
+          results.push({
+            success: false,
+            error: `Unsupported format: ${metadata.format}`,
+            filePath,
+          });
+          continue;
+        }
 
-      // Generate unique filename
-      const imageId = crypto.randomUUID();
-      const ext = path.extname(filePath);
-      const filename = path.basename(filePath);
-      const newFilename = `${imageId}${ext}`;
-      const newPath = path.join(projectImagesDir, newFilename);
+        // Generate unique filename
+        const imageId = crypto.randomUUID();
+        const ext = path.extname(filePath);
+        const filename = path.basename(filePath);
+        const newFilename = `${imageId}${ext}`;
+        const newPath = path.join(projectImagesDir, newFilename);
 
-      // Copy file to project directory
-      await fs.copyFile(filePath, newPath);
+        // Copy file to project directory
+        await fs.copyFile(filePath, newPath);
 
-      // Generate thumbnail (200x200 max - FR-074)
-      const thumbnailFilename = `${imageId}_thumb${ext}`;
-      const thumbnailPath = path.join(projectImagesDir, thumbnailFilename);
-      await sharp(imageBuffer)
-        .resize(200, 200, { fit: 'inside' })
-        .toFile(thumbnailPath);
+        // Generate thumbnail (200x200 max - FR-074)
+        const thumbnailFilename = `${imageId}_thumb${ext}`;
+        const thumbnailPath = path.join(projectImagesDir, thumbnailFilename);
+        await sharp(imageBuffer).resize(200, 200, { fit: 'inside' }).toFile(thumbnailPath);
 
-      // Insert into database
-      const stmt = db.prepare(`
+        // Insert into database
+        const stmt = db.prepare(`
         INSERT INTO project_images (
           id, project_id, associated_with, lot_id, filename, format,
           size_bytes, width_pixels, height_pixels, local_path,
@@ -2020,53 +2249,54 @@ ipcMain.handle('images:attachToLot', async (event, data: {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      stmt.run(
-        imageId,
-        data.projectId,
-        'lot',
-        data.lotId,
-        filename,
-        metadata.format,
-        stats.size,
-        metadata.width || 0,
-        metadata.height || 0,
-        newPath,
-        thumbnailPath,
-        new Date().toISOString(),
-        caption || null
-      );
-
-      results.push({
-        success: true,
-        imageId,
-        filePath,
-        image: {
-          id: imageId,
-          projectId: data.projectId,
-          associatedWith: 'lot',
-          lotId: data.lotId,
+        stmt.run(
+          imageId,
+          data.projectId,
+          'lot',
+          data.lotId,
           filename,
-          format: metadata.format,
-          size: stats.size,
-          width: metadata.width || 0,
-          height: metadata.height || 0,
-          localPath: newPath,
+          metadata.format,
+          stats.size,
+          metadata.width || 0,
+          metadata.height || 0,
+          newPath,
           thumbnailPath,
-          uploadedAt: new Date().toISOString(),
-          caption
-        }
-      });
-    }
+          new Date().toISOString(),
+          caption || null
+        );
 
-    return {
-      success: results.every(r => r.success),
-      results
-    };
-  } catch (error: any) {
-    console.error('Error attaching images to lot:', error);
-    throw new Error(`Failed to attach images: ${error.message}`);
+        results.push({
+          success: true,
+          imageId,
+          filePath,
+          image: {
+            id: imageId,
+            projectId: data.projectId,
+            associatedWith: 'lot',
+            lotId: data.lotId,
+            filename,
+            format: metadata.format,
+            size: stats.size,
+            width: metadata.width || 0,
+            height: metadata.height || 0,
+            localPath: newPath,
+            thumbnailPath,
+            uploadedAt: new Date().toISOString(),
+            caption,
+          },
+        });
+      }
+
+      return {
+        success: results.every((r) => r.success),
+        results,
+      };
+    } catch (error: any) {
+      console.error('Error attaching images to lot:', error);
+      throw new Error(`Failed to attach images: ${error.message}`);
+    }
   }
-});
+);
 
 ipcMain.handle('images:getThumbnail', async (event, imageId: string) => {
   console.log('IPC: images:getThumbnail called with imageId:', imageId);
@@ -2098,7 +2328,7 @@ ipcMain.handle('images:getThumbnail', async (event, imageId: string) => {
 
     return {
       success: true,
-      dataUrl
+      dataUrl,
     };
   } catch (error: any) {
     console.error('Error getting thumbnail:', error);
@@ -2106,109 +2336,112 @@ ipcMain.handle('images:getThumbnail', async (event, imageId: string) => {
   }
 });
 
-ipcMain.handle('images:importAIGenerated', async (event, data: {
-  projectId: string;
-  targetDirectory: string;
-}) => {
-  console.log('IPC: images:importAIGenerated called with data:', data);
-
-  try {
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    const sharp = await import('sharp');
-    const db = getDatabase();
-
-    // Check if target directory exists
-    const imagesDir = path.join(data.targetDirectory, 'images');
-    try {
-      await fs.access(imagesDir);
-    } catch {
-      return {
-        success: true,
-        importedCount: 0,
-        skippedCount: 0,
-        message: 'No AI-generated images found (images/ directory does not exist)'
-      };
+ipcMain.handle(
+  'images:importAIGenerated',
+  async (
+    event,
+    data: {
+      projectId: string;
+      targetDirectory: string;
     }
+  ) => {
+    console.log('IPC: images:importAIGenerated called with data:', data);
 
-    // List all image files in the directory
-    const files = await fs.readdir(imagesDir);
-    const imageFiles = files.filter(f => {
-      const ext = path.extname(f).toLowerCase();
-      return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
-    });
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const sharp = await import('sharp');
+      const db = getDatabase();
 
-    const results = [];
-    let importedCount = 0;
-    let skippedCount = 0;
-
-    // Create project images directory
-    const projectImagesDir = path.join(process.cwd(), 'project-data', 'images', data.projectId);
-    await fs.mkdir(projectImagesDir, { recursive: true });
-
-    for (const file of imageFiles) {
-      const filePath = path.join(imagesDir, file);
-
+      // Check if target directory exists
+      const imagesDir = path.join(data.targetDirectory, 'images');
       try {
-        // Validate file size (10 MB max - FR-077)
-        const stats = await fs.stat(filePath);
-        if (stats.size > 10 * 1024 * 1024) {
-          skippedCount++;
-          results.push({
-            success: false,
-            error: `File ${file} exceeds 10 MB limit`,
-            filePath
-          });
-          continue;
-        }
+        await fs.access(imagesDir);
+      } catch {
+        return {
+          success: true,
+          importedCount: 0,
+          skippedCount: 0,
+          message: 'No AI-generated images found (images/ directory does not exist)',
+        };
+      }
 
-        // Get image metadata
-        const imageBuffer = await fs.readFile(filePath);
-        const metadata = await sharp(imageBuffer).metadata();
+      // List all image files in the directory
+      const files = await fs.readdir(imagesDir);
+      const imageFiles = files.filter((f) => {
+        const ext = path.extname(f).toLowerCase();
+        return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
+      });
 
-        // Validate format (FR-076)
-        const allowedFormats = ['jpeg', 'png', 'webp'];
-        if (!metadata.format || !allowedFormats.includes(metadata.format)) {
-          skippedCount++;
-          results.push({
-            success: false,
-            error: `Unsupported format: ${metadata.format}`,
-            filePath
-          });
-          continue;
-        }
+      const results = [];
+      let importedCount = 0;
+      let skippedCount = 0;
 
-        // Generate unique filename
-        const imageId = crypto.randomUUID();
-        const ext = path.extname(file);
-        const newFilename = `${imageId}${ext}`;
-        const newPath = path.join(projectImagesDir, newFilename);
+      // Create project images directory
+      const projectImagesDir = path.join(process.cwd(), 'project-data', 'images', data.projectId);
+      await fs.mkdir(projectImagesDir, { recursive: true });
 
-        // Copy file to project directory
-        await fs.copyFile(filePath, newPath);
+      for (const file of imageFiles) {
+        const filePath = path.join(imagesDir, file);
 
-        // Generate thumbnail (200x200 max - FR-074)
-        const thumbnailFilename = `${imageId}_thumb${ext}`;
-        const thumbnailPath = path.join(projectImagesDir, thumbnailFilename);
-        await sharp(imageBuffer)
-          .resize(200, 200, { fit: 'inside' })
-          .toFile(thumbnailPath);
+        try {
+          // Validate file size (10 MB max - FR-077)
+          const stats = await fs.stat(filePath);
+          if (stats.size > 10 * 1024 * 1024) {
+            skippedCount++;
+            results.push({
+              success: false,
+              error: `File ${file} exceeds 10 MB limit`,
+              filePath,
+            });
+            continue;
+          }
 
-        // Determine association based on filename pattern
-        // Files starting with "lot-" are associated with lots
-        // Others are associated with land parcel
-        let associatedWith = 'land-parcel';
-        let lotId = null;
+          // Get image metadata
+          const imageBuffer = await fs.readFile(filePath);
+          const metadata = await sharp(imageBuffer).metadata();
 
-        const lotMatch = file.match(/^lot-(\d+)/i);
-        if (lotMatch) {
-          associatedWith = 'lot';
-          // We'd need to look up the lot by number - for now, just mark as land-parcel
-          // TODO: Enhance this to properly associate with lots by number
-        }
+          // Validate format (FR-076)
+          const allowedFormats = ['jpeg', 'png', 'webp'];
+          if (!metadata.format || !allowedFormats.includes(metadata.format)) {
+            skippedCount++;
+            results.push({
+              success: false,
+              error: `Unsupported format: ${metadata.format}`,
+              filePath,
+            });
+            continue;
+          }
 
-        // Insert into database
-        const stmt = db.prepare(`
+          // Generate unique filename
+          const imageId = crypto.randomUUID();
+          const ext = path.extname(file);
+          const newFilename = `${imageId}${ext}`;
+          const newPath = path.join(projectImagesDir, newFilename);
+
+          // Copy file to project directory
+          await fs.copyFile(filePath, newPath);
+
+          // Generate thumbnail (200x200 max - FR-074)
+          const thumbnailFilename = `${imageId}_thumb${ext}`;
+          const thumbnailPath = path.join(projectImagesDir, thumbnailFilename);
+          await sharp(imageBuffer).resize(200, 200, { fit: 'inside' }).toFile(thumbnailPath);
+
+          // Determine association based on filename pattern
+          // Files starting with "lot-" are associated with lots
+          // Others are associated with land parcel
+          let associatedWith = 'land-parcel';
+          let lotId = null;
+
+          const lotMatch = file.match(/^lot-(\d+)/i);
+          if (lotMatch) {
+            associatedWith = 'lot';
+            // We'd need to look up the lot by number - for now, just mark as land-parcel
+            // TODO: Enhance this to properly associate with lots by number
+          }
+
+          // Insert into database
+          const stmt = db.prepare(`
           INSERT INTO project_images (
             id, project_id, associated_with, lot_id, filename, format,
             size_bytes, width_pixels, height_pixels, local_path,
@@ -2216,50 +2449,51 @@ ipcMain.handle('images:importAIGenerated', async (event, data: {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
-        stmt.run(
-          imageId,
-          data.projectId,
-          associatedWith,
-          lotId,
-          file,
-          metadata.format,
-          stats.size,
-          metadata.width || 0,
-          metadata.height || 0,
-          newPath,
-          thumbnailPath,
-          new Date().toISOString(),
-          'AI-generated image'
-        );
+          stmt.run(
+            imageId,
+            data.projectId,
+            associatedWith,
+            lotId,
+            file,
+            metadata.format,
+            stats.size,
+            metadata.width || 0,
+            metadata.height || 0,
+            newPath,
+            thumbnailPath,
+            new Date().toISOString(),
+            'AI-generated image'
+          );
 
-        importedCount++;
-        results.push({
-          success: true,
-          imageId,
-          filePath
-        });
-      } catch (error: any) {
-        skippedCount++;
-        results.push({
-          success: false,
-          error: error.message,
-          filePath
-        });
+          importedCount++;
+          results.push({
+            success: true,
+            imageId,
+            filePath,
+          });
+        } catch (error: any) {
+          skippedCount++;
+          results.push({
+            success: false,
+            error: error.message,
+            filePath,
+          });
+        }
       }
-    }
 
-    return {
-      success: true,
-      importedCount,
-      skippedCount,
-      totalFiles: imageFiles.length,
-      results
-    };
-  } catch (error: any) {
-    console.error('Error importing AI-generated images:', error);
-    throw new Error(`Failed to import AI-generated images: ${error.message}`);
+      return {
+        success: true,
+        importedCount,
+        skippedCount,
+        totalFiles: imageFiles.length,
+        results,
+      };
+    } catch (error: any) {
+      console.error('Error importing AI-generated images:', error);
+      throw new Error(`Failed to import AI-generated images: ${error.message}`);
+    }
   }
-});
+);
 
 ipcMain.handle('images:getByProject', async (event, projectId: string) => {
   console.log('IPC: images:getByProject called with projectId:', projectId);
@@ -2290,7 +2524,7 @@ ipcMain.handle('images:getByProject', async (event, projectId: string) => {
       localPath: img.local_path,
       thumbnailPath: img.thumbnail_path,
       uploadedAt: img.uploaded_at,
-      caption: img.caption
+      caption: img.caption,
     }));
   } catch (error: any) {
     console.error('Error getting images by project:', error);
@@ -2313,7 +2547,7 @@ ipcMain.handle('dialog:selectExportDir', async () => {
     const result = await dialog.showOpenDialog({
       title: 'Select Export Directory',
       properties: ['openDirectory', 'createDirectory'],
-      buttonLabel: 'Select Export Folder'
+      buttonLabel: 'Select Export Folder',
     });
 
     if (result.canceled || result.filePaths.length === 0) {
@@ -2326,7 +2560,7 @@ ipcMain.handle('dialog:selectExportDir', async () => {
     return {
       success: true,
       path: selectedPath,
-      canceled: false
+      canceled: false,
     };
   } catch (error: any) {
     console.error('Error selecting export directory:', error);
@@ -2341,149 +2575,153 @@ ipcMain.handle('dialog:selectExportDir', async () => {
  * - images/ (all uploaded and AI-generated images)
  * - ai-prompts/ (if AI prompts exist)
  */
-ipcMain.handle('export:project', async (event, input: { projectId: string; targetDirectory: string }) => {
-  console.log('IPC: export:project called with:', input);
+ipcMain.handle(
+  'export:project',
+  async (event, input: { projectId: string; targetDirectory: string }) => {
+    console.log('IPC: export:project called with:', input);
 
-  const fs = require('fs');
-  const path = require('path');
-  const crypto = require('crypto');
+    const fs = require('fs');
+    const path = require('path');
+    const crypto = require('crypto');
 
-  try {
-    const db = getDatabase();
-    const { projectId, targetDirectory } = input;
-
-    // T168: Validate export directory writability
     try {
-      fs.accessSync(targetDirectory, fs.constants.W_OK);
-    } catch {
-      throw new Error('Export directory is not writeable. Please select a different location.');
-    }
+      const db = getDatabase();
+      const { projectId, targetDirectory } = input;
 
-    // Create export directory structure
-    const exportPath = path.join(targetDirectory, `microvillas-export-${Date.now()}`);
-    const imagesDir = path.join(exportPath, 'images');
-    const aiPromptsDir = path.join(exportPath, 'ai-prompts');
+      // T168: Validate export directory writability
+      try {
+        fs.accessSync(targetDirectory, fs.constants.W_OK);
+      } catch {
+        throw new Error('Export directory is not writeable. Please select a different location.');
+      }
 
-    fs.mkdirSync(exportPath, { recursive: true });
-    fs.mkdirSync(imagesDir, { recursive: true });
+      // Create export directory structure
+      const exportPath = path.join(targetDirectory, `microvillas-export-${Date.now()}`);
+      const imagesDir = path.join(exportPath, 'images');
+      const aiPromptsDir = path.join(exportPath, 'ai-prompts');
 
-    // T165: Load complete project data for export
-    const project = await loadCompleteProjectData(db, projectId);
+      fs.mkdirSync(exportPath, { recursive: true });
+      fs.mkdirSync(imagesDir, { recursive: true });
 
-    // T166: Copy images to images/ subfolder
-    const exportedImages: string[] = [];
-    if (project.images && project.images.length > 0) {
-      for (const image of project.images) {
-        const sourcePath = image.localPath;
-        const destPath = path.join(imagesDir, image.filename);
+      // T165: Load complete project data for export
+      const project = await loadCompleteProjectData(db, projectId);
 
-        try {
-          if (fs.existsSync(sourcePath)) {
-            fs.copyFileSync(sourcePath, destPath);
-            exportedImages.push(destPath);
-            console.log(`Copied image: ${image.filename}`);
-          } else {
-            console.warn(`Image file not found: ${sourcePath}`);
+      // T166: Copy images to images/ subfolder
+      const exportedImages: string[] = [];
+      if (project.images && project.images.length > 0) {
+        for (const image of project.images) {
+          const sourcePath = image.localPath;
+          const destPath = path.join(imagesDir, image.filename);
+
+          try {
+            if (fs.existsSync(sourcePath)) {
+              fs.copyFileSync(sourcePath, destPath);
+              exportedImages.push(destPath);
+              console.log(`Copied image: ${image.filename}`);
+            } else {
+              console.warn(`Image file not found: ${sourcePath}`);
+            }
+          } catch (copyError: any) {
+            console.error(`Failed to copy image ${image.filename}:`, copyError.message);
           }
-        } catch (copyError: any) {
-          console.error(`Failed to copy image ${image.filename}:`, copyError.message);
         }
       }
-    }
 
-    // T167: Copy AI prompts if they exist
-    const aiPromptFiles: string[] = [];
-    const aiSubdivisionPromptPath = path.join(targetDirectory, 'ai-subdivision-prompt.json');
-    const aiImagePromptsPath = path.join(targetDirectory, 'ai-image-prompts.txt');
+      // T167: Copy AI prompts if they exist
+      const aiPromptFiles: string[] = [];
+      const aiSubdivisionPromptPath = path.join(targetDirectory, 'ai-subdivision-prompt.json');
+      const aiImagePromptsPath = path.join(targetDirectory, 'ai-image-prompts.txt');
 
-    if (fs.existsSync(aiSubdivisionPromptPath) || fs.existsSync(aiImagePromptsPath)) {
-      fs.mkdirSync(aiPromptsDir, { recursive: true });
+      if (fs.existsSync(aiSubdivisionPromptPath) || fs.existsSync(aiImagePromptsPath)) {
+        fs.mkdirSync(aiPromptsDir, { recursive: true });
 
-      if (fs.existsSync(aiSubdivisionPromptPath)) {
-        const destPath = path.join(aiPromptsDir, 'ai-subdivision-prompt.json');
-        fs.copyFileSync(aiSubdivisionPromptPath, destPath);
-        aiPromptFiles.push(destPath);
+        if (fs.existsSync(aiSubdivisionPromptPath)) {
+          const destPath = path.join(aiPromptsDir, 'ai-subdivision-prompt.json');
+          fs.copyFileSync(aiSubdivisionPromptPath, destPath);
+          aiPromptFiles.push(destPath);
+        }
+
+        if (fs.existsSync(aiImagePromptsPath)) {
+          const destPath = path.join(aiPromptsDir, 'ai-image-prompts.txt');
+          fs.copyFileSync(aiImagePromptsPath, destPath);
+          aiPromptFiles.push(destPath);
+        }
       }
 
-      if (fs.existsSync(aiImagePromptsPath)) {
-        const destPath = path.join(aiPromptsDir, 'ai-image-prompts.txt');
-        fs.copyFileSync(aiImagePromptsPath, destPath);
-        aiPromptFiles.push(destPath);
-      }
-    }
+      // Build export schema
+      const exportSchema = buildExportSchema(project);
 
-    // Build export schema
-    const exportSchema = buildExportSchema(project);
+      // T169: Generate checksum for project.json
+      const projectJsonString = JSON.stringify(exportSchema, null, 2);
+      const checksum = crypto.createHash('sha256').update(projectJsonString).digest('hex');
 
-    // T169: Generate checksum for project.json
-    const projectJsonString = JSON.stringify(exportSchema, null, 2);
-    const checksum = crypto.createHash('sha256').update(projectJsonString).digest('hex');
+      // Add checksum to metadata
+      exportSchema.metadata.checksum = checksum;
+      exportSchema.metadata.fileCount = 1 + exportedImages.length + aiPromptFiles.length;
 
-    // Add checksum to metadata
-    exportSchema.metadata.checksum = checksum;
-    exportSchema.metadata.fileCount = 1 + exportedImages.length + aiPromptFiles.length;
+      // Calculate total size
+      let totalSize = Buffer.byteLength(projectJsonString, 'utf8');
+      exportedImages.forEach((imgPath) => {
+        try {
+          totalSize += fs.statSync(imgPath).size;
+        } catch {}
+      });
+      aiPromptFiles.forEach((promptPath) => {
+        try {
+          totalSize += fs.statSync(promptPath).size;
+        } catch {}
+      });
+      exportSchema.metadata.totalSize = totalSize;
 
-    // Calculate total size
-    let totalSize = Buffer.byteLength(projectJsonString, 'utf8');
-    exportedImages.forEach(imgPath => {
-      try {
-        totalSize += fs.statSync(imgPath).size;
-      } catch {}
-    });
-    aiPromptFiles.forEach(promptPath => {
-      try {
-        totalSize += fs.statSync(promptPath).size;
-      } catch {}
-    });
-    exportSchema.metadata.totalSize = totalSize;
+      // Write project.json
+      const projectJsonPath = path.join(exportPath, 'project.json');
+      fs.writeFileSync(projectJsonPath, JSON.stringify(exportSchema, null, 2), 'utf8');
 
-    // Write project.json
-    const projectJsonPath = path.join(exportPath, 'project.json');
-    fs.writeFileSync(projectJsonPath, JSON.stringify(exportSchema, null, 2), 'utf8');
+      // Write README.txt
+      const readme = generateExportReadme(project, exportSchema);
+      fs.writeFileSync(path.join(exportPath, 'README.txt'), readme, 'utf8');
 
-    // Write README.txt
-    const readme = generateExportReadme(project, exportSchema);
-    fs.writeFileSync(path.join(exportPath, 'README.txt'), readme, 'utf8');
-
-    // T170: Store project target directory path in database
-    db.prepare(`
+      // T170: Store project target directory path in database
+      db.prepare(
+        `
       UPDATE projects
       SET target_directory = ?, modified = ?
       WHERE id = ?
-    `).run(exportPath, new Date().toISOString(), projectId);
+    `
+      ).run(exportPath, new Date().toISOString(), projectId);
 
-    // T207: Add to recent projects list
-    const { addRecentProject } = await import('./settings-store');
-    addRecentProject(exportPath);
+      // T207: Add to recent projects list
+      const { addRecentProject } = await import('./settings-store');
+      addRecentProject(exportPath);
 
-    // T171: Return success result with file paths
-    return {
-      success: true,
-      exportPath,
-      files: {
-        projectJson: projectJsonPath,
-        images: exportedImages,
-        aiPrompts: aiPromptFiles.length > 0 ? aiPromptFiles : undefined
-      },
-      metadata: {
-        exportDate: new Date(),
-        fileCount: exportSchema.metadata.fileCount,
-        totalSize: exportSchema.metadata.totalSize,
-        checksum
-      }
-    };
-
-  } catch (error: any) {
-    console.error('Error exporting project:', error);
-    return {
-      success: false,
-      exportPath: '',
-      files: { projectJson: '', images: [] },
-      metadata: { exportDate: new Date(), fileCount: 0, totalSize: 0, checksum: '' },
-      errors: [error.message]
-    };
+      // T171: Return success result with file paths
+      return {
+        success: true,
+        exportPath,
+        files: {
+          projectJson: projectJsonPath,
+          images: exportedImages,
+          aiPrompts: aiPromptFiles.length > 0 ? aiPromptFiles : undefined,
+        },
+        metadata: {
+          exportDate: new Date(),
+          fileCount: exportSchema.metadata.fileCount,
+          totalSize: exportSchema.metadata.totalSize,
+          checksum,
+        },
+      };
+    } catch (error: any) {
+      console.error('Error exporting project:', error);
+      return {
+        success: false,
+        exportPath: '',
+        files: { projectJson: '', images: [] },
+        metadata: { exportDate: new Date(), fileCount: 0, totalSize: 0, checksum: '' },
+        errors: [error.message],
+      };
+    }
   }
-});
+);
 
 /**
  * Helper: Load complete project data including all related entities
@@ -2509,18 +2747,28 @@ function loadCompleteProjectData(db: any, projectId: string) {
     : [];
 
   // Load social club design
-  const socialClubDesign = db.prepare('SELECT * FROM social_club_designs WHERE project_id = ?').get(projectId);
+  const socialClubDesign = db
+    .prepare('SELECT * FROM social_club_designs WHERE project_id = ?')
+    .get(projectId);
   const selectedAmenities = socialClubDesign
-    ? db.prepare('SELECT * FROM selected_amenities WHERE social_club_design_id = ?').all(socialClubDesign.id)
+    ? db
+        .prepare('SELECT * FROM selected_amenities WHERE social_club_design_id = ?')
+        .all(socialClubDesign.id)
     : [];
 
   // Load financial analysis
-  const financialAnalysis = db.prepare('SELECT * FROM financial_analyses WHERE project_id = ?').get(projectId);
+  const financialAnalysis = db
+    .prepare('SELECT * FROM financial_analyses WHERE project_id = ?')
+    .get(projectId);
   const pricingScenarios = financialAnalysis
-    ? db.prepare('SELECT * FROM pricing_scenarios WHERE financial_analysis_id = ?').all(financialAnalysis.id)
+    ? db
+        .prepare('SELECT * FROM pricing_scenarios WHERE financial_analysis_id = ?')
+        .all(financialAnalysis.id)
     : [];
   const otherCosts = financialAnalysis
-    ? db.prepare('SELECT * FROM other_costs WHERE financial_analysis_id = ?').all(financialAnalysis.id)
+    ? db
+        .prepare('SELECT * FROM other_costs WHERE financial_analysis_id = ?')
+        .all(financialAnalysis.id)
     : [];
 
   // Load images
@@ -2536,7 +2784,7 @@ function loadCompleteProjectData(db: any, projectId: string) {
     financialAnalysis,
     pricingScenarios,
     otherCosts,
-    images
+    images,
   };
 }
 
@@ -2544,7 +2792,18 @@ function loadCompleteProjectData(db: any, projectId: string) {
  * Helper: Build export schema from database entities
  */
 function buildExportSchema(data: any): any {
-  const { project, landParcel, landmarks, scenarios, socialClubDesign, selectedAmenities, financialAnalysis, pricingScenarios, otherCosts, images } = data;
+  const {
+    project,
+    landParcel,
+    landmarks,
+    scenarios,
+    socialClubDesign,
+    selectedAmenities,
+    financialAnalysis,
+    pricingScenarios,
+    otherCosts,
+    images,
+  } = data;
 
   return {
     schemaVersion: '1.0.0',
@@ -2558,25 +2817,27 @@ function buildExportSchema(data: any): any {
       notes: project.notes,
       targetDirectory: project.target_directory,
 
-      landParcel: landParcel ? {
-        id: landParcel.id,
-        width: landParcel.width_meters,
-        length: landParcel.length_meters,
-        area: landParcel.area_sqm,
-        province: landParcel.province,
-        landmarks: landmarks.map((l: any) => ({
-          type: l.type,
-          name: l.name,
-          distance: l.distance_km,
-          description: l.description
-        })),
-        isUrbanized: Boolean(landParcel.is_urbanized),
-        acquisitionCost: {
-          amount: landParcel.acquisition_cost_amount,
-          currency: landParcel.acquisition_cost_currency
-        },
-        displayUnit: landParcel.display_unit
-      } : null,
+      landParcel: landParcel
+        ? {
+            id: landParcel.id,
+            width: landParcel.width_meters,
+            length: landParcel.length_meters,
+            area: landParcel.area_sqm,
+            province: landParcel.province,
+            landmarks: landmarks.map((l: any) => ({
+              type: l.type,
+              name: l.name,
+              distance: l.distance_km,
+              description: l.description,
+            })),
+            isUrbanized: Boolean(landParcel.is_urbanized),
+            acquisitionCost: {
+              amount: landParcel.acquisition_cost_amount,
+              currency: landParcel.acquisition_cost_currency,
+            },
+            displayUnit: landParcel.display_unit,
+          }
+        : null,
 
       subdivisionScenarios: scenarios.map((s: any) => ({
         id: s.id,
@@ -2585,18 +2846,20 @@ function buildExportSchema(data: any): any {
           width: s.social_club_width,
           length: s.social_club_length,
           area: s.social_club_area,
-          position: { x: s.social_club_pos_x, y: s.social_club_pos_y }
+          position: { x: s.social_club_pos_x, y: s.social_club_pos_y },
         },
         parkingArea: {
           totalSpaces: s.lot_count * 2,
           spacesPerVilla: 2,
           location: 'centralized',
-          estimatedArea: s.lot_count * 2 * 12.5
+          estimatedArea: s.lot_count * 2 * 12.5,
         },
         maintenanceRoom: {
           area: s.maintenance_room_area || 0,
           location: s.maintenance_room_location || 'social-club',
-          position: s.maintenance_room_pos_x ? { x: s.maintenance_room_pos_x, y: s.maintenance_room_pos_y } : undefined
+          position: s.maintenance_room_pos_x
+            ? { x: s.maintenance_room_pos_x, y: s.maintenance_room_pos_y }
+            : undefined,
         },
         lots: {
           count: s.lot_count,
@@ -2607,90 +2870,154 @@ function buildExportSchema(data: any): any {
           grid: {
             rows: s.grid_rows,
             columns: s.grid_columns,
-            distribution: s.grid_distribution
-          }
+            distribution: s.grid_distribution,
+          },
         },
         totalLotsArea: s.total_lots_area,
         commonAreaPercentPerLot: s.common_area_percent_per_lot,
         isViable: Boolean(s.is_viable),
-        calculatedAt: s.calculated_at
+        calculatedAt: s.calculated_at,
       })),
 
       selectedScenarioId: project.selected_scenario_id,
 
-      socialClubDesign: socialClubDesign ? {
-        id: socialClubDesign.id,
-        scenarioId: socialClubDesign.scenario_id,
-        selectedAmenities: selectedAmenities.map((a: any) => ({
-          amenityId: a.amenity_id,
-          category: a.category,
-          name: a.name,
-          quantity: a.quantity,
-          unitCost: { amount: a.unit_cost_amount, currency: a.unit_cost_currency },
-          totalCost: { amount: a.total_cost_amount, currency: a.total_cost_currency },
-          spaceRequirement: a.space_requirement
-        })),
-        storageType: socialClubDesign.storage_type,
-        storageArea: socialClubDesign.dedicated_storage_area,
-        totalCost: { amount: socialClubDesign.total_cost_amount, currency: socialClubDesign.total_cost_currency },
-        totalArea: socialClubDesign.total_area
-      } : undefined,
+      socialClubDesign: socialClubDesign
+        ? {
+            id: socialClubDesign.id,
+            scenarioId: socialClubDesign.scenario_id,
+            selectedAmenities: selectedAmenities.map((a: any) => ({
+              amenityId: a.amenity_id,
+              category: a.category,
+              name: a.name,
+              quantity: a.quantity,
+              unitCost: { amount: a.unit_cost_amount, currency: a.unit_cost_currency },
+              totalCost: { amount: a.total_cost_amount, currency: a.total_cost_currency },
+              spaceRequirement: a.space_requirement,
+            })),
+            storageType: socialClubDesign.storage_type,
+            storageArea: socialClubDesign.dedicated_storage_area,
+            totalCost: {
+              amount: socialClubDesign.total_cost_amount,
+              currency: socialClubDesign.total_cost_currency,
+            },
+            totalArea: socialClubDesign.total_area,
+          }
+        : undefined,
 
-      financialAnalysis: financialAnalysis ? {
-        id: financialAnalysis.id,
-        costs: {
-          landAcquisition: { amount: financialAnalysis.land_acquisition_amount, currency: financialAnalysis.land_acquisition_currency },
-          amenities: { amount: financialAnalysis.amenities_amount, currency: financialAnalysis.amenities_currency },
-          parkingArea: { amount: financialAnalysis.parking_area_amount || 0, currency: financialAnalysis.parking_area_currency || 'USD' },
-          walkways: { amount: financialAnalysis.walkways_amount || 0, currency: financialAnalysis.walkways_currency || 'USD' },
-          landscaping: { amount: financialAnalysis.landscaping_amount || 0, currency: financialAnalysis.landscaping_currency || 'USD' },
-          maintenanceRoom: { amount: financialAnalysis.maintenance_room_amount || 0, currency: financialAnalysis.maintenance_room_currency || 'USD' },
-          storage: { amount: financialAnalysis.storage_amount || 0, currency: financialAnalysis.storage_currency || 'USD' },
-          legal: {
-            notaryFees: { amount: financialAnalysis.legal_notary_amount, currency: financialAnalysis.legal_notary_currency },
-            permits: { amount: financialAnalysis.legal_permits_amount, currency: financialAnalysis.legal_permits_currency },
-            registrations: { amount: financialAnalysis.legal_registrations_amount, currency: financialAnalysis.legal_registrations_currency },
-            total: {
-              amount: financialAnalysis.legal_notary_amount + financialAnalysis.legal_permits_amount + financialAnalysis.legal_registrations_amount,
-              currency: financialAnalysis.legal_notary_currency
-            }
-          },
-          other: otherCosts.map((c: any) => ({
-            id: c.id,
-            label: c.label,
-            amount: { amount: c.amount, currency: c.currency },
-            description: c.description
-          }))
-        },
-        totalProjectCost: { amount: financialAnalysis.total_project_cost_amount, currency: financialAnalysis.total_project_cost_currency },
-        costPerSqm: { amount: financialAnalysis.cost_per_sqm_amount, currency: financialAnalysis.cost_per_sqm_currency },
-        costPerSqmSharedAreas: { amount: financialAnalysis.cost_per_sqm_shared_areas_amount || 0, currency: financialAnalysis.cost_per_sqm_shared_areas_currency || 'USD' },
-        baseLotCost: { amount: financialAnalysis.base_lot_cost_amount, currency: financialAnalysis.base_lot_cost_currency },
-        pricingScenarios: pricingScenarios.map((p: any) => ({
-          id: p.id,
-          profitMarginPercent: p.profit_margin_percent,
-          lotSalePrice: { amount: p.lot_sale_price_amount, currency: p.lot_sale_price_currency },
-          totalRevenue: { amount: p.total_revenue_amount, currency: p.total_revenue_currency },
-          expectedProfit: { amount: p.expected_profit_amount, currency: p.expected_profit_currency },
-          roi: p.roi
-        })),
-        monthlyMaintenanceCost: financialAnalysis.monthly_maintenance_amount ? {
-          amount: financialAnalysis.monthly_maintenance_amount,
-          currency: financialAnalysis.monthly_maintenance_currency
-        } : undefined,
-        monthlyMaintenancePerOwner: financialAnalysis.monthly_maintenance_per_owner_amount ? {
-          amount: financialAnalysis.monthly_maintenance_per_owner_amount,
-          currency: financialAnalysis.monthly_maintenance_per_owner_currency
-        } : undefined,
-        exchangeRate: financialAnalysis.exchange_rate_from ? {
-          from: financialAnalysis.exchange_rate_from,
-          to: financialAnalysis.exchange_rate_to,
-          rate: financialAnalysis.exchange_rate_value,
-          effectiveDate: financialAnalysis.exchange_rate_date
-        } : undefined,
-        calculatedAt: financialAnalysis.calculated_at,
-        lastModified: financialAnalysis.last_modified
-      } : undefined,
+      financialAnalysis: financialAnalysis
+        ? {
+            id: financialAnalysis.id,
+            costs: {
+              landAcquisition: {
+                amount: financialAnalysis.land_acquisition_amount,
+                currency: financialAnalysis.land_acquisition_currency,
+              },
+              amenities: {
+                amount: financialAnalysis.amenities_amount,
+                currency: financialAnalysis.amenities_currency,
+              },
+              parkingArea: {
+                amount: financialAnalysis.parking_area_amount || 0,
+                currency: financialAnalysis.parking_area_currency || 'USD',
+              },
+              walkways: {
+                amount: financialAnalysis.walkways_amount || 0,
+                currency: financialAnalysis.walkways_currency || 'USD',
+              },
+              landscaping: {
+                amount: financialAnalysis.landscaping_amount || 0,
+                currency: financialAnalysis.landscaping_currency || 'USD',
+              },
+              maintenanceRoom: {
+                amount: financialAnalysis.maintenance_room_amount || 0,
+                currency: financialAnalysis.maintenance_room_currency || 'USD',
+              },
+              storage: {
+                amount: financialAnalysis.storage_amount || 0,
+                currency: financialAnalysis.storage_currency || 'USD',
+              },
+              legal: {
+                notaryFees: {
+                  amount: financialAnalysis.legal_notary_amount,
+                  currency: financialAnalysis.legal_notary_currency,
+                },
+                permits: {
+                  amount: financialAnalysis.legal_permits_amount,
+                  currency: financialAnalysis.legal_permits_currency,
+                },
+                registrations: {
+                  amount: financialAnalysis.legal_registrations_amount,
+                  currency: financialAnalysis.legal_registrations_currency,
+                },
+                total: {
+                  amount:
+                    financialAnalysis.legal_notary_amount +
+                    financialAnalysis.legal_permits_amount +
+                    financialAnalysis.legal_registrations_amount,
+                  currency: financialAnalysis.legal_notary_currency,
+                },
+              },
+              other: otherCosts.map((c: any) => ({
+                id: c.id,
+                label: c.label,
+                amount: { amount: c.amount, currency: c.currency },
+                description: c.description,
+              })),
+            },
+            totalProjectCost: {
+              amount: financialAnalysis.total_project_cost_amount,
+              currency: financialAnalysis.total_project_cost_currency,
+            },
+            costPerSqm: {
+              amount: financialAnalysis.cost_per_sqm_amount,
+              currency: financialAnalysis.cost_per_sqm_currency,
+            },
+            costPerSqmSharedAreas: {
+              amount: financialAnalysis.cost_per_sqm_shared_areas_amount || 0,
+              currency: financialAnalysis.cost_per_sqm_shared_areas_currency || 'USD',
+            },
+            baseLotCost: {
+              amount: financialAnalysis.base_lot_cost_amount,
+              currency: financialAnalysis.base_lot_cost_currency,
+            },
+            pricingScenarios: pricingScenarios.map((p: any) => ({
+              id: p.id,
+              profitMarginPercent: p.profit_margin_percent,
+              lotSalePrice: {
+                amount: p.lot_sale_price_amount,
+                currency: p.lot_sale_price_currency,
+              },
+              totalRevenue: { amount: p.total_revenue_amount, currency: p.total_revenue_currency },
+              expectedProfit: {
+                amount: p.expected_profit_amount,
+                currency: p.expected_profit_currency,
+              },
+              roi: p.roi,
+            })),
+            monthlyMaintenanceCost: financialAnalysis.monthly_maintenance_amount
+              ? {
+                  amount: financialAnalysis.monthly_maintenance_amount,
+                  currency: financialAnalysis.monthly_maintenance_currency,
+                }
+              : undefined,
+            monthlyMaintenancePerOwner: financialAnalysis.monthly_maintenance_per_owner_amount
+              ? {
+                  amount: financialAnalysis.monthly_maintenance_per_owner_amount,
+                  currency: financialAnalysis.monthly_maintenance_per_owner_currency,
+                }
+              : undefined,
+            exchangeRate: financialAnalysis.exchange_rate_from
+              ? {
+                  from: financialAnalysis.exchange_rate_from,
+                  to: financialAnalysis.exchange_rate_to,
+                  rate: financialAnalysis.exchange_rate_value,
+                  effectiveDate: financialAnalysis.exchange_rate_date,
+                }
+              : undefined,
+            calculatedAt: financialAnalysis.calculated_at,
+            lastModified: financialAnalysis.last_modified,
+          }
+        : undefined,
 
       images: images.map((img: any) => ({
         id: img.id,
@@ -2703,15 +3030,15 @@ function buildExportSchema(data: any): any {
         height: img.height_pixels,
         relativePathInExport: `images/${img.filename}`,
         uploadedAt: img.uploaded_at,
-        caption: img.caption
-      }))
+        caption: img.caption,
+      })),
     },
     metadata: {
       exportedBy: 'MicroVillas Platform v1.0.0',
       checksum: '', // Will be filled after JSON generation
       fileCount: 0, // Will be filled after counting files
-      totalSize: 0  // Will be filled after calculating
-    }
+      totalSize: 0, // Will be filled after calculating
+    },
   };
 }
 
@@ -2775,7 +3102,7 @@ ipcMain.handle('dialog:selectImportDir', async (event) => {
     const result = await dialog.showOpenDialog({
       title: 'Select Project Directory to Import',
       properties: ['openDirectory'],
-      message: 'Choose the directory containing the exported project'
+      message: 'Choose the directory containing the exported project',
     });
 
     if (result.canceled || result.filePaths.length === 0) {
@@ -2788,14 +3115,14 @@ ipcMain.handle('dialog:selectImportDir', async (event) => {
     return {
       success: true,
       path: importPath,
-      message: 'Directory selected successfully'
+      message: 'Directory selected successfully',
     };
   } catch (error: any) {
     console.error('Error selecting import directory:', error);
     return {
       success: false,
       path: null,
-      message: `Failed to select directory: ${error.message}`
+      message: `Failed to select directory: ${error.message}`,
     };
   }
 });
@@ -2818,7 +3145,7 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
       enablePartialRecovery = true,
       validateChecksum = true,
       importImages = true,
-      overwriteExisting = false
+      overwriteExisting = false,
     } = options;
 
     const errors: any[] = [];
@@ -2864,7 +3191,7 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
         warnings.push({
           field: 'checksum',
           message: 'Checksum mismatch - data may have been modified',
-          suggestion: 'Verify file integrity before proceeding'
+          suggestion: 'Verify file integrity before proceeding',
         });
       }
     }
@@ -2886,7 +3213,7 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
         validationErrors.push({
           field,
           message: `Required field '${field}' is missing`,
-          severity: 'critical'
+          severity: 'critical',
         });
         schemaValid = false;
       }
@@ -2917,7 +3244,7 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
           warnings.push({
             field: 'landParcel',
             message: 'Land parcel data is corrupted and will be skipped',
-            suggestion: 'Reconfigure land parameters after import'
+            suggestion: 'Reconfigure land parameters after import',
           });
         }
       }
@@ -2930,7 +3257,7 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
           warnings.push({
             field: 'subdivisionScenarios',
             message: 'Subdivision scenarios are corrupted and will be skipped',
-            suggestion: 'Recalculate subdivision scenarios after import'
+            suggestion: 'Recalculate subdivision scenarios after import',
           });
         }
       }
@@ -2940,10 +3267,12 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
       warnings.push({
         field: 'recovery',
         message: `Partial recovery enabled: ${skippedFields.length} fields skipped`,
-        suggestion: 'Review and reconfigure skipped sections'
+        suggestion: 'Review and reconfigure skipped sections',
       });
     } else if (!schemaValid) {
-      throw new Error('Project data validation failed. Enable partial recovery to import valid fields.');
+      throw new Error(
+        'Project data validation failed. Enable partial recovery to import valid fields.'
+      );
     }
 
     // Step 6: Scan and validate images directory (T186)
@@ -2957,14 +3286,14 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
         if (fs.existsSync(imagePath)) {
           importedImages.push({
             ...imageRef,
-            localPath: imagePath
+            localPath: imagePath,
           });
         } else {
           missingImages.push(imageRef.filename);
           warnings.push({
             field: `images.${imageRef.filename}`,
             message: `Image file not found: ${imageRef.filename}`,
-            suggestion: 'Image will be marked as missing in the project'
+            suggestion: 'Image will be marked as missing in the project',
           });
         }
       }
@@ -3039,7 +3368,10 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
         );
 
         // Update project with land parcel reference
-        db.prepare('UPDATE projects SET land_parcel_id = ? WHERE id = ?').run(landParcelId, importedProjectId);
+        db.prepare('UPDATE projects SET land_parcel_id = ? WHERE id = ?').run(
+          landParcelId,
+          importedProjectId
+        );
 
         // Import landmarks if present
         if (lp.landmarks && Array.isArray(lp.landmarks)) {
@@ -3090,19 +3422,33 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
             scenario.id,
             landParcelId,
             scenario.socialClubPercent,
-            sc.width, sc.length, sc.area,
-            sc.position.x, sc.position.y,
-            lots.count, lots.width, lots.length, lots.area, lots.minArea,
-            lots.grid.rows, lots.grid.columns, lots.grid.distribution,
+            sc.width,
+            sc.length,
+            sc.area,
+            sc.position.x,
+            sc.position.y,
+            lots.count,
+            lots.width,
+            lots.length,
+            lots.area,
+            lots.minArea,
+            lots.grid.rows,
+            lots.grid.columns,
+            lots.grid.distribution,
             scenario.totalLotsArea,
             scenario.commonAreaPercentPerLot,
             scenario.isViable ? 1 : 0,
             scenario.calculatedAt,
-            parking.totalSpaces, parking.area,
-            parking.position.x, parking.position.y,
-            parking.width, parking.length,
-            maintenance.area, maintenance.location,
-            maintenance.position.x, maintenance.position.y,
+            parking.totalSpaces,
+            parking.area,
+            parking.position.x,
+            parking.position.y,
+            parking.width,
+            parking.length,
+            maintenance.area,
+            maintenance.location,
+            maintenance.position.x,
+            maintenance.position.y,
             scenario.storageType
           );
         }
@@ -3193,23 +3539,40 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
         financialStmt.run(
           financialId,
           importedProjectId,
-          costs.landAcquisition.amount, costs.landAcquisition.currency,
-          costs.amenities.amount, costs.amenities.currency,
-          costs.parking.amount, costs.parking.currency,
-          costs.walkways.amount, costs.walkways.currency,
-          costs.landscaping.amount, costs.landscaping.currency,
-          costs.maintenanceRoom.amount, costs.maintenanceRoom.currency,
-          costs.storage.amount, costs.storage.currency,
-          legal.notaryFees.amount, legal.notaryFees.currency,
-          legal.permits.amount, legal.permits.currency,
-          legal.registrations.amount, legal.registrations.currency,
-          fa.totalProjectCost.amount, fa.totalProjectCost.currency,
-          fa.costPerSqmSharedAreas.amount, fa.costPerSqmSharedAreas.currency,
-          fa.baseLotCost.amount, fa.baseLotCost.currency,
-          fa.monthlyMaintenanceCost?.amount || null, fa.monthlyMaintenanceCost?.currency || null,
-          fa.monthlyMaintenancePerOwner?.amount || null, fa.monthlyMaintenancePerOwner?.currency || null,
-          fa.exchangeRate?.from || null, fa.exchangeRate?.to || null,
-          fa.exchangeRate?.rate || null, fa.exchangeRate?.effectiveDate || null,
+          costs.landAcquisition.amount,
+          costs.landAcquisition.currency,
+          costs.amenities.amount,
+          costs.amenities.currency,
+          costs.parking.amount,
+          costs.parking.currency,
+          costs.walkways.amount,
+          costs.walkways.currency,
+          costs.landscaping.amount,
+          costs.landscaping.currency,
+          costs.maintenanceRoom.amount,
+          costs.maintenanceRoom.currency,
+          costs.storage.amount,
+          costs.storage.currency,
+          legal.notaryFees.amount,
+          legal.notaryFees.currency,
+          legal.permits.amount,
+          legal.permits.currency,
+          legal.registrations.amount,
+          legal.registrations.currency,
+          fa.totalProjectCost.amount,
+          fa.totalProjectCost.currency,
+          fa.costPerSqmSharedAreas.amount,
+          fa.costPerSqmSharedAreas.currency,
+          fa.baseLotCost.amount,
+          fa.baseLotCost.currency,
+          fa.monthlyMaintenanceCost?.amount || null,
+          fa.monthlyMaintenanceCost?.currency || null,
+          fa.monthlyMaintenancePerOwner?.amount || null,
+          fa.monthlyMaintenancePerOwner?.currency || null,
+          fa.exchangeRate?.from || null,
+          fa.exchangeRate?.to || null,
+          fa.exchangeRate?.rate || null,
+          fa.exchangeRate?.effectiveDate || null,
           fa.calculatedAt,
           fa.lastModified
         );
@@ -3249,9 +3612,12 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
               crypto.randomUUID(),
               financialId,
               pricing.profitMarginPercent,
-              pricing.lotSalePrice.amount, pricing.lotSalePrice.currency,
-              pricing.totalRevenue.amount, pricing.totalRevenue.currency,
-              pricing.expectedProfit.amount, pricing.expectedProfit.currency,
+              pricing.lotSalePrice.amount,
+              pricing.lotSalePrice.currency,
+              pricing.totalRevenue.amount,
+              pricing.totalRevenue.currency,
+              pricing.expectedProfit.amount,
+              pricing.expectedProfit.currency,
               pricing.roi
             );
           }
@@ -3270,7 +3636,11 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
 
         for (const image of importedImages) {
           // Copy image to application storage
-          const appImagesDir = path.join(require('electron').app.getPath('userData'), 'images', importedProjectId);
+          const appImagesDir = path.join(
+            require('electron').app.getPath('userData'),
+            'images',
+            importedProjectId
+          );
           if (!fs.existsSync(appImagesDir)) {
             fs.mkdirSync(appImagesDir, { recursive: true });
           }
@@ -3314,25 +3684,26 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
           structureValid,
           checksumValid,
           schemaValid,
-          imagesValid
+          imagesValid,
         },
         errors: validationErrors,
         warnings,
-        partialRecovery: skippedFields.length > 0 ? {
-          enabled: enablePartialRecovery,
-          skippedFields,
-          recoveredData
-        } : undefined,
+        partialRecovery:
+          skippedFields.length > 0
+            ? {
+                enabled: enablePartialRecovery,
+                skippedFields,
+                recoveredData,
+              }
+            : undefined,
         missingImages,
         missingAIPrompts,
-        duration
+        duration,
       };
-
     } catch (dbError: any) {
       db.prepare('ROLLBACK').run();
       throw new Error(`Database error during import: ${dbError.message}`);
     }
-
   } catch (error: any) {
     console.error('Error importing project:', error);
     const duration = Date.now() - startTime;
@@ -3346,17 +3717,19 @@ ipcMain.handle('import:project', async (event, importPath: string, options: any 
         structureValid: false,
         checksumValid: false,
         schemaValid: false,
-        imagesValid: false
+        imagesValid: false,
       },
-      errors: [{
-        field: 'import',
-        message: error.message,
-        severity: 'critical'
-      }],
+      errors: [
+        {
+          field: 'import',
+          message: error.message,
+          severity: 'critical',
+        },
+      ],
       warnings: [],
       missingImages: [],
       missingAIPrompts: [],
-      duration
+      duration,
     };
   }
 });
@@ -3459,12 +3832,15 @@ ipcMain.handle('telemetry:clearData', async () => {
   return { success: true };
 });
 
-ipcMain.handle('telemetry:trackEvent', async (event, eventType: string, eventName: string, data?: Record<string, any>) => {
-  console.log('IPC: telemetry:trackEvent called', { eventType, eventName });
-  const { telemetry } = await import('./telemetry');
-  telemetry.trackEvent(eventType as any, eventName, data);
-  return { success: true };
-});
+ipcMain.handle(
+  'telemetry:trackEvent',
+  async (event, eventType: string, eventName: string, data?: Record<string, any>) => {
+    console.log('IPC: telemetry:trackEvent called', { eventType, eventName });
+    const { telemetry } = await import('./telemetry');
+    telemetry.trackEvent(eventType as any, eventName, data);
+    return { success: true };
+  }
+);
 
 // ============================================================================
 // AI SUBDIVISION PLANNING HANDLERS
@@ -3474,156 +3850,449 @@ ipcMain.handle('telemetry:trackEvent', async (event, eventType: string, eventNam
  * Generate AI subdivision plan
  * Channel: 'ai:generate-subdivision-plan'
  */
-ipcMain.handle('ai:generate-subdivision-plan', async (event, request: GenerateSubdivisionPlanRequest) => {
-  console.log('[IPC] ai:generate-subdivision-plan called', { projectId: request.projectId });
-
-  try {
-    // Validate request
-    const validatedRequest = validateIPCRequest(request, GenerateSubdivisionPlanRequestSchema);
-
-    // Import AI services dynamically
-    const { generateSubdivisionPlan } = await import('./ai-services/gemini-client');
-    const { createAISubdivisionPlan } = await import('./storage');
-
-    // Generate plan using Gemini
-    const startTime = Date.now();
-    const result = await generateSubdivisionPlan({
-      landWidth: validatedRequest.landWidth,
-      landLength: validatedRequest.landLength,
-      landArea: validatedRequest.landArea,
-      socialClubPercent: validatedRequest.socialClubPercent,
-      targetLotCount: validatedRequest.targetLotCount,
-      province: validatedRequest.province
+ipcMain.handle(
+  'ai:generate-subdivision-plan',
+  async (event, request: GenerateSubdivisionPlanRequest) => {
+    console.log('[IPC] ai:generate-subdivision-plan called', {
+      projectId: request.projectId,
+      count: request.count,
     });
 
-    // Validate the generated plan (basic validation)
-    const isValid = result.plan.metrics.viableLots > 0;
-    const validationStatus = isValid ? 'valid' : 'invalid';
-    const validationErrors = isValid ? [] : ['No viable lots generated (all below 90 sqm minimum)'];
+    try {
+      // Validate request
+      const validatedRequest = validateIPCRequest(request, GenerateSubdivisionPlanRequestSchema);
+      const count = validatedRequest.count || 1;
 
-    // Save to database
-    const planId = await createAISubdivisionPlan({
-      projectId: validatedRequest.projectId,
-      landParcelId: validatedRequest.landParcelId,
-      inputLandWidth: validatedRequest.landWidth,
-      inputLandLength: validatedRequest.landLength,
-      inputLandArea: validatedRequest.landArea,
-      inputSocialClubPercent: validatedRequest.socialClubPercent,
-      inputTargetLotCount: validatedRequest.targetLotCount,
-      planJson: JSON.stringify(result.plan),
-      validationStatus,
-      validationErrors: validationErrors.length > 0 ? JSON.stringify(validationErrors) : undefined,
-      aiModel: 'gemini-2.5-flash',
-      promptTokens: Math.floor(result.tokensUsed * 0.7),
-      completionTokens: Math.floor(result.tokensUsed * 0.3),
-      totalTokens: result.tokensUsed,
-      generationTimeMs: result.generationTimeMs
-    });
+      // Import AI services dynamically
+      const { generateSubdivisionPlan } = await import('./ai-services/gemini-client');
+      const { createAISubdivisionPlan } = await import('./storage');
 
-    return {
-      planId,
-      status: 'completed' as const,
-      plan: result.plan,
-      validationStatus,
-      validationErrors: validationErrors.length > 0 ? validationErrors : undefined,
-      tokensUsed: result.tokensUsed,
-      generationTimeMs: result.generationTimeMs
-    };
+      // Define variation strategies for multiple plans
+      const strategies = [
+        { focus: 'maximize-lots', description: 'Maximize number of lots' },
+        { focus: 'larger-lots', description: 'Create larger lot sizes' },
+        { focus: 'varied-amenities', description: 'Vary amenity allocation' },
+        { focus: 'different-layout', description: 'Alternative road layout' },
+        { focus: 'balanced', description: 'Balanced approach' },
+      ];
 
-  } catch (error: any) {
-    console.error('[IPC] Error generating subdivision plan:', error);
+      const plans = [];
 
-    // Create failed request record
-    const planId = crypto.randomUUID();
-    return {
-      planId,
-      status: 'failed' as const,
-      errorMessage: error.message || 'Failed to generate subdivision plan'
-    };
+      // Generate multiple plans with varied prompts
+      for (let i = 0; i < count; i++) {
+        try {
+          const strategy = strategies[i % strategies.length];
+          const startTime = Date.now();
+
+          // Send progress event for plan generation start
+          event.sender.send('ai:generation-progress', {
+            planIndex: i + 1,
+            totalPlans: count,
+            status: 'generating',
+            message: `Connecting to AI service for plan ${i + 1}/${count}... (first request may take 10-30 seconds)`,
+            strategy: strategy.focus,
+          });
+
+          // Wait a moment for UI to update
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          const result = await generateSubdivisionPlan(
+            {
+              landWidth: validatedRequest.landWidth,
+              landLength: validatedRequest.landLength,
+              landArea: validatedRequest.landArea,
+              socialClubPercent: validatedRequest.socialClubPercent,
+              targetLotCount: validatedRequest.targetLotCount,
+              province: validatedRequest.province,
+              strategy: strategy.focus, // Pass strategy to prompt builder
+            },
+            // Progress callback for streaming updates
+            (chunk: string, accumulated: string) => {
+              event.sender.send('ai:streaming-progress', {
+                planIndex: i + 1,
+                totalPlans: count,
+                chunkLength: chunk.length,
+                accumulatedLength: accumulated.length,
+                message: `Streaming plan ${i + 1}/${count}... (${accumulated.length} characters received)`,
+              });
+            }
+          );
+
+          // Validate the generated plan (basic validation)
+          const isValid = result.plan.metrics.viableLots > 0;
+          const validationStatus = isValid ? 'valid' : 'invalid';
+          const validationErrors = isValid
+            ? []
+            : ['No viable lots generated (all below 90 sqm minimum)'];
+
+          // Save to database
+          const planId = await createAISubdivisionPlan({
+            projectId: validatedRequest.projectId,
+            landParcelId: validatedRequest.landParcelId,
+            inputLandWidth: validatedRequest.landWidth,
+            inputLandLength: validatedRequest.landLength,
+            inputLandArea: validatedRequest.landArea,
+            inputSocialClubPercent: validatedRequest.socialClubPercent,
+            inputTargetLotCount: validatedRequest.targetLotCount,
+            planJson: JSON.stringify(result.plan),
+            validationStatus,
+            validationErrors:
+              validationErrors.length > 0 ? JSON.stringify(validationErrors) : undefined,
+            aiModel: 'gemini-2.5-flash',
+            promptTokens: Math.floor(result.tokensUsed * 0.7),
+            completionTokens: Math.floor(result.tokensUsed * 0.3),
+            totalTokens: result.tokensUsed,
+            generationTimeMs: result.generationTimeMs,
+          });
+
+          plans.push({
+            planId,
+            status: 'completed' as const,
+            plan: result.plan,
+            validationStatus,
+            validationErrors: validationErrors.length > 0 ? validationErrors : undefined,
+            tokensUsed: result.tokensUsed,
+            generationTimeMs: result.generationTimeMs,
+          });
+
+          // Send completion event
+          event.sender.send('ai:generation-progress', {
+            planIndex: i + 1,
+            totalPlans: count,
+            status: 'completed',
+            message: `Plan ${i + 1}/${count} completed successfully (${result.plan.metrics.viableLots} viable lots)`,
+            planId,
+            generationTimeMs: result.generationTimeMs,
+          });
+        } catch (error: any) {
+          console.error(`[IPC] Error generating plan ${i + 1}/${count}:`, error);
+          const planId = crypto.randomUUID();
+          plans.push({
+            planId,
+            status: 'failed' as const,
+            errorMessage: error.message || 'Failed to generate subdivision plan',
+          });
+
+          // Send failure event
+          event.sender.send('ai:generation-progress', {
+            planIndex: i + 1,
+            totalPlans: count,
+            status: 'failed',
+            message: `Plan ${i + 1}/${count} failed: ${error.message}`,
+            errorMessage: error.message,
+          });
+        }
+      }
+
+      // Return response with backward compatibility
+      const firstPlan = plans[0];
+      return {
+        plans, // Array of all generated plans
+        // Backward compatibility fields (first plan)
+        planId: firstPlan?.planId,
+        status: firstPlan?.status,
+        plan: firstPlan?.plan,
+        validationStatus: firstPlan?.validationStatus,
+        validationErrors: firstPlan?.validationErrors,
+        tokensUsed: firstPlan?.tokensUsed,
+        generationTimeMs: firstPlan?.generationTimeMs,
+      };
+    } catch (error: any) {
+      console.error('[IPC] Error generating subdivision plan:', error);
+
+      // Create failed request record
+      const planId = crypto.randomUUID();
+      return {
+        plans: [
+          {
+            planId,
+            status: 'failed' as const,
+            errorMessage: error.message || 'Failed to generate subdivision plan',
+          },
+        ],
+        planId,
+        status: 'failed' as const,
+        errorMessage: error.message || 'Failed to generate subdivision plan',
+      };
+    }
   }
-});
+);
 
 /**
  * Generate site plan image
  * Channel: 'ai:generate-site-plan-image'
  */
-ipcMain.handle('ai:generate-site-plan-image', async (event, request: GenerateSitePlanImageRequest) => {
-  console.log('[IPC] ai:generate-site-plan-image called', {
-    projectId: request.projectId,
-    viewType: request.viewType
+ipcMain.handle(
+  'ai:generate-site-plan-image',
+  async (event, request: GenerateSitePlanImageRequest) => {
+    console.log('[IPC] ai:generate-site-plan-image called', {
+      projectId: request.projectId,
+      subdivisionPlanId: request.subdivisionPlanId,
+      viewType: request.viewType,
+    });
+
+    try {
+      // Validate request
+      const validatedRequest = validateIPCRequest(request, GenerateSitePlanImageRequestSchema);
+
+      // Import services
+      const { generateProjectImage } = await import('./ai-services/image-client');
+      const {
+        getAISubdivisionPlanById,
+        createProjectVisualization,
+        getProjectVisualizationsByPlanId,
+      } = await import('./storage');
+
+      // Get the approved subdivision plan
+      console.log('[IPC] Fetching subdivision plan:', validatedRequest.subdivisionPlanId);
+      const plan = await getAISubdivisionPlanById(validatedRequest.subdivisionPlanId);
+
+      console.log('[IPC] Plan retrieved:', {
+        found: !!plan,
+        approvedByUser: plan?.approvedByUser,
+        approved_by_user_raw: plan?.approved_by_user,
+      });
+
+      if (!plan) {
+        throw new Error('Subdivision plan not found');
+      }
+
+      if (!plan.approvedByUser) {
+        throw new Error(
+          `Subdivision plan must be approved before generating images. Current approval status: ${plan.approved_by_user} (type: ${typeof plan.approved_by_user})`
+        );
+      }
+
+      // Fetch reference images based on view type
+      let referenceImagePath: string | undefined;
+      const existingVisualizations = await getProjectVisualizationsByPlanId(
+        validatedRequest.subdivisionPlanId
+      );
+
+      if (validatedRequest.viewType === 'aerial') {
+        // Aerial view uses site plan as reference for layout positioning
+        console.log('[IPC] Fetching site plan visualization for aerial reference...');
+        const sitePlanVisualization = existingVisualizations.find((v) => v.viewType === 'site-plan');
+
+        if (!sitePlanVisualization || !sitePlanVisualization.localPath) {
+          throw new Error(
+            'Site plan image must be generated first before creating aerial view. Please generate the site plan view first.'
+          );
+        }
+
+        referenceImagePath = sitePlanVisualization.localPath;
+        console.log('[IPC] Using site plan as reference for aerial view:', referenceImagePath);
+      } else if (validatedRequest.viewType === 'context') {
+        // Context view uses aerial view as reference for 3D spatial layout
+        console.log('[IPC] Fetching aerial visualization for context reference...');
+        const aerialVisualization = existingVisualizations.find((v) => v.viewType === 'aerial');
+
+        if (!aerialVisualization || !aerialVisualization.localPath) {
+          throw new Error(
+            'Aerial view image must be generated first before creating context view. Please generate the aerial view first.'
+          );
+        }
+
+        referenceImagePath = aerialVisualization.localPath;
+        console.log('[IPC] Using aerial view as reference for context view:', referenceImagePath);
+      }
+
+      // Parse the subdivision plan from database (use plan_json, not planJson)
+      const subdivisionPlan = JSON.parse(plan.plan_json);
+      console.log('[IPC] Parsed subdivision plan:', {
+        totalLots: subdivisionPlan.metrics.totalLots,
+        viableLots: subdivisionPlan.metrics.viableLots,
+      });
+
+      // Determine output directory (project-specific)
+      const outputDir = `D:\\fast2ai\\AI-Floorplan\\project-data\\${validatedRequest.projectId}\\images\\ai-generated`;
+
+      // Smart resolution selection based on land aspect ratio (for site-plan view)
+      let defaultResolution: '1024x1024' | '1792x1024' | '1024x1792';
+      if (validatedRequest.viewType === 'site-plan') {
+        const aspectRatio = plan.input_land_length / plan.input_land_width;
+        if (aspectRatio > 1.3) {
+          // Tall plot (length > width by 30%+) - use portrait orientation
+          defaultResolution = '1024x1792';
+          console.log(
+            `[IPC] Auto-selecting portrait resolution (1024x1792) for tall plot aspect ratio: ${aspectRatio.toFixed(2)}:1`
+          );
+        } else if (aspectRatio < 0.77) {
+          // Wide plot (width > length by 30%+) - use landscape orientation
+          defaultResolution = '1792x1024';
+          console.log(
+            `[IPC] Auto-selecting landscape resolution (1792x1024) for wide plot aspect ratio: 1:${(1 / aspectRatio).toFixed(2)}`
+          );
+        } else {
+          // Nearly square plot
+          defaultResolution = '1024x1024';
+          console.log(
+            `[IPC] Auto-selecting square resolution (1024x1024) for near-square plot aspect ratio: ${aspectRatio.toFixed(2)}:1`
+          );
+        }
+      } else {
+        // Aerial and context views default to square
+        defaultResolution = '1024x1024';
+      }
+
+      // Generate image (use snake_case field names from database)
+      const result = await generateProjectImage(
+        {
+          projectName: validatedRequest.projectId,
+          subdivisionPlan,
+          viewType: validatedRequest.viewType,
+          resolution: validatedRequest.resolution || defaultResolution,
+          customPromptAdditions: validatedRequest.customPromptAdditions,
+          fullCustomPrompt: validatedRequest.fullCustomPrompt,
+          landDimensions: {
+            width: plan.input_land_width,
+            length: plan.input_land_length,
+          },
+          province: 'Dominican Republic',
+          nearbyLandmarks: [],
+          referenceImagePath, // Pass the site plan image path for aerial/context views
+        },
+        outputDir
+      );
+
+      // Save to database
+      const visualizationId = await createProjectVisualization({
+        projectId: validatedRequest.projectId,
+        aiSubdivisionPlanId: validatedRequest.subdivisionPlanId,
+        viewType: validatedRequest.viewType,
+        filename: result.filename,
+        format: result.format,
+        sizeBytes: require('fs').statSync(result.localPath).size,
+        widthPixels: result.widthPixels,
+        heightPixels: result.heightPixels,
+        localPath: result.localPath,
+        aiModel: result.aiModel,
+        promptText: result.promptText,
+      });
+
+      return {
+        visualizationId,
+        status: 'completed' as const,
+        localPath: result.localPath,
+        filename: result.filename,
+        format: result.format,
+        widthPixels: result.widthPixels,
+        heightPixels: result.heightPixels,
+        generationTimeMs: result.generationTimeMs,
+      };
+    } catch (error: any) {
+      console.error('[IPC] Error generating image:', error);
+
+      const visualizationId = crypto.randomUUID();
+      return {
+        visualizationId,
+        status: 'failed' as const,
+        errorMessage: error.message || 'Failed to generate image',
+      };
+    }
+  }
+);
+
+/**
+ * Preview image generation prompt
+ * Channel: 'ai:preview-image-prompt'
+ */
+ipcMain.handle('ai:preview-image-prompt', async (event, request: GenerateSitePlanImageRequest) => {
+  console.log('[IPC] ai:preview-image-prompt called', {
+    subdivisionPlanId: request.subdivisionPlanId,
+    viewType: request.viewType,
   });
 
   try {
-    // Validate request
-    const validatedRequest = validateIPCRequest(request, GenerateSitePlanImageRequestSchema);
-
-    // Import services
-    const { generateProjectImage } = await import('./ai-services/image-client');
-    const { getAISubdivisionPlanById, createProjectVisualization } = await import('./storage');
+    const { buildImagePrompt } = await import('./ai-services/image-client');
+    const { getAISubdivisionPlanById } = await import('./storage');
 
     // Get the approved subdivision plan
-    const plan = await getAISubdivisionPlanById(validatedRequest.subdivisionPlanId);
-    if (!plan || !plan.approvedByUser) {
-      throw new Error('Subdivision plan must be approved before generating images');
+    const plan = await getAISubdivisionPlanById(request.subdivisionPlanId);
+
+    if (!plan) {
+      throw new Error('Subdivision plan not found');
     }
 
-    const subdivisionPlan = JSON.parse(plan.planJson);
+    // Parse the subdivision plan
+    const subdivisionPlan = JSON.parse(plan.plan_json);
 
-    // Determine output directory (project-specific)
-    const outputDir = `D:\\fast2ai\\AI-Floorplan\\project-data\\${validatedRequest.projectId}\\images\\ai-generated`;
+    // Smart resolution selection based on land aspect ratio (for site-plan view)
+    let defaultResolution: '1024x1024' | '1792x1024' | '1024x1792';
+    if (request.viewType === 'site-plan') {
+      const aspectRatio = plan.input_land_length / plan.input_land_width;
+      if (aspectRatio > 1.3) {
+        defaultResolution = '1024x1792'; // Portrait
+      } else if (aspectRatio < 0.77) {
+        defaultResolution = '1792x1024'; // Landscape
+      } else {
+        defaultResolution = '1024x1024'; // Square
+      }
+    } else {
+      defaultResolution = '1024x1024';
+    }
 
-    // Generate image
-    const result = await generateProjectImage({
-      projectName: validatedRequest.projectId,
+    // Build the prompt (use snake_case field names from database)
+    const prompt = buildImagePrompt({
+      projectName: request.projectId,
       subdivisionPlan,
-      viewType: validatedRequest.viewType,
-      resolution: validatedRequest.resolution || '1024x1024',
-      customPromptAdditions: validatedRequest.customPromptAdditions,
+      viewType: request.viewType,
+      resolution: request.resolution || defaultResolution,
+      customPromptAdditions: request.customPromptAdditions,
       landDimensions: {
-        width: plan.inputLandWidth,
-        length: plan.inputLandLength
+        width: plan.input_land_width,
+        length: plan.input_land_length,
       },
       province: 'Dominican Republic',
-      nearbyLandmarks: []
-    }, outputDir);
-
-    // Save to database
-    const visualizationId = await createProjectVisualization({
-      projectId: validatedRequest.projectId,
-      aiSubdivisionPlanId: validatedRequest.subdivisionPlanId,
-      viewType: validatedRequest.viewType,
-      filename: result.filename,
-      format: result.format,
-      sizeBytes: require('fs').statSync(result.localPath).size,
-      widthPixels: result.widthPixels,
-      heightPixels: result.heightPixels,
-      localPath: result.localPath,
-      aiModel: result.aiModel,
-      promptText: result.promptText
+      nearbyLandmarks: [],
     });
 
     return {
-      visualizationId,
-      status: 'completed' as const,
-      localPath: result.localPath,
-      filename: result.filename,
-      format: result.format,
-      widthPixels: result.widthPixels,
-      heightPixels: result.heightPixels,
-      generationTimeMs: result.generationTimeMs
+      prompt,
+      viewType: request.viewType,
     };
-
   } catch (error: any) {
-    console.error('[IPC] Error generating image:', error);
-
-    const visualizationId = crypto.randomUUID();
-    return {
-      visualizationId,
-      status: 'failed' as const,
-      errorMessage: error.message || 'Failed to generate image'
-    };
+    console.error('[IPC] Error previewing prompt:', error);
+    throw new Error(`Failed to preview prompt: ${error.message}`);
   }
 });
+
+/**
+ * Preview subdivision plan prompt
+ * Channel: 'ai:preview-subdivision-prompt'
+ */
+ipcMain.handle(
+  'ai:preview-subdivision-prompt',
+  async (event, request: { landWidth: number; landLength: number; landArea: number; socialClubPercent: number; targetLotCount?: number; province?: string; strategy?: string }) => {
+    console.log('[IPC] ai:preview-subdivision-prompt called', {
+      landWidth: request.landWidth,
+      landLength: request.landLength,
+      landArea: request.landArea,
+    });
+
+    try {
+      const { buildSubdivisionPrompt } = await import('./ai-services/gemini-client');
+
+      // Build the prompt
+      const prompt = buildSubdivisionPrompt({
+        landWidth: request.landWidth,
+        landLength: request.landLength,
+        landArea: request.landArea,
+        socialClubPercent: request.socialClubPercent,
+        targetLotCount: request.targetLotCount,
+        province: request.province,
+        strategy: request.strategy || 'balanced',
+      });
+
+      return {
+        prompt,
+      };
+    } catch (error: any) {
+      console.error('[IPC] Error previewing subdivision prompt:', error);
+      throw new Error(`Failed to preview subdivision prompt: ${error.message}`);
+    }
+  }
+);
 
 /**
  * Approve subdivision plan
@@ -3642,15 +4311,14 @@ ipcMain.handle('ai:approve-plan', async (event, request: ApprovePlanRequest) => 
     return {
       success: true,
       planId: validatedRequest.planId,
-      approvedAt
+      approvedAt,
     };
-
   } catch (error: any) {
     console.error('[IPC] Error approving plan:', error);
     return {
       success: false,
       planId: request.planId,
-      errorMessage: error.message || 'Failed to approve plan'
+      errorMessage: error.message || 'Failed to approve plan',
     };
   }
 });
@@ -3670,15 +4338,14 @@ ipcMain.handle('ai:reject-plan', async (event, request: RejectPlanRequest) => {
 
     return {
       success: true,
-      planId: validatedRequest.planId
+      planId: validatedRequest.planId,
     };
-
   } catch (error: any) {
     console.error('[IPC] Error rejecting plan:', error);
     return {
       success: false,
       planId: request.planId,
-      errorMessage: error.message || 'Failed to reject plan'
+      errorMessage: error.message || 'Failed to reject plan',
     };
   }
 });
@@ -3702,27 +4369,102 @@ ipcMain.handle('ai:get-generation-history', async (event, request: GetGeneration
     );
 
     return {
-      plans: plans.map(plan => ({
-        id: plan.id,
-        generatedAt: plan.generatedAt,
-        generationStatus: plan.generationStatus,
-        validationStatus: plan.validationStatus,
-        approvedByUser: plan.approvedByUser,
-        viableLots: JSON.parse(plan.planJson).metrics.viableLots,
-        totalLots: JSON.parse(plan.planJson).metrics.totalLots,
-        landUtilizationPercent: JSON.parse(plan.planJson).metrics.landUtilizationPercent
-      })),
-      total: plans.length
+      plans: plans.map((plan) => {
+        const planData = JSON.parse(plan.plan_json);
+        return {
+          id: plan.id,
+          generatedAt: plan.generated_at,
+          generationStatus: plan.generation_status,
+          validationStatus: plan.validation_status,
+          approvedByUser: plan.approvedByUser, // Already converted to boolean in storage.ts
+          viableLots: planData.metrics.viableLots,
+          totalLots: planData.metrics.totalLots,
+          landUtilizationPercent: planData.metrics.landUtilizationPercent,
+        };
+      }),
+      total: plans.length,
     };
-
   } catch (error: any) {
     console.error('[IPC] Error getting generation history:', error);
     return {
       plans: [],
-      total: 0
+      total: 0,
     };
   }
 });
+
+/**
+ * Get archived subdivision plans
+ * Channel: 'ai:get-archived-plans'
+ */
+ipcMain.handle('ai:get-archived-plans', async (event, request: GetArchivedPlansRequest) => {
+  console.log('[IPC] ai:get-archived-plans called', { projectId: request.projectId });
+
+  try {
+    const validatedRequest = validateIPCRequest(request, GetArchivedPlansRequestSchema);
+    const { getArchivedPlans } = await import('./storage');
+
+    const plans = await getArchivedPlans(validatedRequest.projectId);
+
+    return {
+      plans: plans.map((plan) => {
+        const planData = JSON.parse(plan.plan_json);
+        return {
+          id: plan.id,
+          generatedAt: plan.generated_at,
+          generationStatus: plan.generation_status,
+          validationStatus: plan.validation_status,
+          approvedByUser: plan.approvedByUser, // Already converted to boolean in storage.ts
+          viableLots: planData.metrics.viableLots,
+          totalLots: planData.metrics.totalLots,
+          landUtilizationPercent: planData.metrics.landUtilizationPercent,
+        };
+      }),
+      total: plans.length,
+    };
+  } catch (error: any) {
+    console.error('[IPC] Error getting archived plans:', error);
+    return {
+      plans: [],
+      total: 0,
+    };
+  }
+});
+
+/**
+ * Switch to an archived plan (activate it)
+ * Channel: 'ai:switch-to-archived-plan'
+ */
+ipcMain.handle(
+  'ai:switch-to-archived-plan',
+  async (event, request: SwitchToArchivedPlanRequest) => {
+    console.log('[IPC] ai:switch-to-archived-plan called', {
+      planId: request.planId,
+      projectId: request.projectId,
+    });
+
+    try {
+      const validatedRequest = validateIPCRequest(request, SwitchToArchivedPlanRequestSchema);
+      const { switchToArchivedPlan } = await import('./storage');
+
+      await switchToArchivedPlan(validatedRequest.planId, validatedRequest.projectId);
+
+      return {
+        success: true,
+        planId: validatedRequest.planId,
+        activatedAt: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      console.error('[IPC] Error switching to archived plan:', error);
+      return {
+        success: false,
+        planId: request.planId,
+        activatedAt: new Date().toISOString(),
+        errorMessage: error.message || 'Failed to switch to archived plan',
+      };
+    }
+  }
+);
 
 /**
  * Get session cost
@@ -3738,7 +4480,6 @@ ipcMain.handle('ai:get-session-cost', async (event, request: GetSessionCostReque
     const cost = await getSessionCost(validatedRequest.projectId);
 
     return cost;
-
   } catch (error: any) {
     console.error('[IPC] Error getting session cost:', error);
     return {
@@ -3746,7 +4487,7 @@ ipcMain.handle('ai:get-session-cost', async (event, request: GetSessionCostReque
       geminiCalls: 0,
       imageCalls: 0,
       totalTokensUsed: 0,
-      estimatedCostUsd: 0
+      estimatedCostUsd: 0,
     };
   }
 });
@@ -3765,7 +4506,6 @@ ipcMain.handle('ai:get-settings', async (event, request: GetAISettingsRequest) =
     const settings = await getAISettings(validatedRequest.projectId);
 
     return { settings };
-
   } catch (error: any) {
     console.error('[IPC] Error getting AI settings:', error);
     throw error;
@@ -3787,14 +4527,13 @@ ipcMain.handle('ai:update-settings', async (event, request: UpdateAISettingsRequ
 
     return {
       success: true,
-      settings
+      settings,
     };
-
   } catch (error: any) {
     console.error('[IPC] Error updating AI settings:', error);
     return {
       success: false,
-      errorMessage: error.message || 'Failed to update settings'
+      errorMessage: error.message || 'Failed to update settings',
     };
   }
 });
@@ -3815,19 +4554,19 @@ ipcMain.handle('ai:set-api-key', async (event, request: SetAPIKeyRequest) => {
 
     // Store in AI settings
     const { updateAISettings } = await import('./storage');
-    const field = validatedRequest.service === 'gemini' ? 'geminiApiKeyEncrypted' : 'imageApiKeyEncrypted';
+    const field =
+      validatedRequest.service === 'gemini' ? 'geminiApiKeyEncrypted' : 'imageApiKeyEncrypted';
 
     await updateAISettings(undefined, { [field]: encryptedKey });
 
     return {
-      success: true
+      success: true,
     };
-
   } catch (error: any) {
     console.error('[IPC] Error setting API key:', error);
     return {
       success: false,
-      errorMessage: error.message || 'Failed to set API key'
+      errorMessage: error.message || 'Failed to set API key',
     };
   }
 });
@@ -3856,7 +4595,6 @@ ipcMain.handle('ai:test-api-key', async (event, request: TestAPIKeyRequest) => {
       await model.generateContent('Test');
 
       return { valid: true };
-
     } else {
       // Test image API key
       const apiKey = process.env.OPENAI_API_KEY || process.env.IMAGE_API_KEY;
@@ -3870,17 +4608,534 @@ ipcMain.handle('ai:test-api-key', async (event, request: TestAPIKeyRequest) => {
 
       return {
         valid: isValid,
-        errorMessage: isValid ? undefined : 'Invalid API key format'
+        errorMessage: isValid ? undefined : 'Invalid API key format',
       };
     }
-
   } catch (error: any) {
     console.error('[IPC] Error testing API key:', error);
     return {
       valid: false,
-      errorMessage: error.message || 'API key test failed'
+      errorMessage: error.message || 'API key test failed',
+    };
+  }
+});
+
+/**
+ * Get image generation status
+ * Channel: 'ai:get-image-generation-status'
+ */
+ipcMain.handle('ai:get-image-generation-status', async (event, generationResult: any) => {
+  console.log('[IPC] ai:get-image-generation-status called', { generationResult });
+
+  try {
+    // The generationResult is actually the full response from ai:generate-site-plan-image
+    // It contains: { visualizationId, status, localPath, filename, format, widthPixels, heightPixels, generationTimeMs }
+
+    // If it's already completed (synchronous generation), return the result immediately
+    if (generationResult.status === 'completed' && generationResult.localPath) {
+      return {
+        visualizationId: generationResult.visualizationId,
+        status: 'completed',
+        progress: 100,
+        localPath: generationResult.localPath,
+        filename: generationResult.filename,
+        format: generationResult.format,
+        widthPixels: generationResult.widthPixels,
+        heightPixels: generationResult.heightPixels,
+        generationTimeMs: generationResult.generationTimeMs,
+      };
+    }
+
+    // If generation failed
+    if (generationResult.status === 'failed') {
+      return {
+        visualizationId: generationResult.visualizationId,
+        status: 'failed',
+        error: {
+          code: 'GENERATION_FAILED',
+          message: generationResult.errorMessage || 'Image generation failed',
+        },
+      };
+    }
+
+    // Default case - return as-is
+    return generationResult;
+  } catch (error: any) {
+    console.error('[IPC] Error getting image generation status:', error);
+    return {
+      status: 'failed',
+      error: {
+        code: 'UNKNOWN',
+        message: error.message || 'Failed to get generation status',
+      },
+    };
+  }
+});
+
+/**
+ * Get project visualizations by plan ID
+ * Channel: 'ai:get-project-visualizations'
+ */
+ipcMain.handle('ai:get-project-visualizations', async (event, planId: string) => {
+  console.log('[IPC] ai:get-project-visualizations called', { planId });
+
+  try {
+    const db = getDatabase();
+    const fs = require('fs');
+
+    // Get ALL visualizations for the plan (supporting carousel with multiple versions)
+    const visualizations = db
+      .prepare(
+        `
+      SELECT *
+      FROM project_visualizations
+      WHERE ai_subdivision_plan_id = ?
+      ORDER BY view_type ASC, generated_at DESC
+    `
+      )
+      .all(planId);
+
+    console.log(
+      `[IPC] Found ${visualizations?.length || 0} visualizations for plan ${planId}`
+    );
+
+    // Transform snake_case database fields to camelCase for TypeScript
+    // Also filter out visualizations with missing files
+    const transformedVisualizations = (visualizations || [])
+      .map((viz: any) => ({
+        id: viz.id,
+        projectId: viz.project_id,
+        aiSubdivisionPlanId: viz.ai_subdivision_plan_id,
+        viewType: viz.view_type,
+        filename: viz.filename,
+        format: viz.format,
+        sizeBytes: viz.size_bytes,
+        widthPixels: viz.width_pixels,
+        heightPixels: viz.height_pixels,
+        localPath: viz.local_path,
+        thumbnailPath: viz.thumbnail_path,
+        generatedAt: viz.generated_at,
+        aiModel: viz.ai_model,
+        generationRequestId: viz.generation_request_id,
+        promptText: viz.prompt_text,
+        negativePromptText: viz.negative_prompt_text,
+        generationSeed: viz.generation_seed,
+        caption: viz.caption,
+        isApproved: Boolean(viz.is_approved),
+        isFinal: Boolean(viz.is_final),
+      }))
+      .filter((viz: any) => {
+        // Check if file exists at recorded path
+        let exists = fs.existsSync(viz.localPath);
+
+        if (!exists) {
+          // Try alternative extensions (.png vs .jpg)
+          const path = require('path');
+          const dir = path.dirname(viz.localPath);
+          const basename = path.basename(viz.localPath, path.extname(viz.localPath));
+          const currentExt = path.extname(viz.localPath);
+
+          // Try .jpg if current is .png, and vice versa
+          const alternativeExt = currentExt === '.png' ? '.jpg' : '.png';
+          const alternativePath = path.join(dir, basename + alternativeExt);
+
+          if (fs.existsSync(alternativePath)) {
+            console.log(
+              `[IPC] Found alternative file: ${alternativePath} (recorded as ${viz.localPath})`
+            );
+            viz.localPath = alternativePath;
+            viz.format = alternativeExt === '.jpg' ? 'jpeg' : 'png';
+            exists = true;
+          } else {
+            console.warn(
+              `[IPC] Skipping visualization ${viz.id} - file not found: ${viz.localPath}`
+            );
+          }
+        }
+
+        return exists;
+      });
+
+    console.log(
+      `[IPC] Returning ${transformedVisualizations.length} valid visualizations:`,
+      transformedVisualizations.map((v: any) => ({ viewType: v.viewType, localPath: v.localPath }))
+    );
+
+    return transformedVisualizations;
+  } catch (error: any) {
+    console.error('[IPC] Error getting project visualizations:', error);
+    throw new Error(`Failed to get visualizations: ${error.message}`);
+  }
+});
+
+/**
+ * Save image to project
+ * Channel: 'ai:save-image-to-project'
+ */
+ipcMain.handle('ai:save-image-to-project', async (event, params: any) => {
+  console.log('[IPC] ai:save-image-to-project called', {
+    projectId: params.projectId,
+    viewType: params.viewType,
+  });
+
+  try {
+    const db = getDatabase();
+    const fs = require('fs');
+    const path = require('path');
+    const https = require('https');
+    const { app } = require('electron');
+
+    // Create images directory if it doesn't exist
+    const userDataPath = app.getPath('userData');
+    const imagesDir = path.join(userDataPath, 'images', params.projectId);
+
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+    }
+
+    // Download image from URL
+    const filename = `${params.viewType}-${Date.now()}.png`;
+    const localPath = path.join(imagesDir, filename);
+
+    await new Promise((resolve, reject) => {
+      https
+        .get(params.imageUrl, (response: any) => {
+          const fileStream = fs.createWriteStream(localPath);
+          response.pipe(fileStream);
+          fileStream.on('finish', () => {
+            fileStream.close();
+            resolve(null);
+          });
+          fileStream.on('error', reject);
+        })
+        .on('error', reject);
+    });
+
+    // Get file stats
+    const stats = fs.statSync(localPath);
+
+    // Create visualization record
+    const visualizationId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const stmt = db.prepare(`
+      INSERT INTO project_visualizations (
+        id, project_id, ai_subdivision_plan_id,
+        view_type, filename, format, size_bytes,
+        width_pixels, height_pixels, local_path,
+        generated_at, ai_model, prompt_text,
+        negative_prompt_text, is_approved, is_final
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      visualizationId,
+      params.projectId,
+      params.planId || null,
+      params.viewType,
+      filename,
+      'png',
+      stats.size,
+      1024, // Mock width
+      1024, // Mock height
+      localPath,
+      now,
+      'dall-e-3',
+      params.promptText,
+      params.negativePromptText || null,
+      0, // not approved initially
+      0 // not final
+    );
+
+    // Return the created visualization
+    const visualization = db
+      .prepare('SELECT * FROM project_visualizations WHERE id = ?')
+      .get(visualizationId);
+
+    return visualization;
+  } catch (error: any) {
+    console.error('[IPC] Error saving image to project:', error);
+    throw new Error(`Failed to save image: ${error.message}`);
+  }
+});
+
+/**
+ * Approve visualization
+ * Channel: 'ai:approve-visualization'
+ */
+ipcMain.handle('ai:approve-visualization', async (event, visualizationId: string) => {
+  console.log('[IPC] ai:approve-visualization called', { visualizationId });
+
+  try {
+    const db = getDatabase();
+
+    db.prepare('UPDATE project_visualizations SET is_approved = 1 WHERE id = ?').run(
+      visualizationId
+    );
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[IPC] Error approving visualization:', error);
+    throw new Error(`Failed to approve visualization: ${error.message}`);
+  }
+});
+
+/**
+ * Load image and return as base64 data URL for renderer display
+ * Channel: 'ai:load-image-as-data-url'
+ * Returns: data:image/jpeg;base64,... URL
+ */
+ipcMain.handle('ai:load-image-as-data-url', async (event, localPath: string) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+
+    // Check if file exists
+    if (!fs.existsSync(localPath)) {
+      console.error(`[IPC] Image file not found: ${localPath}`);
+      throw new Error(`Image file not found: ${localPath}`);
+    }
+
+    // Validate file extension
+    const ext = path.extname(localPath).toLowerCase();
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    if (!validExtensions.includes(ext)) {
+      throw new Error(`Invalid image format: ${ext}`);
+    }
+
+    // Read the file as buffer and convert to base64
+    const imageBuffer = fs.readFileSync(localPath);
+    const base64Image = imageBuffer.toString('base64');
+
+    // Determine MIME type
+    let mimeType = 'image/png';
+    if (ext === '.jpg' || ext === '.jpeg') {
+      mimeType = 'image/jpeg';
+    } else if (ext === '.webp') {
+      mimeType = 'image/webp';
+    } else if (ext === '.gif') {
+      mimeType = 'image/gif';
+    }
+
+    return `data:${mimeType};base64,${base64Image}`;
+  } catch (error: any) {
+    console.error('[IPC] Error loading image:', error);
+    throw new Error(`Failed to load image: ${error.message}`);
+  }
+});
+
+// ============================================================================
+// PHASE 5: MULTI-PLAN COMPARISON IPC HANDLERS (T133)
+// ============================================================================
+
+/**
+ * T133: Activate a subdivision plan
+ * Channel: 'ai:activate-plan'
+ */
+ipcMain.handle(
+  'ai:activate-plan',
+  async (event, request: { planId: string; projectId: string }) => {
+    console.log('[IPC] ai:activate-plan called', request);
+
+    try {
+      const { activateAISubdivisionPlan } = await import('./storage');
+      await activateAISubdivisionPlan(request.planId, request.projectId);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('[IPC] Error activating plan:', error);
+      return {
+        success: false,
+        errorMessage: error.message || 'Failed to activate plan',
+      };
+    }
+  }
+);
+
+/**
+ * T133: Get alternative plans for comparison
+ * Channel: 'ai:get-alternative-plans'
+ */
+ipcMain.handle(
+  'ai:get-alternative-plans',
+  async (event, request: { projectId: string; includeArchived?: boolean }) => {
+    console.log('[IPC] ai:get-alternative-plans called', request);
+
+    try {
+      const { getAlternativePlans } = await import('./storage');
+      const plans = await getAlternativePlans(request.projectId, request.includeArchived !== false);
+
+      return { plans };
+    } catch (error: any) {
+      console.error('[IPC] Error getting alternative plans:', error);
+      throw new Error(`Failed to get alternative plans: ${error.message}`);
+    }
+  }
+);
+
+/**
+ * T133: Get active plan for a project
+ * Channel: 'ai:get-active-plan'
+ */
+ipcMain.handle('ai:get-active-plan', async (event, projectId: string) => {
+  console.log('[IPC] ai:get-active-plan called', { projectId });
+
+  try {
+    const { getActivePlanForProject } = await import('./storage');
+    const plan = await getActivePlanForProject(projectId);
+
+    console.log('[IPC] Active plan retrieved:', {
+      found: !!plan,
+      planId: plan?.id,
+      approved: plan?.approvedByUser,
+    });
+
+    return { plan };
+  } catch (error: any) {
+    console.error('[IPC] Error getting active plan:', error);
+    throw new Error(`Failed to get active plan: ${error.message}`);
+  }
+});
+
+/**
+ * T133: Archive a subdivision plan
+ * Channel: 'ai:archive-plan'
+ */
+ipcMain.handle('ai:archive-plan', async (event, planId: string) => {
+  console.log('[IPC] ai:archive-plan called', { planId });
+
+  try {
+    const { archiveAISubdivisionPlan } = await import('./storage');
+    await archiveAISubdivisionPlan(planId);
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[IPC] Error archiving plan:', error);
+    return {
+      success: false,
+      errorMessage: error.message || 'Failed to archive plan',
     };
   }
 });
 
 logger.info('IPC handlers registered successfully');
+/**
+ * AI Social Club Image Generation
+ * Channel: 'ai:generate-social-club-image'
+ */
+ipcMain.handle(
+  'ai:generate-social-club-image',
+  async (
+    event,
+    request: {
+      projectId: string;
+      scenarioId: string;
+      prompt: string;
+      amenities: any[];
+      socialClubArea: number;
+      storageType: string;
+      maintenanceRoomSize: number;
+    }
+  ) => {
+    console.log('[IPC] ai:generate-social-club-image called', {
+      projectId: request.projectId,
+      amenitiesCount: request.amenities.length,
+      socialClubArea: request.socialClubArea,
+    });
+
+    try {
+      const { generateImageWithGemini, generateImageWithDALLE } = await import(
+        './ai-services/image-client'
+      );
+      const fs = require('fs');
+      const path = require('path');
+      const crypto = require('crypto');
+
+      // Try Gemini first, fallback to DALL-E
+      let imageResult: { buffer: Buffer; format: string; extension: string } | null = null;
+      let usedProvider = 'gemini';
+
+      try {
+        console.log('[Social Club] Generating image with Gemini...');
+        imageResult = await generateImageWithGemini(request.prompt);
+      } catch (geminiError: any) {
+        console.warn('[Social Club] Gemini failed, trying DALL-E:', geminiError.message);
+        try {
+          imageResult = await generateImageWithDALLE(request.prompt);
+          usedProvider = 'dall-e';
+        } catch (dalleError: any) {
+          console.error('[Social Club] DALL-E also failed:', dalleError.message);
+          throw new Error('Both Gemini and DALL-E failed to generate image');
+        }
+      }
+
+      if (!imageResult) {
+        throw new Error('No image generated');
+      }
+
+      // Generate filename with correct extension
+      const timestamp = Date.now();
+      const imageId = crypto.randomUUID();
+      const filename = `social-club-${timestamp}-${imageId}.${imageResult.extension}`;
+
+      // Use project-data directory (same as subdivision images)
+      const imagesDir = path.join(
+        'D:\\fast2ai\\AI-Floorplan\\project-data',
+        request.projectId,
+        'images',
+        'social-club'
+      );
+
+      if (!fs.existsSync(imagesDir)) {
+        fs.mkdirSync(imagesDir, { recursive: true });
+      }
+
+      const imagePath = path.join(imagesDir, filename);
+
+      // Save image to file system
+      fs.writeFileSync(imagePath, imageResult.buffer);
+      console.log('[Social Club] Image saved to:', imagePath);
+
+      // Store metadata in database
+      const db = getDatabase();
+      const socialClubImageId = crypto.randomUUID();
+
+      db.prepare(
+        `
+        INSERT INTO social_club_images (
+          id, project_id, scenario_id, image_path, format, prompt, amenities_json,
+          social_club_area, storage_type, maintenance_room_size,
+          ai_provider, generated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `
+      ).run(
+        socialClubImageId,
+        request.projectId,
+        request.scenarioId,
+        imagePath,
+        imageResult.format,
+        request.prompt,
+        JSON.stringify(request.amenities),
+        request.socialClubArea,
+        request.storageType,
+        request.maintenanceRoomSize,
+        usedProvider,
+        new Date().toISOString()
+      );
+
+      return {
+        success: true,
+        imagePath,
+        imageId: socialClubImageId,
+        provider: usedProvider,
+        format: imageResult.format,
+      };
+    } catch (error: any) {
+      console.error('[IPC] Error generating social club image:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to generate social club image',
+      };
+    }
+  }
+);

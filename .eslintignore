@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+.vite/
+.forge/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Coverage
+coverage/
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.log
+
+# Generated files
+*.tsbuildinfo

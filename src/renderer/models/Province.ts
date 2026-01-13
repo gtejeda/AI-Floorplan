@@ -77,7 +77,7 @@ export const ALL_PROVINCES: readonly DominicanRepublicProvince[] = [
   'Santiago',
   'Santiago Rodríguez',
   'Santo Domingo',
-  'Valverde'
+  'Valverde',
 ] as const;
 
 /**
@@ -115,7 +115,7 @@ export const ProvinceSchema = z.enum([
   'Santiago',
   'Santiago Rodríguez',
   'Santo Domingo',
-  'Valverde'
+  'Valverde',
 ]);
 
 /**

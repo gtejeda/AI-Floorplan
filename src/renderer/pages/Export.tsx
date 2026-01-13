@@ -61,10 +61,7 @@ export const ExportPage: React.FC = () => {
 
   return (
     <div className="export-page">
-      <ExportComponent
-        projectId={currentProject.id}
-        projectName={currentProject.name}
-      />
+      <ExportComponent projectId={currentProject.id} projectName={currentProject.name} />
 
       <style jsx>{`
         .export-page {
@@ -86,8 +83,12 @@ export const ExportPage: React.FC = () => {
         }
 
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .export-page.no-project {

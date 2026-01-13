@@ -76,8 +76,8 @@ export const IMAGE_VALIDATION_RULES = {
   FILE_EXTENSIONS: {
     jpeg: ['.jpg', '.jpeg'],
     png: ['.png'],
-    webp: ['.webp']
-  }
+    webp: ['.webp'],
+  },
 } as const;
 
 /**

@@ -12,7 +12,7 @@ import {
   LegalCosts,
   OtherCost,
   PricingScenario,
-  ExchangeRate
+  ExchangeRate,
 } from '../../models/FinancialAnalysis';
 import { Money } from '../../models/Money';
 import { v4 as uuidv4 } from 'uuid';
@@ -41,24 +41,34 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
   maintenanceRoomSize,
   storageLocation,
   initialData,
-  onSave
+  onSave,
 }) => {
   // Currency state
   const [displayCurrency, setDisplayCurrency] = useState<'DOP' | 'USD'>('USD');
-  const [exchangeRate, setExchangeRate] = useState<number>(58.50); // Default DOP/USD rate
+  const [exchangeRate, setExchangeRate] = useState<number>(58.5); // Default DOP/USD rate
   const [exchangeRateDate, setExchangeRateDate] = useState<Date>(new Date());
 
   // Cost inputs
-  const [parkingAreaCost, setParkingAreaCost] = useState<number>(initialData?.costs.parkingArea.amount || 0);
+  const [parkingAreaCost, setParkingAreaCost] = useState<number>(
+    initialData?.costs.parkingArea.amount || 0
+  );
   const [walkwaysCost, setWalkwaysCost] = useState<number>(initialData?.costs.walkways.amount || 0);
-  const [landscapingCost, setLandscapingCost] = useState<number>(initialData?.costs.landscaping.amount || 0);
-  const [maintenanceRoomCost, setMaintenanceRoomCost] = useState<number>(initialData?.costs.maintenanceRoom.amount || 0);
+  const [landscapingCost, setLandscapingCost] = useState<number>(
+    initialData?.costs.landscaping.amount || 0
+  );
+  const [maintenanceRoomCost, setMaintenanceRoomCost] = useState<number>(
+    initialData?.costs.maintenanceRoom.amount || 0
+  );
   const [storageCost, setStorageCost] = useState<number>(initialData?.costs.storage.amount || 0);
 
   // Legal costs
-  const [notaryFees, setNotaryFees] = useState<number>(initialData?.costs.legal.notaryFees.amount || 0);
+  const [notaryFees, setNotaryFees] = useState<number>(
+    initialData?.costs.legal.notaryFees.amount || 0
+  );
   const [permits, setPermits] = useState<number>(initialData?.costs.legal.permits.amount || 0);
-  const [registrations, setRegistrations] = useState<number>(initialData?.costs.legal.registrations.amount || 0);
+  const [registrations, setRegistrations] = useState<number>(
+    initialData?.costs.legal.registrations.amount || 0
+  );
 
   // Other costs
   const [otherCosts, setOtherCosts] = useState<OtherCost[]>(initialData?.costs.other || []);
@@ -126,7 +136,7 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
     otherCosts,
     monthlyMaintenanceCost,
     displayCurrency,
-    exchangeRate
+    exchangeRate,
   ]);
 
   const handleSave = async () => {
@@ -147,26 +157,27 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
           notaryFees: { amount: notaryFees, currency: displayCurrency },
           permits: { amount: permits, currency: displayCurrency },
           registrations: { amount: registrations, currency: displayCurrency },
-          total: { amount: totalLegalCosts, currency: displayCurrency }
+          total: { amount: totalLegalCosts, currency: displayCurrency },
         },
-        other: otherCosts
+        other: otherCosts,
       };
 
       const exchangeRateData: ExchangeRate = {
         from: 'USD',
         to: 'DOP',
         rate: exchangeRate,
-        effectiveDate: exchangeRateDate
+        effectiveDate: exchangeRateDate,
       };
 
       const input: FinancialAnalysisInput = {
         projectId,
         costs,
         profitMargins,
-        monthlyMaintenanceCost: monthlyMaintenanceCost > 0
-          ? { amount: monthlyMaintenanceCost, currency: displayCurrency }
-          : undefined,
-        exchangeRate: exchangeRateData
+        monthlyMaintenanceCost:
+          monthlyMaintenanceCost > 0
+            ? { amount: monthlyMaintenanceCost, currency: displayCurrency }
+            : undefined,
+        exchangeRate: exchangeRateData,
       };
 
       const result = await window.electronAPI.saveFinancialAnalysis(input);
@@ -181,7 +192,6 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
       setTimeout(() => {
         setSaveStatus('idle');
       }, 2000);
-
     } catch (error) {
       setSaveStatus('error');
       setErrorMessage(error instanceof Error ? error.message : 'Failed to save financial analysis');
@@ -196,25 +206,31 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
       id: uuidv4(),
       label: '',
       amount: { amount: 0, currency: displayCurrency },
-      description: ''
+      description: '',
     };
     setOtherCosts([...otherCosts, newCost]);
   };
 
-  const handleUpdateOtherCost = (id: string, field: 'label' | 'amount' | 'description', value: any) => {
-    setOtherCosts(otherCosts.map(cost => {
-      if (cost.id === id) {
-        if (field === 'amount') {
-          return { ...cost, amount: { amount: Number(value), currency: displayCurrency } };
+  const handleUpdateOtherCost = (
+    id: string,
+    field: 'label' | 'amount' | 'description',
+    value: any
+  ) => {
+    setOtherCosts(
+      otherCosts.map((cost) => {
+        if (cost.id === id) {
+          if (field === 'amount') {
+            return { ...cost, amount: { amount: Number(value), currency: displayCurrency } };
+          }
+          return { ...cost, [field]: value };
         }
-        return { ...cost, [field]: value };
-      }
-      return cost;
-    }));
+        return cost;
+      })
+    );
   };
 
   const handleRemoveOtherCost = (id: string) => {
-    setOtherCosts(otherCosts.filter(cost => cost.id !== id));
+    setOtherCosts(otherCosts.filter((cost) => cost.id !== id));
   };
 
   const handleAddProfitMargin = () => {
@@ -228,10 +244,14 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
   };
 
   const handleRemoveProfitMargin = (margin: number) => {
-    setProfitMargins(profitMargins.filter(m => m !== margin));
+    setProfitMargins(profitMargins.filter((m) => m !== margin));
   };
 
-  const convertCurrency = (amount: number, fromCurrency: 'DOP' | 'USD', toCurrency: 'DOP' | 'USD'): number => {
+  const convertCurrency = (
+    amount: number,
+    fromCurrency: 'DOP' | 'USD',
+    toCurrency: 'DOP' | 'USD'
+  ): number => {
     if (fromCurrency === toCurrency) return amount;
     if (fromCurrency === 'USD' && toCurrency === 'DOP') return amount * exchangeRate;
     if (fromCurrency === 'DOP' && toCurrency === 'USD') return amount / exchangeRate;
@@ -278,7 +298,9 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
         </div>
         {saveStatus === 'saving' && <div className="save-indicator saving">Saving...</div>}
         {saveStatus === 'saved' && <div className="save-indicator saved">Saved ✓</div>}
-        {saveStatus === 'error' && <div className="save-indicator error">Error: {errorMessage}</div>}
+        {saveStatus === 'error' && (
+          <div className="save-indicator error">Error: {errorMessage}</div>
+        )}
       </div>
 
       <div className="financial-panel__sections">
@@ -373,7 +395,9 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
           <h3>Storage Units</h3>
           <div className="cost-item">
             <label>
-              {storageLocation === 'social-club' ? 'Social Club Storage (shared):' : 'Patio Storage (per lot):'}
+              {storageLocation === 'social-club'
+                ? 'Social Club Storage (shared):'
+                : 'Patio Storage (per lot):'}
             </label>
             <input
               type="number"
@@ -454,10 +478,7 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
                 onChange={(e) => handleUpdateOtherCost(cost.id, 'description', e.target.value)}
                 className="cost-description"
               />
-              <button
-                onClick={() => handleRemoveOtherCost(cost.id)}
-                className="remove-button"
-              >
+              <button onClick={() => handleRemoveOtherCost(cost.id)} className="remove-button">
                 Remove
               </button>
             </div>
@@ -473,7 +494,9 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
           <div className="cost-breakdown">
             <div className="breakdown-item">
               <span>Land Acquisition:</span>
-              <span>{formatCurrency(landAcquisitionCost.amount, landAcquisitionCost.currency)}</span>
+              <span>
+                {formatCurrency(landAcquisitionCost.amount, landAcquisitionCost.currency)}
+              </span>
             </div>
             <div className="breakdown-item">
               <span>Amenities:</span>
@@ -508,8 +531,12 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
               <span>{formatCurrency(totalOtherCosts, displayCurrency)}</span>
             </div>
             <div className="breakdown-item total-cost">
-              <span><strong>TOTAL PROJECT COST:</strong></span>
-              <span><strong>{formatCurrency(totalProjectCost, displayCurrency)}</strong></span>
+              <span>
+                <strong>TOTAL PROJECT COST:</strong>
+              </span>
+              <span>
+                <strong>{formatCurrency(totalProjectCost, displayCurrency)}</strong>
+              </span>
             </div>
           </div>
         </section>
@@ -525,7 +552,10 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
               readOnly
               disabled
             />
-            <small>Parking, walkways, landscaping, and maintenance room divided by total lot area ({totalLotArea.toFixed(2)} sqm)</small>
+            <small>
+              Parking, walkways, landscaping, and maintenance room divided by total lot area (
+              {totalLotArea.toFixed(2)} sqm)
+            </small>
           </div>
         </section>
 
@@ -540,7 +570,10 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
               readOnly
               disabled
             />
-            <small>Total project cost divided by {lotCount} lots (includes proportional land, shared costs, and storage)</small>
+            <small>
+              Total project cost divided by {lotCount} lots (includes proportional land, shared
+              costs, and storage)
+            </small>
           </div>
         </section>
 
@@ -551,10 +584,7 @@ export const FinancialPanel: React.FC<FinancialPanelProps> = ({
             {profitMargins.map((margin) => (
               <div key={margin} className="margin-item">
                 <span>{margin}%</span>
-                <button
-                  onClick={() => handleRemoveProfitMargin(margin)}
-                  className="remove-button"
-                >
+                <button onClick={() => handleRemoveProfitMargin(margin)} className="remove-button">
                   Remove
                 </button>
               </div>

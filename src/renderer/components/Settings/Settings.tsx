@@ -24,7 +24,7 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
     defaultUnit: 'sqm',
     exchangeRate: 58.5,
     theme: 'light',
-    language: 'en'
+    language: 'en',
   });
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -127,7 +127,9 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
       <div className="settings-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="settings-header">
           <h2>Settings</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={onClose}>
+            ×
+          </button>
         </div>
 
         <div className="settings-content">
@@ -140,7 +142,9 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
               <select
                 id="defaultCurrency"
                 value={settings.defaultCurrency}
-                onChange={(e) => setSettings({ ...settings, defaultCurrency: e.target.value as 'DOP' | 'USD' })}
+                onChange={(e) =>
+                  setSettings({ ...settings, defaultCurrency: e.target.value as 'DOP' | 'USD' })
+                }
               >
                 <option value="USD">USD ($)</option>
                 <option value="DOP">DOP (RD$)</option>
@@ -153,7 +157,9 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
               <select
                 id="defaultUnit"
                 value={settings.defaultUnit}
-                onChange={(e) => setSettings({ ...settings, defaultUnit: e.target.value as 'sqm' | 'sqft' })}
+                onChange={(e) =>
+                  setSettings({ ...settings, defaultUnit: e.target.value as 'sqm' | 'sqft' })
+                }
               >
                 <option value="sqm">Square Meters (m²)</option>
                 <option value="sqft">Square Feet (ft²)</option>
@@ -169,7 +175,9 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
                 step="0.01"
                 min="0"
                 value={settings.exchangeRate}
-                onChange={(e) => setSettings({ ...settings, exchangeRate: parseFloat(e.target.value) })}
+                onChange={(e) =>
+                  setSettings({ ...settings, exchangeRate: parseFloat(e.target.value) })
+                }
               />
               <span className="setting-hint">Used for currency conversions</span>
             </div>
@@ -184,7 +192,9 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
               <select
                 id="theme"
                 value={settings.theme}
-                onChange={(e) => setSettings({ ...settings, theme: e.target.value as 'light' | 'dark' | 'auto' })}
+                onChange={(e) =>
+                  setSettings({ ...settings, theme: e.target.value as 'light' | 'dark' | 'auto' })
+                }
               >
                 <option value="light">Light</option>
                 <option value="dark">Dark</option>
@@ -197,7 +207,9 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
               <select
                 id="language"
                 value={settings.language}
-                onChange={(e) => setSettings({ ...settings, language: e.target.value as 'en' | 'es' })}
+                onChange={(e) =>
+                  setSettings({ ...settings, language: e.target.value as 'en' | 'es' })
+                }
               >
                 <option value="en">English</option>
                 <option value="es">Español</option>
@@ -212,9 +224,7 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
 
             <div className="setting-item">
               <div className="setting-header-with-toggle">
-                <label htmlFor="telemetryEnabled">
-                  Crash Reporting & Usage Analytics
-                </label>
+                <label htmlFor="telemetryEnabled">Crash Reporting & Usage Analytics</label>
                 <label className="toggle-switch">
                   <input
                     id="telemetryEnabled"
@@ -226,8 +236,8 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
                 </label>
               </div>
               <span className="setting-hint">
-                Help improve Micro Villas by anonymously sharing crash reports and usage data.
-                No personal information is collected. You can disable this at any time.
+                Help improve Micro Villas by anonymously sharing crash reports and usage data. No
+                personal information is collected. You can disable this at any time.
               </span>
             </div>
 
@@ -240,19 +250,20 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">Session ID:</span>
-                    <span className="stat-value mono">{telemetryStats.sessionId?.substring(0, 8)}...</span>
+                    <span className="stat-value mono">
+                      {telemetryStats.sessionId?.substring(0, 8)}...
+                    </span>
                   </div>
                   {telemetryStats.enabledAt && (
                     <div className="stat-item">
                       <span className="stat-label">Enabled Since:</span>
-                      <span className="stat-value">{new Date(telemetryStats.enabledAt).toLocaleDateString()}</span>
+                      <span className="stat-value">
+                        {new Date(telemetryStats.enabledAt).toLocaleDateString()}
+                      </span>
                     </div>
                   )}
                 </div>
-                <button
-                  className="secondary-button"
-                  onClick={handleClearTelemetryData}
-                >
+                <button className="secondary-button" onClick={handleClearTelemetryData}>
                   Clear Telemetry Data
                 </button>
               </div>
@@ -281,28 +292,20 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
             <div className="setting-item">
               <label>Clear Local Storage</label>
               {!showClearConfirm ? (
-                <button
-                  className="danger-button"
-                  onClick={() => setShowClearConfirm(true)}
-                >
+                <button className="danger-button" onClick={() => setShowClearConfirm(true)}>
                   Clear All Data
                 </button>
               ) : (
                 <div className="clear-confirm">
                   <p className="warning-text">
-                    This will delete all projects, settings, and images. This action cannot be undone.
+                    This will delete all projects, settings, and images. This action cannot be
+                    undone.
                   </p>
                   <div className="confirm-buttons">
-                    <button
-                      className="danger-button"
-                      onClick={handleClearStorage}
-                    >
+                    <button className="danger-button" onClick={handleClearStorage}>
                       Confirm Clear
                     </button>
-                    <button
-                      className="cancel-button"
-                      onClick={() => setShowClearConfirm(false)}
-                    >
+                    <button className="cancel-button" onClick={() => setShowClearConfirm(false)}>
                       Cancel
                     </button>
                   </div>
@@ -314,8 +317,12 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
         </div>
 
         <div className="settings-footer">
-          <button className="cancel-button" onClick={onClose}>Cancel</button>
-          <button className="save-button" onClick={saveSettings}>Save</button>
+          <button className="cancel-button" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="save-button" onClick={saveSettings}>
+            Save
+          </button>
         </div>
       </div>
     </div>

@@ -95,7 +95,9 @@ export function validateParkingArea(
   }
 
   if (parking.spaceLength < PARKING_CONSTANTS.STANDARD_SPACE_LENGTH) {
-    errors.push(`Parking space length must be at least ${PARKING_CONSTANTS.STANDARD_SPACE_LENGTH}m`);
+    errors.push(
+      `Parking space length must be at least ${PARKING_CONSTANTS.STANDARD_SPACE_LENGTH}m`
+    );
   }
 
   // Check total area (must fit all spaces + aisles)

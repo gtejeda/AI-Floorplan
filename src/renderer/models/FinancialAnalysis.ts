@@ -103,7 +103,7 @@ export interface ExchangeRate {
  */
 const MoneySchema = z.object({
   amount: z.number().nonnegative(),
-  currency: z.enum(['DOP', 'USD'])
+  currency: z.enum(['DOP', 'USD']),
 });
 
 /**
@@ -113,25 +113,27 @@ const OtherCostSchema = z.object({
   id: z.string().uuid(),
   label: z.string().min(1).max(200),
   amount: MoneySchema,
-  description: z.string().optional()
+  description: z.string().optional(),
 });
 
 /**
  * Legal costs validation
  */
-const LegalCostsSchema = z.object({
-  notaryFees: MoneySchema,
-  permits: MoneySchema,
-  registrations: MoneySchema,
-  total: MoneySchema
-}).refine(
-  (data) => {
-    // Validate total equals sum of components (±0.01 tolerance)
-    const sum = data.notaryFees.amount + data.permits.amount + data.registrations.amount;
-    return Math.abs(data.total.amount - sum) <= 0.01;
-  },
-  { message: 'Legal costs total must equal sum of notary + permits + registrations' }
-);
+const LegalCostsSchema = z
+  .object({
+    notaryFees: MoneySchema,
+    permits: MoneySchema,
+    registrations: MoneySchema,
+    total: MoneySchema,
+  })
+  .refine(
+    (data) => {
+      // Validate total equals sum of components (±0.01 tolerance)
+      const sum = data.notaryFees.amount + data.permits.amount + data.registrations.amount;
+      return Math.abs(data.total.amount - sum) <= 0.01;
+    },
+    { message: 'Legal costs total must equal sum of notary + permits + registrations' }
+  );
 
 /**
  * Cost breakdown validation
@@ -145,7 +147,7 @@ const CostBreakdownSchema = z.object({
   maintenanceRoom: MoneySchema,
   storage: MoneySchema,
   legal: LegalCostsSchema,
-  other: z.array(OtherCostSchema)
+  other: z.array(OtherCostSchema),
 });
 
 /**
@@ -157,7 +159,7 @@ const PricingScenarioSchema = z.object({
   lotSalePrice: MoneySchema,
   totalRevenue: MoneySchema,
   expectedProfit: MoneySchema,
-  roi: z.number()
+  roi: z.number(),
 });
 
 /**
@@ -167,29 +169,30 @@ const ExchangeRateSchema = z.object({
   from: z.enum(['DOP', 'USD']),
   to: z.enum(['DOP', 'USD']),
   rate: z.number().positive(),
-  effectiveDate: z.date()
+  effectiveDate: z.date(),
 });
 
 /**
  * Complete financial analysis validation
  */
-export const FinancialAnalysisSchema = z.object({
-  id: z.string().uuid(),
-  projectId: z.string().uuid(),
-  costs: CostBreakdownSchema,
-  totalProjectCost: MoneySchema,
-  costPerSqm: MoneySchema,
-  baseLotCost: MoneySchema,
-  pricingScenarios: z.array(PricingScenarioSchema),
-  monthlyMaintenanceCost: MoneySchema.optional(),
-  monthlyMaintenancePerOwner: MoneySchema.optional(),
-  exchangeRate: ExchangeRateSchema.optional(),
-  calculatedAt: z.date(),
-  lastModified: z.date()
-}).refine(
-  (data) => data.calculatedAt <= data.lastModified,
-  { message: 'Calculated date must be before or equal to last modified date' }
-);
+export const FinancialAnalysisSchema = z
+  .object({
+    id: z.string().uuid(),
+    projectId: z.string().uuid(),
+    costs: CostBreakdownSchema,
+    totalProjectCost: MoneySchema,
+    costPerSqm: MoneySchema,
+    baseLotCost: MoneySchema,
+    pricingScenarios: z.array(PricingScenarioSchema),
+    monthlyMaintenanceCost: MoneySchema.optional(),
+    monthlyMaintenancePerOwner: MoneySchema.optional(),
+    exchangeRate: ExchangeRateSchema.optional(),
+    calculatedAt: z.date(),
+    lastModified: z.date(),
+  })
+  .refine((data) => data.calculatedAt <= data.lastModified, {
+    message: 'Calculated date must be before or equal to last modified date',
+  });
 
 /**
  * Input schema for creating/updating financial analysis
@@ -199,7 +202,7 @@ export const FinancialAnalysisInputSchema = z.object({
   costs: CostBreakdownSchema,
   profitMargins: z.array(z.number().positive()).min(1).max(10), // Multiple profit margin options
   monthlyMaintenanceCost: MoneySchema.optional(),
-  exchangeRate: ExchangeRateSchema.optional()
+  exchangeRate: ExchangeRateSchema.optional(),
 });
 
 /**

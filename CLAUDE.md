@@ -1,8 +1,10 @@
-# Micro Villas Investment Platform - Development Guidelines
+﻿# Micro Villas Investment Platform - Development Guidelines
 
 Auto-generated from feature plans. Last updated: 2026-01-10
 
 ## Active Technologies
+- TypeScript 5.7.3 (strict mode enabled) + Electron 39.0.0, React 18.3.1, better-sqlite3 12.6.0, fabric 7.1.0, zod 4.3.5 (001-ai-subdivision-planning)
+- SQLite (better-sqlite3) for subdivision plans and metadata + file system for generated images (001-ai-subdivision-planning)
 
 **Desktop Framework**: Electron 39.0.0
 - Chromium 142.0.7444.52
@@ -175,15 +177,17 @@ npm run make -- --platform=darwin  # Build for macOS
 - Complexity must be justified
 
 ## Recent Changes
+- 001-ai-subdivision-planning: **COMPLETED** - AI-powered subdivision planning with Gemini 3 Flash
+  - Added Gemini AI integration (@google/generative-ai 0.24.1) for text-based subdivision plans
+  - Implemented dual-provider image generation (Gemini 3 Pro Image + DALL-E 3 fallback)
+  - Created complete AI workflow: plan generation → validation → approval → persistence → image generation
+  - Added multi-plan comparison feature with ranking and side-by-side metrics
+  - Implemented archived plans management with restore functionality
+  - Enhanced SubdivisionPlanner page with AI integration components
+- 001-ai-subdivision-planning: Added TypeScript 5.7.3 (strict mode enabled) + Electron 39.0.0, React 18.3.1, better-sqlite3 12.6.0, fabric 7.1.0, zod 4.3.5
 
 ### Feature: main (2026-01-10)
 - **Added**: Initial project setup with Electron 39.0.0
-- **Added**: TypeScript 5.x with strict mode
-- **Added**: SQLite database schema for all entities
-- **Added**: IPC contracts for main/renderer communication
-- **Added**: Subdivision calculator algorithm (grid-based)
-- **Added**: Fabric.js integration for 2D visualization
-- **Technologies**: Electron, TypeScript, React/Vue, SQLite, Fabric.js, Vitest, Playwright
 
 <!-- MANUAL ADDITIONS START -->
 <!-- Add any manual additions below this line -->

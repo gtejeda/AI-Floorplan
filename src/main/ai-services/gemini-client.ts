@@ -11,12 +11,14 @@ import { checkGeminiRateLimit } from '../utils/rate-limiter';
 import { withRetry } from '../utils/retry-handler';
 
 export interface SubdivisionPlanRequest {
-  landWidth: number;        // meters
-  landLength: number;       // meters
-  landArea: number;         // sqm
+  landWidth: number; // meters
+  landLength: number; // meters
+  landArea: number; // sqm
   socialClubPercent: number; // 10-30
-  targetLotCount?: number;   // optional guidance
-  province?: string;         // for local context
+  targetLotCount?: number; // optional guidance
+  province?: string; // for local context
+  strategy?: string; // generation strategy: 'maximize-lots', 'larger-lots', 'varied-amenities', 'different-layout', 'balanced'
+  customPrompt?: string; // optional custom prompt to override the default
 }
 
 export interface GeminiGenerationResult {
@@ -42,21 +44,21 @@ const subdivisionPlanSchema = {
             properties: {
               widthMeters: { type: SchemaType.NUMBER },
               lengthMeters: { type: SchemaType.NUMBER },
-              areaSqm: { type: SchemaType.NUMBER }
+              areaSqm: { type: SchemaType.NUMBER },
             },
-            required: ['widthMeters', 'lengthMeters', 'areaSqm']
+            required: ['widthMeters', 'lengthMeters', 'areaSqm'],
           },
           position: {
             type: SchemaType.OBJECT,
             properties: {
               x: { type: SchemaType.NUMBER },
-              y: { type: SchemaType.NUMBER }
+              y: { type: SchemaType.NUMBER },
             },
-            required: ['x', 'y']
-          }
+            required: ['x', 'y'],
+          },
         },
-        required: ['lotNumber', 'dimensions', 'position']
-      }
+        required: ['lotNumber', 'dimensions', 'position'],
+      },
     },
     roadConfiguration: {
       type: SchemaType.OBJECT,
@@ -65,10 +67,10 @@ const subdivisionPlanSchema = {
         totalAreaSqm: { type: SchemaType.NUMBER },
         layout: {
           type: SchemaType.STRING,
-          enum: ['grid', 'perimeter', 'central-spine', 'loop']
-        }
+          enum: ['grid', 'perimeter', 'central-spine', 'loop'],
+        },
       },
-      required: ['widthMeters', 'totalAreaSqm', 'layout']
+      required: ['widthMeters', 'totalAreaSqm', 'layout'],
     },
     amenityAreas: {
       type: SchemaType.ARRAY,
@@ -77,19 +79,19 @@ const subdivisionPlanSchema = {
         properties: {
           type: {
             type: SchemaType.STRING,
-            enum: ['social-club', 'parking', 'green-space', 'maintenance']
+            enum: ['social-club', 'parking', 'green-space', 'maintenance'],
           },
           areaSqm: { type: SchemaType.NUMBER },
           position: {
             type: SchemaType.OBJECT,
             properties: {
               x: { type: SchemaType.NUMBER },
-              y: { type: SchemaType.NUMBER }
-            }
+              y: { type: SchemaType.NUMBER },
+            },
           },
-          description: { type: SchemaType.STRING }
-        }
-      }
+          description: { type: SchemaType.STRING },
+        },
+      },
     },
     metrics: {
       type: SchemaType.OBJECT,
@@ -99,22 +101,73 @@ const subdivisionPlanSchema = {
         invalidLots: {
           type: SchemaType.ARRAY,
           items: { type: SchemaType.INTEGER },
-          description: 'Lot numbers that are below 90 sqm minimum'
+          description: 'Lot numbers that are below 90 sqm minimum',
         },
         averageLotSizeSqm: { type: SchemaType.NUMBER },
-        landUtilizationPercent: { type: SchemaType.NUMBER }
+        landUtilizationPercent: { type: SchemaType.NUMBER },
       },
-      required: ['totalLots', 'viableLots', 'averageLotSizeSqm', 'landUtilizationPercent']
-    }
+      required: ['totalLots', 'viableLots', 'averageLotSizeSqm', 'landUtilizationPercent'],
+    },
   },
-  required: ['lotLayout', 'roadConfiguration', 'amenityAreas', 'metrics']
+  required: ['lotLayout', 'roadConfiguration', 'amenityAreas', 'metrics'],
 };
 
 /**
- * Builds subdivision planning prompt
+ * Builds subdivision planning prompt with optional strategy
+ * Exported for prompt preview functionality
  */
-function buildSubdivisionPrompt(params: SubdivisionPlanRequest): string {
+export function buildSubdivisionPrompt(params: SubdivisionPlanRequest): string {
   const province = params.province || 'Dominican Republic';
+
+  // Build strategy-specific optimization guidance
+  let optimizationGuidance = '';
+  switch (params.strategy) {
+    case 'maximize-lots':
+      optimizationGuidance = `
+**OPTIMIZATION STRATEGY**: MAXIMIZE NUMBER OF LOTS
+- Prioritize creating the maximum number of lots possible
+- Use smaller lot sizes (closer to 90-100 sqm minimum)
+- Optimize road layout to minimize wasted space
+- Target: Maximum lot count while meeting all requirements`;
+      break;
+
+    case 'larger-lots':
+      optimizationGuidance = `
+**OPTIMIZATION STRATEGY**: CREATE LARGER LOTS
+- Prioritize larger lot sizes (110-130 sqm)
+- Sacrifice lot count for more spacious units
+- Focus on quality over quantity
+- Target: Fewer, more premium-sized lots`;
+      break;
+
+    case 'varied-amenities':
+      optimizationGuidance = `
+**OPTIMIZATION STRATEGY**: VARIED AMENITY ALLOCATION
+- Create diverse amenity areas (parking, green spaces, maintenance)
+- Distribute amenities throughout the subdivision
+- Balance social club with other community features
+- Target: Well-distributed community amenities`;
+      break;
+
+    case 'different-layout':
+      optimizationGuidance = `
+**OPTIMIZATION STRATEGY**: ALTERNATIVE ROAD LAYOUT
+- Experiment with different road configurations (grid vs loop vs spine)
+- Consider cul-de-sacs or circular patterns
+- Vary street orientations for visual interest
+- Target: Unique, efficient road network`;
+      break;
+
+    case 'balanced':
+    default:
+      optimizationGuidance = `
+**OPTIMIZATION STRATEGY**: BALANCED APPROACH
+- Balance between lot count and lot size
+- Standard road configuration (grid or perimeter)
+- Practical, cost-effective design
+- Target: Well-rounded, market-ready plan`;
+      break;
+  }
 
   return `You are an expert urban planner specializing in micro-villa subdivisions in the Dominican Republic.
 
@@ -146,6 +199,7 @@ function buildSubdivisionPrompt(params: SubdivisionPlanRequest): string {
    - Maximize number of viable lots (≥90 sqm each)
    - Minimize wasted space (aim for 80-90% land utilization)
    - Ensure logical numbering sequence (left-to-right, top-to-bottom)
+${optimizationGuidance}
 
 **VALIDATION RULES**:
 - Count ANY lot below 90 sqm as invalid and list its number in "invalidLots" array
@@ -163,20 +217,36 @@ Generate the plan now.`;
 function getAPIKey(): string {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error('Gemini API key not configured. Please add GEMINI_API_KEY to .env file or configure in Settings.');
+    throw new Error(
+      'Gemini API key not configured. Please add GEMINI_API_KEY to .env file or configure in Settings.'
+    );
   }
   return apiKey;
 }
 
 /**
- * Generates subdivision plan using Gemini API
+ * Progress callback for streaming generation
+ */
+export type ProgressCallback = (chunk: string, accumulated: string) => void;
+
+/**
+ * Generates subdivision plan using Gemini API with streaming support
  *
  * @param request - Subdivision plan parameters
+ * @param onProgress - Optional callback for streaming progress updates
  * @returns Generated plan with metadata
  */
 export async function generateSubdivisionPlan(
-  request: SubdivisionPlanRequest
+  request: SubdivisionPlanRequest,
+  onProgress?: ProgressCallback
 ): Promise<GeminiGenerationResult> {
+  console.log('[GeminiClient] Starting subdivision plan generation', {
+    landWidth: request.landWidth,
+    landLength: request.landLength,
+    landArea: request.landArea,
+    streaming: !!onProgress,
+  });
+
   // Check rate limit
   await checkGeminiRateLimit();
 
@@ -184,35 +254,170 @@ export async function generateSubdivisionPlan(
 
   // Execute with retry logic
   const result = await withRetry(async () => {
-    const apiKey = getAPIKey();
-    const genAI = new GoogleGenerativeAI(apiKey);
+    try {
+      const apiKey = getAPIKey();
+      console.log('[GeminiClient] API key retrieved, length:', apiKey.length);
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: subdivisionPlanSchema,
-        temperature: 0.2, // Low temperature for deterministic output
-        maxOutputTokens: 8192
+      const genAI = new GoogleGenerativeAI(apiKey);
+
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-3-pro-preview', // Gemini 3 Pro - matches image generation model for consistent performance
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: subdivisionPlanSchema,
+          temperature: 0.2,
+          maxOutputTokens: 65536, // Gemini 3 supports up to 65K output tokens
+        },
+      });
+
+      // Use custom prompt if provided, otherwise build default prompt
+      const prompt = request.customPrompt || buildSubdivisionPrompt(request);
+
+      // Use streaming if progress callback provided
+      if (onProgress) {
+        console.log('[GeminiClient] Starting STREAMING generation...');
+        console.log(
+          '[GeminiClient] Connecting to Gemini API (this may take 10-30 seconds on first request)...'
+        );
+
+        const streamStartTime = Date.now();
+        const streamResult = await model.generateContentStream(prompt);
+
+        let accumulatedText = '';
+        let chunkCount = 0;
+        let firstChunkReceived = false;
+
+        // Process stream chunks
+        for await (const chunk of streamResult.stream) {
+          // Log time to first chunk (important for diagnosing cold starts)
+          if (!firstChunkReceived) {
+            const timeToFirstChunk = Date.now() - streamStartTime;
+            console.log('[GeminiClient] First chunk received after', timeToFirstChunk, 'ms');
+            firstChunkReceived = true;
+          }
+
+          const chunkText = chunk.text();
+          accumulatedText += chunkText;
+          chunkCount++;
+
+          // Send progress update
+          onProgress(chunkText, accumulatedText);
+
+          if (chunkCount % 5 === 0) {
+            console.log('[GeminiClient] Streaming progress:', {
+              chunks: chunkCount,
+              length: accumulatedText.length,
+            });
+          }
+        }
+
+        console.log('[GeminiClient] Streaming completed', {
+          totalChunks: chunkCount,
+          totalLength: accumulatedText.length,
+        });
+
+        // Get final response for metadata
+        const response = await streamResult.response;
+        const text = accumulatedText;
+
+        // Log the full response for debugging (critical for diagnosing truncation issues)
+        console.log('[GeminiClient] Full response text length:', text.length);
+        console.log('[GeminiClient] Response preview (first 500 chars):', text.substring(0, 500));
+        console.log(
+          '[GeminiClient] Response end (last 200 chars):',
+          text.substring(Math.max(0, text.length - 200))
+        );
+
+        // Validate response is complete JSON
+        if (!text.trim().endsWith('}')) {
+          console.error('[GeminiClient] Response appears truncated! Full text:', text);
+          throw new Error('API response was truncated. Please try again or reduce complexity.');
+        }
+
+        // Parse JSON response
+        let plan: SubdivisionPlan;
+        try {
+          plan = JSON.parse(text);
+        } catch (parseError: any) {
+          console.error('[GeminiClient] JSON parsing failed. Full response text:', text);
+          throw new Error(
+            `Failed to parse AI response: ${parseError.message}. Response may be truncated.`
+          );
+        }
+
+        // Get token usage
+        const usage = response.usageMetadata;
+        const tokensUsed = (usage?.promptTokenCount || 0) + (usage?.candidatesTokenCount || 0);
+
+        console.log('[GeminiClient] Plan generated successfully (streaming)', {
+          totalLots: plan.metrics.totalLots,
+          viableLots: plan.metrics.viableLots,
+          tokensUsed,
+        });
+
+        return {
+          plan,
+          tokensUsed,
+          generationTimeMs: Date.now() - startTime,
+        };
+      } else {
+        // Non-streaming mode (original implementation)
+        console.log('[GeminiClient] Model initialized, generating content (non-streaming)...');
+        const response = await model.generateContent(prompt);
+
+        console.log('[GeminiClient] Content generated, parsing response...');
+        const text = response.response.text();
+
+        // Log the full response for debugging (critical for diagnosing truncation issues)
+        console.log('[GeminiClient] Full response text length:', text.length);
+        console.log('[GeminiClient] Response preview (first 500 chars):', text.substring(0, 500));
+        console.log(
+          '[GeminiClient] Response end (last 200 chars):',
+          text.substring(Math.max(0, text.length - 200))
+        );
+
+        // Validate response is complete JSON
+        if (!text.trim().endsWith('}')) {
+          console.error('[GeminiClient] Response appears truncated! Full text:', text);
+          throw new Error('API response was truncated. Please try again or reduce complexity.');
+        }
+
+        // Parse JSON response
+        let plan: SubdivisionPlan;
+        try {
+          plan = JSON.parse(text);
+        } catch (parseError: any) {
+          console.error('[GeminiClient] JSON parsing failed. Full response text:', text);
+          throw new Error(
+            `Failed to parse AI response: ${parseError.message}. Response may be truncated.`
+          );
+        }
+
+        // Get token usage
+        const usage = response.response.usageMetadata;
+        const tokensUsed = (usage?.promptTokenCount || 0) + (usage?.candidatesTokenCount || 0);
+
+        console.log('[GeminiClient] Plan generated successfully', {
+          totalLots: plan.metrics.totalLots,
+          viableLots: plan.metrics.viableLots,
+          tokensUsed,
+        });
+
+        return {
+          plan,
+          tokensUsed,
+          generationTimeMs: Date.now() - startTime,
+        };
       }
-    });
-
-    const prompt = buildSubdivisionPrompt(request);
-    const response = await model.generateContent(prompt);
-    const text = response.response.text();
-
-    // Parse JSON response
-    const plan: SubdivisionPlan = JSON.parse(text);
-
-    // Get token usage
-    const usage = response.response.usageMetadata;
-    const tokensUsed = (usage?.promptTokenCount || 0) + (usage?.candidatesTokenCount || 0);
-
-    return {
-      plan,
-      tokensUsed,
-      generationTimeMs: Date.now() - startTime
-    };
+    } catch (error: any) {
+      console.error('[GeminiClient] Error during generation:', {
+        name: error.name,
+        message: error.message,
+        status: error.status,
+        stack: error.stack,
+      });
+      throw error;
+    }
   });
 
   return result;
@@ -229,22 +434,21 @@ export function estimateTokenCount(request: SubdivisionPlanRequest): number {
 
 /**
  * Calculates estimated cost for a generation request
- * Based on Gemini 2.5 Flash pricing (as of 2025)
+ * Based on Gemini 3 Pro pricing (as of 2025)
  */
 export function estimateCost(request: SubdivisionPlanRequest): number {
   const tokens = estimateTokenCount(request);
 
-  // Gemini 2.5 Flash pricing (per million tokens)
-  const INPUT_COST = 0.10;  // $0.10 per 1M input tokens
-  const OUTPUT_COST = 0.40; // $0.40 per 1M output tokens
+  // Gemini 3 Pro pricing (per million tokens)
+  // Source: https://ai.google.dev/pricing (<200k tokens tier)
+  const INPUT_COST = 2.0; // $2.00 per 1M input tokens (Gemini 3 Pro)
+  const OUTPUT_COST = 12.0; // $12.00 per 1M output tokens (Gemini 3 Pro)
 
   // Assume 70% input, 30% output split
   const inputTokens = tokens * 0.7;
   const outputTokens = tokens * 0.3;
 
-  const cost =
-    (inputTokens / 1_000_000) * INPUT_COST +
-    (outputTokens / 1_000_000) * OUTPUT_COST;
+  const cost = (inputTokens / 1_000_000) * INPUT_COST + (outputTokens / 1_000_000) * OUTPUT_COST;
 
   return cost;
 }

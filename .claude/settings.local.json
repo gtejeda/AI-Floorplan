@@ -31,7 +31,30 @@
       "Bash(grep:*)",
       "Bash(tasklist:*)",
       "Bash(taskkill:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nImplement complete Electron application structure for Micro Villas platform\n\nAdd full desktop application setup including:\n- Electron Forge configuration with Vite bundling\n- TypeScript 5.x with strict mode enabled\n- Main process: IPC handlers, storage layer, security, and logging\n- Renderer process: React UI with complete component library\n- Data models: LandParcel, SubdivisionScenario, FinancialAnalysis, etc.\n- Business logic: subdivision calculator, financial analyzer, AI integration\n- Build tooling: ESLint, Prettier, Vitest for testing\n- Documentation: distribution guide, validation procedures, user guide\n- Cross-platform support: Windows + macOS entitlements\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(if [ -d \"specs\" ])",
+      "Bash(then ls specs/)",
+      "Bash(else echo \"No specs directory found\")",
+      "Bash(pwsh:*)",
+      "Bash(npm run start:*)",
+      "Bash(timeout 10 powershell:*)",
+      "Bash(ls:*)",
+      "Bash(node:*)",
+      "Bash(npm update:*)",
+      "Bash(npm view:*)",
+      "Bash(if [ -f .eslintignore ])",
+      "Bash(else echo \"NOT_FOUND\")",
+      "Bash(if [ -f .prettierignore ])",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run format:*)",
+      "Bash(sqlite3:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx prettier --write \"src/renderer/router.tsx\")",
+      "Bash(npx prettier:*)"
     ]
   }
 }

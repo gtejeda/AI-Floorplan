@@ -1,1 +1,292 @@
-{"version":"1.0.0","lastUpdated":"2026-01-11","amenities":[{"id":"amenity-pool-olympic","category":"aquatic","name":"Olympic Pool","description":"25m x 12m Olympic-sized swimming pool","defaultCost":{"amount":50000,"currency":"USD"},"spaceRequirement":300,"isPopular":true,"tags":["swimming","pool"]},{"id":"amenity-bbq-grill","category":"dining","name":"BBQ Grill Station","description":"Commercial-grade outdoor BBQ grill","defaultCost":{"amount":3000,"currency":"USD"},"spaceRequirement":10,"isPopular":true,"tags":["cooking","dining"]},{"id":"amenity-jacuzzi","category":"aquatic","name":"Jacuzzi","description":"6-person hot tub","defaultCost":{"amount":8000,"currency":"USD"},"spaceRequirement":15,"isPopular":true,"tags":["spa"]},{"id":"amenity-lounge","category":"recreation","name":"Lounge Area","description":"Shaded lounge with seating","defaultCost":{"amount":4000,"currency":"USD"},"spaceRequirement":40,"isPopular":true,"tags":["relaxation"]},{"id":"amenity-bathrooms","category":"utilities","name":"Bathrooms","description":"Gender-separated bathrooms","defaultCost":{"amount":15000,"currency":"USD"},"spaceRequirement":40,"isPopular":true,"tags":["essential"]}]}
+{
+  "version": "2.0.0",
+  "lastUpdated": "2026-01-12",
+  "amenities": [
+    {
+      "id": "amenity-pool",
+      "category": "aquatic",
+      "name": "Swimming Pool",
+      "description": "Swimming pool with surrounding deck area",
+      "defaultCost": {
+        "amount": 50000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 300,
+      "isPopular": true,
+      "tags": ["swimming", "pool", "aquatic"]
+    },
+    {
+      "id": "amenity-jacuzzi",
+      "category": "aquatic",
+      "name": "Jacuzzi / Hot Tub",
+      "description": "6-8 person hot tub with jets and heating",
+      "defaultCost": {
+        "amount": 8000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 15,
+      "isPopular": true,
+      "tags": ["spa", "relaxation", "aquatic"]
+    },
+    {
+      "id": "amenity-lounge-furniture",
+      "category": "furniture",
+      "name": "Lounge Furniture Set",
+      "description": "Outdoor lounge chairs, sun beds, and shade umbrellas (poolside and patio areas)",
+      "defaultCost": {
+        "amount": 3500,
+        "currency": "USD"
+      },
+      "spaceRequirement": 25,
+      "isPopular": true,
+      "tags": ["poolside", "relaxation", "furniture", "shade"]
+    },
+    {
+      "id": "amenity-outdoor-dining",
+      "category": "dining",
+      "name": "Outdoor Dining Area",
+      "description": "Covered dining space with tables, chairs, and overhead shade structure",
+      "defaultCost": {
+        "amount": 6000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 50,
+      "isPopular": true,
+      "tags": ["dining", "outdoor", "social"]
+    },
+    {
+      "id": "amenity-bbq-grill",
+      "category": "dining",
+      "name": "BBQ Grill Station",
+      "description": "Commercial-grade outdoor BBQ grill with prep counter",
+      "defaultCost": {
+        "amount": 3000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 10,
+      "isPopular": true,
+      "tags": ["cooking", "dining", "outdoor"]
+    },
+    {
+      "id": "amenity-bar",
+      "category": "dining",
+      "name": "Pool Bar / Café",
+      "description": "Outdoor bar with counter seating and beverage service area",
+      "defaultCost": {
+        "amount": 12000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 30,
+      "isPopular": true,
+      "tags": ["bar", "social", "dining"]
+    },
+    {
+      "id": "amenity-gym",
+      "category": "fitness",
+      "name": "Fitness Center / Gym",
+      "description": "Equipped fitness center with cardio machines, free weights, and functional training area",
+      "defaultCost": {
+        "amount": 25000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 80,
+      "isPopular": true,
+      "tags": ["fitness", "exercise", "wellness", "indoor"]
+    },
+    {
+      "id": "amenity-yoga-deck",
+      "category": "fitness",
+      "name": "Yoga / Meditation Deck",
+      "description": "Open-air covered deck for yoga, stretching, and meditation with mats and props",
+      "defaultCost": {
+        "amount": 5000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 40,
+      "isPopular": true,
+      "tags": ["yoga", "wellness", "fitness", "outdoor"]
+    },
+    {
+      "id": "amenity-basketball-court",
+      "category": "sports",
+      "name": "Basketball Half-Court",
+      "description": "Half-court basketball with regulation hoop, outdoor surface, and perimeter fencing",
+      "defaultCost": {
+        "amount": 18000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 200,
+      "isPopular": true,
+      "tags": ["basketball", "sports", "outdoor", "active"]
+    },
+    {
+      "id": "amenity-pickleball-court",
+      "category": "sports",
+      "name": "Pickleball Court",
+      "description": "Regulation pickleball court with net, lines, and perimeter fencing",
+      "defaultCost": {
+        "amount": 12000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 120,
+      "isPopular": true,
+      "tags": ["pickleball", "sports", "outdoor", "active"]
+    },
+    {
+      "id": "amenity-volleyball-court",
+      "category": "sports",
+      "name": "Beach Volleyball Court",
+      "description": "Sand volleyball court with net, boundary lines, and sand fill",
+      "defaultCost": {
+        "amount": 10000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 150,
+      "isPopular": false,
+      "tags": ["volleyball", "sports", "outdoor", "beach"]
+    },
+    {
+      "id": "amenity-tennis-court",
+      "category": "sports",
+      "name": "Tennis Court",
+      "description": "Full-size tennis court with hard surface, net, and perimeter fencing",
+      "defaultCost": {
+        "amount": 35000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 600,
+      "isPopular": false,
+      "tags": ["tennis", "sports", "outdoor", "active"]
+    },
+    {
+      "id": "amenity-playground",
+      "category": "family",
+      "name": "Children's Playground",
+      "description": "Safe play area with swings, slides, climbing structures, and rubber safety surfacing",
+      "defaultCost": {
+        "amount": 15000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 100,
+      "isPopular": true,
+      "tags": ["kids", "playground", "family", "outdoor"]
+    },
+    {
+      "id": "amenity-dog-park",
+      "category": "family",
+      "name": "Dog Park / Pet Area",
+      "description": "Fenced pet area with agility equipment, water station, and waste stations",
+      "defaultCost": {
+        "amount": 8000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 80,
+      "isPopular": false,
+      "tags": ["pets", "dogs", "outdoor", "family"]
+    },
+    {
+      "id": "amenity-coworking",
+      "category": "business",
+      "name": "Coworking / Business Center",
+      "description": "Air-conditioned workspace with desks, WiFi, power outlets, and printer",
+      "defaultCost": {
+        "amount": 10000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 50,
+      "isPopular": true,
+      "tags": ["coworking", "business", "work", "indoor"]
+    },
+    {
+      "id": "amenity-game-room",
+      "category": "recreation",
+      "name": "Game Room",
+      "description": "Indoor recreation room with pool table (billiards), foosball, ping pong, and board games",
+      "defaultCost": {
+        "amount": 8000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 60,
+      "isPopular": true,
+      "tags": ["games", "recreation", "indoor", "social"]
+    },
+    {
+      "id": "amenity-fire-pit",
+      "category": "recreation",
+      "name": "Fire Pit / Bonfire Area",
+      "description": "Outdoor fire pit with surrounding seating, perfect for evening gatherings",
+      "defaultCost": {
+        "amount": 4000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 35,
+      "isPopular": true,
+      "tags": ["fire", "social", "outdoor", "evening"]
+    },
+    {
+      "id": "amenity-movie-area",
+      "category": "recreation",
+      "name": "Outdoor Movie / Projection Area",
+      "description": "Outdoor cinema space with projection screen, seating, and audio system",
+      "defaultCost": {
+        "amount": 7000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 60,
+      "isPopular": false,
+      "tags": ["movie", "entertainment", "outdoor", "social"]
+    },
+    {
+      "id": "amenity-gardens",
+      "category": "landscaping",
+      "name": "Tropical Gardens / Green Spaces",
+      "description": "Landscaped tropical gardens with walking paths, benches, and native plants",
+      "defaultCost": {
+        "amount": 10000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 150,
+      "isPopular": true,
+      "tags": ["landscaping", "gardens", "outdoor", "nature"]
+    },
+    {
+      "id": "amenity-bathrooms",
+      "category": "utilities",
+      "name": "Restrooms / Changing Rooms",
+      "description": "Gender-separated bathrooms with showers and changing facilities",
+      "defaultCost": {
+        "amount": 15000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 40,
+      "isPopular": true,
+      "tags": ["essential", "utilities", "bathrooms"]
+    },
+    {
+      "id": "amenity-storage",
+      "category": "utilities",
+      "name": "Equipment Storage Room",
+      "description": "Secure storage for sports equipment, pool supplies, and maintenance tools",
+      "defaultCost": {
+        "amount": 5000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 20,
+      "isPopular": false,
+      "tags": ["storage", "utilities", "maintenance"]
+    },
+    {
+      "id": "amenity-security",
+      "category": "utilities",
+      "name": "Security / Surveillance System",
+      "description": "CCTV cameras, access control, and monitoring station for social club area",
+      "defaultCost": {
+        "amount": 8000,
+        "currency": "USD"
+      },
+      "spaceRequirement": 5,
+      "isPopular": true,
+      "tags": ["security", "safety", "surveillance"]
+    }
+  ]
+}

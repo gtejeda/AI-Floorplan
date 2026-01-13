@@ -28,7 +28,7 @@ export const ImageManager: React.FC<ImageManagerProps> = ({
   projectId,
   associationType,
   lotId,
-  targetDirectory
+  targetDirectory,
 }) => {
   const [images, setImages] = useState<ImageWithThumbnail[]>([]);
   const [loading, setLoading] = useState(false);
@@ -80,7 +80,7 @@ export const ImageManager: React.FC<ImageManagerProps> = ({
             const result = await window.electronAPI.getImageThumbnail(img.id);
             return {
               ...img,
-              thumbnailDataUrl: result.dataUrl
+              thumbnailDataUrl: result.dataUrl,
             };
           } catch (err) {
             console.error(`Error loading thumbnail for ${img.id}:`, err);
@@ -112,7 +112,7 @@ export const ImageManager: React.FC<ImageManagerProps> = ({
       // Upload images
       const uploadResult = await window.electronAPI.attachImagesToLand({
         projectId,
-        filePaths: result.filePaths
+        filePaths: result.filePaths,
       });
 
       if (uploadResult.success) {
@@ -152,7 +152,7 @@ export const ImageManager: React.FC<ImageManagerProps> = ({
       const uploadResult = await window.electronAPI.attachImagesToLot({
         projectId,
         lotId,
-        filePaths: result.filePaths
+        filePaths: result.filePaths,
       });
 
       if (uploadResult.success) {
@@ -182,7 +182,7 @@ export const ImageManager: React.FC<ImageManagerProps> = ({
 
       const importResult = await window.electronAPI.importAIGeneratedImages({
         projectId,
-        targetDirectory
+        targetDirectory,
       });
 
       if (importResult.success) {
@@ -190,7 +190,9 @@ export const ImageManager: React.FC<ImageManagerProps> = ({
         await loadImages();
 
         // Show success message
-        alert(`Successfully imported ${importResult.importedCount} images. Skipped ${importResult.skippedCount} files.`);
+        alert(
+          `Successfully imported ${importResult.importedCount} images. Skipped ${importResult.skippedCount} files.`
+        );
       }
     } catch (err: any) {
       console.error('Error importing AI images:', err);
@@ -212,42 +214,26 @@ export const ImageManager: React.FC<ImageManagerProps> = ({
   return (
     <div className="image-manager">
       <div className="image-manager-header">
-        <h3>
-          {associationType === 'land-parcel'
-            ? 'Land Parcel Images'
-            : `Lot ${lotId} Images`}
-        </h3>
+        <h3>{associationType === 'land-parcel' ? 'Land Parcel Images' : `Lot ${lotId} Images`}</h3>
 
         <div className="image-manager-actions">
           {/* T154: Upload to Land Parcel button */}
           {associationType === 'land-parcel' && (
-            <button
-              onClick={handleUploadToLand}
-              disabled={loading}
-              className="btn btn-primary"
-            >
+            <button onClick={handleUploadToLand} disabled={loading} className="btn btn-primary">
               Upload Images to Land Parcel
             </button>
           )}
 
           {/* T155: Upload to Lot button */}
           {associationType === 'lot' && (
-            <button
-              onClick={handleUploadToLot}
-              disabled={loading}
-              className="btn btn-primary"
-            >
+            <button onClick={handleUploadToLot} disabled={loading} className="btn btn-primary">
               Upload Images to Lot
             </button>
           )}
 
           {/* T156: Import AI-Generated Images button */}
           {associationType === 'land-parcel' && targetDirectory && (
-            <button
-              onClick={handleImportAIImages}
-              disabled={loading}
-              className="btn btn-secondary"
-            >
+            <button onClick={handleImportAIImages} disabled={loading} className="btn btn-secondary">
               Import AI-Generated Images
             </button>
           )}
@@ -255,18 +241,10 @@ export const ImageManager: React.FC<ImageManagerProps> = ({
       </div>
 
       {/* Error display */}
-      {error && (
-        <div className="alert alert-error">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert alert-error">{error}</div>}
 
       {/* Loading indicator */}
-      {loading && (
-        <div className="loading">
-          Loading images...
-        </div>
-      )}
+      {loading && <div className="loading">Loading images...</div>}
 
       {/* T157: Thumbnail grid */}
       {!loading && images.length > 0 && (
@@ -284,16 +262,12 @@ export const ImageManager: React.FC<ImageManagerProps> = ({
                   className="image-thumbnail"
                 />
               ) : (
-                <div className="image-thumbnail-placeholder">
-                  Loading...
-                </div>
+                <div className="image-thumbnail-placeholder">Loading...</div>
               )}
 
               <div className="image-thumbnail-info">
                 <span className="image-filename">{image.filename}</span>
-                <span className="image-size">
-                  {(image.size / 1024).toFixed(2)} KB
-                </span>
+                <span className="image-size">{(image.size / 1024).toFixed(2)} KB</span>
               </div>
             </div>
           ))}
@@ -316,7 +290,9 @@ export const ImageManager: React.FC<ImageManagerProps> = ({
       {previewImage && (
         <div className="image-preview-modal" onClick={closePreview}>
           <div className="image-preview-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="close-btn" onClick={closePreview}>×</button>
+            <button className="close-btn" onClick={closePreview}>
+              ×
+            </button>
 
             <img
               src={`file://${previewImage.localPath}`}
@@ -329,13 +305,13 @@ export const ImageManager: React.FC<ImageManagerProps> = ({
               <div className="image-metadata">
                 <span>Format: {previewImage.format.toUpperCase()}</span>
                 <span>Size: {(previewImage.size / 1024).toFixed(2)} KB</span>
-                <span>Dimensions: {previewImage.width} × {previewImage.height}px</span>
+                <span>
+                  Dimensions: {previewImage.width} × {previewImage.height}px
+                </span>
                 <span>Uploaded: {new Date(previewImage.uploadedAt).toLocaleString()}</span>
               </div>
 
-              {previewImage.caption && (
-                <p className="image-caption">{previewImage.caption}</p>
-              )}
+              {previewImage.caption && <p className="image-caption">{previewImage.caption}</p>}
             </div>
           </div>
         </div>

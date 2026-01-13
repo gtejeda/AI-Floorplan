@@ -23,10 +23,16 @@ export const LandConfig: React.FC<LandConfigProps> = ({ projectId, initialData, 
   const [length, setLength] = useState<number>(initialData?.length || 0);
   const [area, setArea] = useState<number>(initialData?.area || 0);
   const [displayUnit, setDisplayUnit] = useState<'sqm' | 'sqft'>(initialData?.displayUnit || 'sqm');
-  const [province, setProvince] = useState<DominicanRepublicProvince>(initialData?.province || 'Santo Domingo');
+  const [province, setProvince] = useState<DominicanRepublicProvince>(
+    initialData?.province || 'Santo Domingo'
+  );
   const [isUrbanized, setIsUrbanized] = useState<boolean>(initialData?.isUrbanized || false);
-  const [acquisitionAmount, setAcquisitionAmount] = useState<number>(initialData?.acquisitionCost.amount || 0);
-  const [acquisitionCurrency, setAcquisitionCurrency] = useState<'DOP' | 'USD'>(initialData?.acquisitionCost.currency || 'USD');
+  const [acquisitionAmount, setAcquisitionAmount] = useState<number>(
+    initialData?.acquisitionCost.amount || 0
+  );
+  const [acquisitionCurrency, setAcquisitionCurrency] = useState<'DOP' | 'USD'>(
+    initialData?.acquisitionCost.currency || 'USD'
+  );
   const [landmarks, setLandmarks] = useState<Landmark[]>(initialData?.landmarks || []);
   const [targetVillas, setTargetVillas] = useState<number | undefined>(undefined);
 
@@ -35,10 +41,16 @@ export const LandConfig: React.FC<LandConfigProps> = ({ projectId, initialData, 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
+  // Track if component has mounted and if we're loading from initialData
+  const hasMountedRef = React.useRef(false);
+  const isLoadingInitialDataRef = React.useRef(false);
+
   // Update form state when initialData changes (for loading existing land parcels)
   useEffect(() => {
     if (initialData) {
       console.log('[LandConfig] Loading initial data:', initialData);
+      isLoadingInitialDataRef.current = true; // Set flag before updating state
+
       setWidth(initialData.width);
       setLength(initialData.length);
       setArea(initialData.area);
@@ -48,6 +60,11 @@ export const LandConfig: React.FC<LandConfigProps> = ({ projectId, initialData, 
       setAcquisitionAmount(initialData.acquisitionCost.amount);
       setAcquisitionCurrency(initialData.acquisitionCost.currency);
       setLandmarks(initialData.landmarks);
+
+      // Reset flag after state updates have been processed
+      setTimeout(() => {
+        isLoadingInitialDataRef.current = false;
+      }, 100);
     }
   }, [initialData]);
 
@@ -58,10 +75,21 @@ export const LandConfig: React.FC<LandConfigProps> = ({ projectId, initialData, 
     }
   }, [width, length]);
 
-  // Auto-save handler (debounced)
+  // Auto-save handler (debounced) - only for user changes, not initial data loads
   useEffect(() => {
+    // Skip on first mount
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    // Skip if we're loading initial data
+    if (isLoadingInitialDataRef.current) {
+      return;
+    }
+
+    // Only auto-save if we have existing data
     if (initialData) {
-      // Only auto-save on updates, not on initial load
       const timer = setTimeout(() => {
         handleSave();
       }, 1000); // 1 second debounce
@@ -93,10 +121,10 @@ export const LandConfig: React.FC<LandConfigProps> = ({ projectId, initialData, 
         isUrbanized,
         acquisitionCost: {
           amount: acquisitionAmount,
-          currency: acquisitionCurrency
+          currency: acquisitionCurrency,
         },
         landmarks,
-        displayUnit
+        displayUnit,
       };
 
       let result: LandParcel;
@@ -119,7 +147,6 @@ export const LandConfig: React.FC<LandConfigProps> = ({ projectId, initialData, 
       setTimeout(() => {
         setSaveStatus('idle');
       }, 2000);
-
     } catch (error: any) {
       console.error('Error saving land parcel:', error);
       setErrorMessage(error.message || 'Failed to save land parcel');
@@ -132,7 +159,7 @@ export const LandConfig: React.FC<LandConfigProps> = ({ projectId, initialData, 
   const handleAddLandmark = () => {
     setLandmarks([
       ...landmarks,
-      { type: 'other', name: '', distance: undefined, description: undefined }
+      { type: 'other', name: '', distance: undefined, description: undefined },
     ]);
   };
 
@@ -165,7 +192,10 @@ export const LandConfig: React.FC<LandConfigProps> = ({ projectId, initialData, 
         {/* Unit selector */}
         <div className="form-group">
           <label>Display Unit:</label>
-          <select value={displayUnit} onChange={(e) => setDisplayUnit(e.target.value as 'sqm' | 'sqft')}>
+          <select
+            value={displayUnit}
+            onChange={(e) => setDisplayUnit(e.target.value as 'sqm' | 'sqft')}
+          >
             <option value="sqm">Square Meters (m²)</option>
             <option value="sqft">Square Feet (ft²)</option>
           </select>
@@ -203,7 +233,9 @@ export const LandConfig: React.FC<LandConfigProps> = ({ projectId, initialData, 
         {/* Calculated area */}
         <div className="form-group">
           <label>Total Area:</label>
-          <div className="calculated-value">{area.toLocaleString()} {displayUnit}</div>
+          <div className="calculated-value">
+            {area.toLocaleString()} {displayUnit}
+          </div>
         </div>
       </div>
 
@@ -266,13 +298,19 @@ export const LandConfig: React.FC<LandConfigProps> = ({ projectId, initialData, 
                 type="number"
                 placeholder="Distance (km)"
                 value={landmark.distance || ''}
-                onChange={(e) => handleUpdateLandmark(index, 'distance', parseFloat(e.target.value) || undefined)}
+                onChange={(e) =>
+                  handleUpdateLandmark(index, 'distance', parseFloat(e.target.value) || undefined)
+                }
               />
 
-              <button type="button" onClick={() => handleRemoveLandmark(index)}>Remove</button>
+              <button type="button" onClick={() => handleRemoveLandmark(index)}>
+                Remove
+              </button>
             </div>
           ))}
-          <button type="button" onClick={handleAddLandmark}>+ Add Landmark</button>
+          <button type="button" onClick={handleAddLandmark}>
+            + Add Landmark
+          </button>
         </div>
       </div>
 
@@ -329,20 +367,13 @@ export const LandConfig: React.FC<LandConfigProps> = ({ projectId, initialData, 
       {/* Manual save button (for initial save) */}
       {!initialData && (
         <div className="form-actions">
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
+          <button type="button" className="btn-primary" onClick={handleSave} disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save Land Parcel'}
           </button>
         </div>
       )}
 
-      {errorMessage && (
-        <div className="error-message">{errorMessage}</div>
-      )}
+      {errorMessage && <div className="error-message">{errorMessage}</div>}
     </div>
   );
 };

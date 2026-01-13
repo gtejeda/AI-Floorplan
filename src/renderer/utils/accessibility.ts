@@ -106,9 +106,6 @@ export function prefersReducedMotion(): boolean {
  * @param normalTimeout Normal timeout in ms
  * @param reducedTimeout Reduced timeout in ms (default 0)
  */
-export function getAccessibleTimeout(
-  normalTimeout: number,
-  reducedTimeout: number = 0
-): number {
+export function getAccessibleTimeout(normalTimeout: number, reducedTimeout: number = 0): number {
   return prefersReducedMotion() ? reducedTimeout : normalTimeout;
 }

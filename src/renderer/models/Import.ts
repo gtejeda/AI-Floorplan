@@ -70,28 +70,34 @@ export const ImportResultSchema = z.object({
     structureValid: z.boolean(),
     checksumValid: z.boolean(),
     schemaValid: z.boolean(),
-    imagesValid: z.boolean()
+    imagesValid: z.boolean(),
   }),
-  errors: z.array(z.object({
-    field: z.string(),
-    message: z.string(),
-    expectedType: z.string().optional(),
-    receivedValue: z.any().optional(),
-    severity: z.enum(['critical', 'recoverable'])
-  })),
-  warnings: z.array(z.object({
-    field: z.string(),
-    message: z.string(),
-    suggestion: z.string().optional()
-  })),
-  partialRecovery: z.object({
-    enabled: z.boolean(),
-    skippedFields: z.array(z.string()),
-    recoveredData: z.any()
-  }).optional(),
+  errors: z.array(
+    z.object({
+      field: z.string(),
+      message: z.string(),
+      expectedType: z.string().optional(),
+      receivedValue: z.any().optional(),
+      severity: z.enum(['critical', 'recoverable']),
+    })
+  ),
+  warnings: z.array(
+    z.object({
+      field: z.string(),
+      message: z.string(),
+      suggestion: z.string().optional(),
+    })
+  ),
+  partialRecovery: z
+    .object({
+      enabled: z.boolean(),
+      skippedFields: z.array(z.string()),
+      recoveredData: z.any(),
+    })
+    .optional(),
   missingImages: z.array(z.string()),
   missingAIPrompts: z.array(z.string()),
-  duration: z.number()
+  duration: z.number(),
 });
 
 /**
@@ -111,5 +117,5 @@ export const DEFAULT_IMPORT_OPTIONS: ImportOptions = {
   enablePartialRecovery: true,
   validateChecksum: true,
   importImages: true,
-  overwriteExisting: false
+  overwriteExisting: false,
 };

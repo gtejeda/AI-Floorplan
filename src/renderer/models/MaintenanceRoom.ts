@@ -55,11 +55,11 @@ export const MAINTENANCE_ROOM_CONSTANTS = {
  * Calculate recommended maintenance room size based on amenities
  */
 export function calculateMaintenanceRoomArea(amenityTypes: string[]): number {
-  const hasPool = amenityTypes.some((type) =>
-    type.toLowerCase().includes('pool') || type.toLowerCase().includes('aquatic')
+  const hasPool = amenityTypes.some(
+    (type) => type.toLowerCase().includes('pool') || type.toLowerCase().includes('aquatic')
   );
-  const hasHVAC = amenityTypes.some((type) =>
-    type.toLowerCase().includes('climate') || type.toLowerCase().includes('hvac')
+  const hasHVAC = amenityTypes.some(
+    (type) => type.toLowerCase().includes('climate') || type.toLowerCase().includes('hvac')
   );
 
   if (hasPool || amenityTypes.length > 10) {

@@ -1,90 +1,82 @@
-# Data Model: AI-Assisted Subdivision Planning
+# Data Model Specification: AI-Assisted Subdivision Planning
 
-**Feature**: 001-ai-subdivision-planning
+**Feature Branch**: `001-ai-subdivision-planning`
 **Version**: 1.0.0
-**Last Updated**: 2026-01-11
+**Last Updated**: 2026-01-12
+**Status**: Implementation Complete
 
-This document defines all data entities, their relationships, validation rules, and state transitions for the AI-assisted subdivision planning feature.
-
----
-
-## Entity Overview
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          ENTITY RELATIONSHIPS                         │
-└─────────────────────────────────────────────────────────────────────┘
-
-Project (existing)
-    │
-    ├─→ AISubdivisionPlan (1:N)
-    │       ├── Generated AI plans (pending approval)
-    │       ├── Approval status tracking
-    │       └── Validation results
-    │
-    ├─→ AIGenerationRequest (1:N)
-    │       ├── Audit trail for all AI calls
-    │       └── Cost tracking
-    │
-    ├─→ ProjectVisualization (1:N)
-    │       ├── Generated images (site plan, aerial, context)
-    │       └── Links to source AISubdivisionPlan
-    │
-    └─→ AISettings (1:1)
-            ├── User preferences
-            └── API configuration
-
-LandParcel (existing)
-    └─→ AISubdivisionPlan (1:N)
-            └── Plan generated for specific parcel
-```
+This document defines the complete data model for AI-assisted subdivision planning, including entity schemas, validation rules, state transitions, database schema, and TypeScript/Zod type definitions.
 
 ---
 
-## 1. AISubdivisionPlan
+## Table of Contents
 
-**Purpose**: Stores AI-generated subdivision layouts before and after user approval. Represents a complete subdivision design including lots, roads, amenities, and metrics.
+1. [Overview](#overview)
+2. [Entity Schemas](#entity-schemas)
+3. [Validation Rules](#validation-rules)
+4. [State Transitions](#state-transitions)
+5. [Database Schema](#database-schema)
+6. [TypeScript Type Definitions](#typescript-type-definitions)
+7. [Relationships and Foreign Keys](#relationships-and-foreign-keys)
+8. [Data Flow](#data-flow)
 
-**Lifecycle**: `pending` → `completed` OR `failed` OR `rejected`
+---
 
-**Relationships**:
-- Belongs to **Project** (N:1)
-- Belongs to **LandParcel** (N:1)
-- Has many **ProjectVisualization** (1:N)
-- References **AIGenerationRequest** for audit trail
+## Overview
 
-### Fields
+The AI-assisted subdivision planning feature manages four primary entities:
 
-| Field | Type | Required | Validation Rules | Description |
-|-------|------|----------|------------------|-------------|
-| `id` | string (UUID) | Yes | UUID v4 format | Unique identifier |
-| `projectId` | string (UUID) | Yes | Must reference existing project | Foreign key to projects table |
-| `landParcelId` | string (UUID) | Yes | Must reference existing land parcel | Foreign key to land_parcels table |
-| `generatedAt` | string (ISO 8601) | Yes | Valid ISO 8601 timestamp | When plan was generated |
-| `generationStatus` | enum | Yes | `pending` \| `completed` \| `failed` \| `rejected` | Current status of generation |
-| `generationTimeMs` | number | No | Positive integer | Time taken to generate (performance tracking) |
-| `retryCount` | number | Yes | Non-negative integer, default: 0 | Number of retry attempts |
-| `inputLandWidth` | number | Yes | Positive number (meters) | Input land width for regeneration |
-| `inputLandLength` | number | Yes | Positive number (meters) | Input land length for regeneration |
-| `inputLandArea` | number | Yes | Positive number (sqm) | Input total land area |
-| `inputSocialClubPercent` | number | Yes | Integer 10-30 | Percentage of land for social club |
-| `inputTargetLotCount` | number | No | Positive integer | Optional guidance for lot count |
-| `aiModel` | string | Yes | Non-empty string | AI model identifier (e.g., 'gemini-2.5-flash') |
-| `aiModelVersion` | string | No | Version string | Specific model version |
-| `promptTokens` | number | No | Non-negative integer | Input tokens for cost tracking |
-| `completionTokens` | number | No | Non-negative integer | Output tokens for cost tracking |
-| `totalTokens` | number | No | Non-negative integer | Total tokens used |
-| `planJson` | string (JSON) | Yes | Valid SubdivisionPlan JSON | Full plan structure (see below) |
-| `validationStatus` | enum | Yes | `valid` \| `invalid` \| `warnings` | Validation result |
-| `validationErrors` | string (JSON) | No | JSON array of strings | List of validation errors |
-| `validationWarnings` | string (JSON) | No | JSON array of strings | List of validation warnings |
-| `approvedByUser` | boolean | Yes | Default: false | User approval flag |
-| `approvedAt` | string (ISO 8601) | No | Valid ISO 8601 timestamp | When user approved |
-| `rejectionReason` | string | No | Max 500 characters | User's reason for rejection |
+1. **AISubdivisionPlan**: AI-generated subdivision layouts with validation and approval status
+2. **SubdivisionLot**: Individual lot within a subdivision plan (embedded in plan JSON)
+3. **ProjectVisualization**: AI-generated images linked to approved plans
+4. **AIGenerationRequest**: Audit trail for all AI API calls
 
-### SubdivisionPlan JSON Structure
+### Design Principles
 
-The `planJson` field contains the complete AI-generated subdivision design:
+- **Single Active Plan**: Only one approved subdivision plan per project at any time
+- **Immutable Generation**: AI-generated plans are never modified, only approved/rejected
+- **Audit Trail**: All AI API calls tracked for cost analysis and debugging
+- **Offline-Capable Metadata**: All plan data stored in SQLite, images stored in file system
+- **Type Safety**: Zod schemas validate all IPC communication and data persistence
+
+---
+
+## Entity Schemas
+
+### 1. AISubdivisionPlan
+
+Complete AI-generated subdivision plan with metadata, validation status, and user approval.
+
+#### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | UUID | Yes | Primary key |
+| `projectId` | UUID | Yes | Foreign key to projects table |
+| `landParcelId` | UUID | Yes | Foreign key to land_parcels table |
+| `generatedAt` | ISO 8601 DateTime | Yes | Generation timestamp |
+| `generationStatus` | Enum | Yes | `pending`, `completed`, `failed`, `rejected` |
+| `generationTimeMs` | Integer | No | Performance tracking (milliseconds) |
+| `retryCount` | Integer | Yes | Number of retries (default: 0) |
+| `inputLandWidth` | Float | Yes | Input: land width in meters |
+| `inputLandLength` | Float | Yes | Input: land length in meters |
+| `inputLandArea` | Float | Yes | Input: total area in sqm |
+| `inputSocialClubPercent` | Integer | Yes | Input: social club allocation (10-30%) |
+| `inputTargetLotCount` | Integer | No | Optional guidance for lot count |
+| `aiModel` | String | Yes | e.g., `gemini-3-flash-preview` |
+| `aiModelVersion` | String | No | Model version for audit trail |
+| `promptTokens` | Integer | No | Cost tracking: input tokens |
+| `completionTokens` | Integer | No | Cost tracking: output tokens |
+| `totalTokens` | Integer | No | Cost tracking: total tokens |
+| `plan` | SubdivisionPlan | Yes | Full plan structure (see below) |
+| `validationStatus` | Enum | Yes | `valid`, `invalid`, `warnings` |
+| `validationErrors` | String[] | No | List of critical validation errors |
+| `validationWarnings` | String[] | No | List of non-critical warnings |
+| `approvedByUser` | Boolean | Yes | User approval flag (default: false) |
+| `approvedAt` | ISO 8601 DateTime | No | Approval timestamp |
+| `rejectionReason` | String | No | User-provided rejection feedback |
+
+#### SubdivisionPlan Structure (Embedded)
 
 ```typescript
 interface SubdivisionPlan {
@@ -93,694 +85,736 @@ interface SubdivisionPlan {
   amenityAreas: AmenityArea[];
   metrics: SubdivisionMetrics;
 }
-
-interface Lot {
-  lotNumber: number;           // Sequential 1 to N
-  dimensions: {
-    widthMeters: number;        // Positive number
-    lengthMeters: number;       // Positive number
-    areaSqm: number;            // Must be >= 90 sqm (CRITICAL)
-  };
-  position: {
-    x: number;                  // Meters from origin (top-left)
-    y: number;                  // Meters from origin
-  };
-}
-
-interface RoadConfiguration {
-  widthMeters: number;          // Typically 6-8 meters
-  totalAreaSqm: number;         // Total road coverage
-  layout: 'grid' | 'perimeter' | 'central-spine' | 'loop';
-}
-
-interface AmenityArea {
-  type: 'social-club' | 'parking' | 'green-space' | 'maintenance';
-  areaSqm: number;              // Positive number
-  position: {
-    x: number;
-    y: number;
-  };
-  description?: string;         // Optional details
-}
-
-interface SubdivisionMetrics {
-  totalLots: number;            // Total lots generated
-  viableLots: number;           // Lots >= 90 sqm
-  invalidLots: number[];        // Lot numbers below minimum
-  averageLotSizeSqm: number;    // Mean lot size
-  landUtilizationPercent: number; // Efficiency metric (0-100)
-}
 ```
 
-### Validation Rules
+---
 
-1. **Lot Size Enforcement** (FR-003):
-   - Every lot in `lotLayout` MUST have `areaSqm >= 90`
-   - Any lot below 90 sqm MUST be listed in `metrics.invalidLots`
-   - `metrics.viableLots = totalLots - invalidLots.length`
+### 2. SubdivisionLot (Embedded in AISubdivisionPlan)
 
-2. **Area Balance**:
-   - Sum of all lot areas + road area + amenity areas <= input land area * 1.02 (2% tolerance)
+Individual lot within a subdivision plan.
 
-3. **Social Club Allocation**:
-   - Social club amenity area should be within ±5% of `inputLandArea * (inputSocialClubPercent / 100)`
+#### Fields
 
-4. **No Overlapping Lots**:
-   - Lot positions must not create overlapping bounding boxes (axis-aligned collision detection)
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `lotNumber` | Integer | Yes | Sequential lot identifier (1, 2, 3...) |
+| `dimensions.widthMeters` | Float | Yes | Lot width in meters |
+| `dimensions.lengthMeters` | Float | Yes | Lot length in meters |
+| `dimensions.areaSqm` | Float | Yes | Calculated area (width × length) |
+| `position.x` | Float | Yes | X coordinate in site plan (meters from origin) |
+| `position.y` | Float | Yes | Y coordinate in site plan (meters from origin) |
 
-5. **Consistency**:
-   - `metrics.totalLots` must equal `lotLayout.length`
-   - `metrics.averageLotSizeSqm = sum(lot.areaSqm) / totalLots`
+#### Constraints
 
-### State Transitions
+- `areaSqm >= 90`: Minimum lot size requirement (CRITICAL)
+- `areaSqm == widthMeters * lengthMeters`: Area consistency check
+- `widthMeters > 0 && lengthMeters > 0`: Positive dimensions
+- Recommended aspect ratio: `0.75 <= widthMeters / lengthMeters <= 1.25`
 
-```mermaid
-stateDiagram-v2
-    [*] --> pending: AI generation initiated
-    pending --> completed: Generation successful
-    pending --> failed: Generation error/timeout
-    completed --> rejected: User rejects plan
-    failed --> pending: User triggers retry
-    completed --> completed: User approves (approvedByUser=true)
-    rejected --> [*]: Plan archived
-    completed --> [*]: Plan archived (if not approved)
+---
+
+### 3. RoadConfiguration (Embedded in AISubdivisionPlan)
+
+Road network configuration within subdivision.
+
+#### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `widthMeters` | Float | Yes | Standard road width (typically 6-8m) |
+| `totalAreaSqm` | Float | Yes | Total road coverage |
+| `layout` | Enum | Yes | `grid`, `perimeter`, `central-spine`, `loop` |
+
+#### Constraints
+
+- `widthMeters >= 4.0 && widthMeters <= 12.0`: Practical road width range
+- `totalAreaSqm < landParcelArea * 0.25`: Roads should not exceed 25% of total land
+
+---
+
+### 4. AmenityArea (Embedded in AISubdivisionPlan)
+
+Amenity areas within subdivision (social club, parking, green spaces).
+
+#### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | Enum | Yes | `social-club`, `parking`, `green-space`, `maintenance` |
+| `areaSqm` | Float | Yes | Amenity area in sqm |
+| `position.x` | Float | Yes | X coordinate in site plan |
+| `position.y` | Float | Yes | Y coordinate in site plan |
+| `description` | String | No | Optional description (e.g., "Central pool area") |
+
+#### Constraints
+
+- Social club area must match `inputSocialClubPercent` of total land (±5% tolerance)
+- Total amenity area + road area + lot area <= total land area
+
+---
+
+### 5. SubdivisionMetrics (Embedded in AISubdivisionPlan)
+
+Calculated metrics for subdivision plan quality.
+
+#### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `totalLots` | Integer | Yes | Total number of lots proposed |
+| `viableLots` | Integer | Yes | Lots meeting 90 sqm minimum |
+| `invalidLots` | Integer[] | Yes | Lot numbers below 90 sqm |
+| `averageLotSizeSqm` | Float | Yes | Mean lot size |
+| `landUtilizationPercent` | Float | Yes | (Viable lot area / total land) * 100 |
+
+#### Constraints
+
+- `viableLots + invalidLots.length == totalLots`: Count consistency
+- `landUtilizationPercent >= 40.0 && landUtilizationPercent <= 75.0`: Reasonable utilization
+
+---
+
+### 6. ProjectVisualization
+
+AI-generated image asset linked to approved subdivision plan.
+
+#### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | UUID | Yes | Primary key |
+| `projectId` | UUID | Yes | Foreign key to projects table |
+| `aiSubdivisionPlanId` | UUID | No | Optional link to AI plan |
+| `viewType` | Enum | Yes | `site-plan`, `aerial`, `context`, `custom` |
+| `filename` | String | Yes | e.g., `project-site-plan-1736697600000.png` |
+| `format` | Enum | Yes | `jpeg`, `png`, `webp` |
+| `sizeBytes` | Integer | Yes | File size for storage tracking |
+| `widthPixels` | Integer | Yes | Image width (e.g., 1024) |
+| `heightPixels` | Integer | Yes | Image height (e.g., 1024) |
+| `localPath` | String | Yes | Absolute path to image file |
+| `thumbnailPath` | String | No | Optional thumbnail path |
+| `generatedAt` | ISO 8601 DateTime | Yes | Generation timestamp |
+| `aiModel` | String | Yes | e.g., `gemini-3-pro-image-preview`, `dall-e-3` |
+| `generationRequestId` | UUID | No | Links to AIGenerationRequest |
+| `promptText` | String | Yes | Full prompt used for generation |
+| `negativePromptText` | String | No | Negative prompt (if supported) |
+| `generationSeed` | Integer | No | Random seed for reproducibility |
+| `caption` | String | No | User-added caption |
+| `isApproved` | Boolean | Yes | User approval flag (default: false) |
+| `isFinal` | Boolean | Yes | Marked as final for export (default: false) |
+
+#### Constraints
+
+- `sizeBytes > 0`: Non-empty file
+- `widthPixels > 0 && heightPixels > 0`: Valid dimensions
+- `localPath` must be absolute path (validated in code, not DB)
+
+---
+
+### 7. AIGenerationRequest (Audit Trail)
+
+Complete audit trail for all AI API calls.
+
+#### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | UUID | Yes | Primary key |
+| `projectId` | UUID | Yes | Foreign key to projects table |
+| `requestType` | Enum | Yes | `subdivision-plan`, `site-plan-image`, `aerial-image`, `context-image` |
+| `requestedAt` | ISO 8601 DateTime | Yes | Request start time |
+| `completedAt` | ISO 8601 DateTime | No | Request completion time |
+| `durationMs` | Integer | No | Total duration in milliseconds |
+| `apiService` | String | Yes | e.g., `gemini`, `dalle-3`, `stability-ai` |
+| `apiEndpoint` | String | Yes | Full API endpoint URL |
+| `apiModel` | String | Yes | Model identifier |
+| `requestParams` | JSON | Yes | Full input parameters (for debugging) |
+| `responseData` | JSON | No | Full API response (if successful) |
+| `status` | Enum | Yes | `pending`, `success`, `failed`, `retried` |
+| `errorCode` | String | No | HTTP error code or API error code |
+| `errorMessage` | String | No | Error message for failures |
+| `retryOfRequestId` | UUID | No | Links to original request if retry |
+| `tokensUsed` | Integer | No | Total tokens consumed |
+| `estimatedCostUsd` | Float | No | Estimated cost in USD |
+
+#### Constraints
+
+- If `status == 'success'`, `completedAt` and `responseData` must be set
+- If `status == 'failed'`, `errorMessage` must be set
+- If `status == 'retried'`, `retryOfRequestId` must link to original request
+
+---
+
+## Validation Rules
+
+### Critical Validation (Blocks Plan Approval)
+
+1. **Minimum Lot Size**: Every lot MUST be >= 90 sqm
+   - Validation: `lot.dimensions.areaSqm >= 90.0`
+   - Error: `"Lot {lotNumber} is {areaSqm} sqm, below minimum 90 sqm"`
+
+2. **Area Consistency**: Lot area MUST match width × length (±1% tolerance)
+   - Validation: `Math.abs(areaSqm - (width * length)) <= areaSqm * 0.01`
+   - Error: `"Lot {lotNumber} area mismatch: {areaSqm} sqm != {width}m × {length}m"`
+
+3. **Total Coverage**: Lots + roads + amenities MUST NOT exceed total land area
+   - Validation: `sumLotAreas + roadArea + amenityAreas <= landArea * 1.02`
+   - Error: `"Total coverage {coverage} sqm exceeds land area {landArea} sqm"`
+
+4. **Social Club Allocation**: Social club area MUST match input percentage (±5% tolerance)
+   - Validation: `Math.abs(socialClubArea - (landArea * socialClubPercent / 100)) <= landArea * 0.05`
+   - Error: `"Social club area {socialClubArea} sqm does not match {socialClubPercent}% of land"`
+
+### Warning Validation (Non-Blocking)
+
+1. **Lot Aspect Ratio**: Lots should have reasonable aspect ratios (0.75 to 1.25)
+   - Validation: `0.75 <= (width / length) <= 1.25`
+   - Warning: `"Lot {lotNumber} has extreme aspect ratio: {width}m × {length}m"`
+
+2. **Land Utilization**: Viable lot coverage should be 40-75%
+   - Validation: `40.0 <= landUtilizationPercent <= 75.0`
+   - Warning: `"Land utilization {landUtilizationPercent}% is {below/above} recommended range"`
+
+3. **Road Coverage**: Roads should be <20% of total land
+   - Validation: `(roadArea / landArea) * 100 < 20.0`
+   - Warning: `"Road coverage {roadPercent}% exceeds recommended maximum 20%"`
+
+### State Validation
+
+- Plan can only be approved if `validationStatus == 'valid'` or `validationStatus == 'warnings'`
+- Plan with `validationStatus == 'invalid'` cannot be approved (must be rejected or regenerated)
+- Only one plan per project can have `approvedByUser == true` at a time
+
+---
+
+## State Transitions
+
+### AISubdivisionPlan State Machine
+
+```
+[PENDING] → Initial state after creation
+    ↓
+[COMPLETED] → AI generation successful
+    ↓
+    ├─→ [APPROVED] → User approves plan (approvedByUser = true)
+    │       ↓
+    │   [ACTIVE] → Only one active plan per project
+    │       ↓
+    │   [ARCHIVED] → New plan approved, this becomes archived
+    │
+    ├─→ [REJECTED] → User rejects plan (generationStatus = 'rejected')
+    │
+    └─→ [FAILED] → AI generation failed
+
+State Transitions:
+- pending → completed: AI generation succeeds
+- pending → failed: AI generation fails after retries
+- completed → approved: User clicks "Approve Plan" button
+- completed → rejected: User clicks "Reject Plan" button
+- approved → archived: New plan approved for same project
 ```
 
-**States**:
-- **pending**: AI is generating the plan
-- **completed**: Plan successfully generated and validated
-- **failed**: Generation encountered errors (API failure, timeout, validation failure)
-- **rejected**: User explicitly rejected the plan with optional feedback
+### Allowed Transitions
 
-**Approval Flow**:
-- `approvedByUser = true` means plan is ready for image generation
-- Only one approved plan per project should be active for image generation
-- Rejected plans remain in database for audit trail
+| From State | To State | Trigger | Validation |
+|------------|----------|---------|------------|
+| `pending` | `completed` | AI API success | `plan` JSON populated |
+| `pending` | `failed` | AI API failure | `errorMessage` set |
+| `completed` | `approved` | User approval | `validationStatus != 'invalid'` |
+| `completed` | `rejected` | User rejection | None |
+| `approved` | `archived` | New plan approved | Automatic via `activateAISubdivisionPlan()` |
 
-### TypeScript Interface
+### Immutability Rules
+
+- Once a plan reaches `completed`, its `plan` JSON MUST NOT be modified
+- Approved plans remain approved even when archived (for comparison feature)
+- Rejected plans can be deleted but typically remain for audit trail
+
+---
+
+## Database Schema
+
+### SQLite CREATE TABLE Statements
+
+```sql
+-- ============================================================================
+-- AI SUBDIVISION PLANS TABLE
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS ai_subdivision_plans (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    land_parcel_id TEXT NOT NULL,
+
+    -- Generation metadata
+    generated_at TEXT NOT NULL, -- ISO 8601
+    generation_status TEXT NOT NULL CHECK(generation_status IN ('pending', 'completed', 'failed', 'rejected')),
+    generation_time_ms INTEGER,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+
+    -- Input parameters (for regeneration)
+    input_land_width REAL NOT NULL,
+    input_land_length REAL NOT NULL,
+    input_land_area REAL NOT NULL,
+    input_social_club_percent INTEGER NOT NULL,
+    input_target_lot_count INTEGER,
+
+    -- AI model metadata
+    ai_model TEXT NOT NULL,
+    ai_model_version TEXT,
+    prompt_tokens INTEGER,
+    completion_tokens INTEGER,
+    total_tokens INTEGER,
+
+    -- Generated plan (JSON blob)
+    plan_json TEXT NOT NULL,
+
+    -- Validation results
+    validation_status TEXT NOT NULL CHECK(validation_status IN ('valid', 'invalid', 'warnings')),
+    validation_errors TEXT, -- JSON array of error strings
+    validation_warnings TEXT, -- JSON array of warning strings
+
+    -- User actions
+    approved_by_user INTEGER NOT NULL DEFAULT 0, -- Boolean: 0/1
+    approved_at TEXT,
+    rejection_reason TEXT,
+
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (land_parcel_id) REFERENCES land_parcels(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_plans_project ON ai_subdivision_plans(project_id);
+CREATE INDEX IF NOT EXISTS idx_ai_plans_status ON ai_subdivision_plans(generation_status);
+CREATE INDEX IF NOT EXISTS idx_ai_plans_approved ON ai_subdivision_plans(approved_by_user, project_id);
+
+-- ============================================================================
+-- PROJECT VISUALIZATIONS TABLE
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS project_visualizations (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    ai_subdivision_plan_id TEXT,
+
+    -- Image metadata
+    view_type TEXT NOT NULL CHECK(view_type IN ('site-plan', 'aerial', 'context', 'custom')),
+    filename TEXT NOT NULL,
+    format TEXT NOT NULL CHECK(format IN ('jpeg', 'png', 'webp')),
+    size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),
+    width_pixels INTEGER NOT NULL CHECK(width_pixels > 0),
+    height_pixels INTEGER NOT NULL CHECK(height_pixels > 0),
+    local_path TEXT NOT NULL,
+    thumbnail_path TEXT,
+
+    -- Generation metadata
+    generated_at TEXT NOT NULL,
+    ai_model TEXT NOT NULL,
+    generation_request_id TEXT,
+
+    -- Prompt used
+    prompt_text TEXT NOT NULL,
+    negative_prompt_text TEXT,
+    generation_seed INTEGER,
+
+    -- User annotations
+    caption TEXT,
+    is_approved INTEGER NOT NULL DEFAULT 0,
+    is_final INTEGER NOT NULL DEFAULT 0,
+
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (ai_subdivision_plan_id) REFERENCES ai_subdivision_plans(id) ON DELETE SET NULL,
+    FOREIGN KEY (generation_request_id) REFERENCES ai_generation_requests(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_visualizations_project ON project_visualizations(project_id);
+CREATE INDEX IF NOT EXISTS idx_visualizations_plan ON project_visualizations(ai_subdivision_plan_id);
+CREATE INDEX IF NOT EXISTS idx_visualizations_view_type ON project_visualizations(view_type);
+
+-- ============================================================================
+-- AI GENERATION REQUESTS TABLE (Audit Trail)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS ai_generation_requests (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+
+    -- Request metadata
+    request_type TEXT NOT NULL CHECK(request_type IN ('subdivision-plan', 'site-plan-image', 'aerial-image', 'context-image')),
+    requested_at TEXT NOT NULL,
+    completed_at TEXT,
+    duration_ms INTEGER,
+
+    -- API details
+    api_service TEXT NOT NULL,
+    api_endpoint TEXT NOT NULL,
+    api_model TEXT NOT NULL,
+
+    -- Request/response
+    request_params TEXT NOT NULL, -- JSON blob
+    response_data TEXT, -- JSON blob
+
+    -- Status
+    status TEXT NOT NULL CHECK(status IN ('pending', 'success', 'failed', 'retried')),
+    error_code TEXT,
+    error_message TEXT,
+    retry_of_request_id TEXT,
+
+    -- Cost tracking
+    tokens_used INTEGER,
+    estimated_cost_usd REAL,
+
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (retry_of_request_id) REFERENCES ai_generation_requests(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_requests_project ON ai_generation_requests(project_id);
+CREATE INDEX IF NOT EXISTS idx_ai_requests_type ON ai_generation_requests(request_type);
+CREATE INDEX IF NOT EXISTS idx_ai_requests_status ON ai_generation_requests(status);
+```
+
+---
+
+## TypeScript Type Definitions
+
+### Zod Schemas (with Runtime Validation)
 
 ```typescript
 import { z } from 'zod';
 
-export type GenerationStatus = 'pending' | 'completed' | 'failed' | 'rejected';
-export type ValidationStatus = 'valid' | 'invalid' | 'warnings';
+// ============================================================================
+// SUBDIVISION PLAN TYPES
+// ============================================================================
 
-export interface AISubdivisionPlan {
-  id: string;
-  projectId: string;
-  landParcelId: string;
+export const LotSchema = z.object({
+  lotNumber: z.number().int().positive(),
+  dimensions: z.object({
+    widthMeters: z.number().positive(),
+    lengthMeters: z.number().positive(),
+    areaSqm: z.number().positive().refine(
+      (area) => area >= 90.0,
+      { message: "Lot area must be at least 90 sqm" }
+    )
+  }),
+  position: z.object({
+    x: z.number(),
+    y: z.number()
+  })
+});
 
-  // Generation metadata
-  generatedAt: string; // ISO 8601
-  generationStatus: GenerationStatus;
-  generationTimeMs?: number;
-  retryCount: number;
+export const RoadConfigurationSchema = z.object({
+  widthMeters: z.number().min(4.0).max(12.0),
+  totalAreaSqm: z.number().positive(),
+  layout: z.enum(['grid', 'perimeter', 'central-spine', 'loop'])
+});
 
-  // Input parameters (for regeneration)
-  inputLandWidth: number;
-  inputLandLength: number;
-  inputLandArea: number;
-  inputSocialClubPercent: number;
-  inputTargetLotCount?: number;
+export const AmenityAreaSchema = z.object({
+  type: z.enum(['social-club', 'parking', 'green-space', 'maintenance']),
+  areaSqm: z.number().positive(),
+  position: z.object({
+    x: z.number(),
+    y: z.number()
+  }),
+  description: z.string().optional()
+});
 
-  // AI model metadata
-  aiModel: string;
-  aiModelVersion?: string;
-  promptTokens?: number;
-  completionTokens?: number;
-  totalTokens?: number;
+export const SubdivisionMetricsSchema = z.object({
+  totalLots: z.number().int().nonnegative(),
+  viableLots: z.number().int().nonnegative(),
+  invalidLots: z.array(z.number().int()),
+  averageLotSizeSqm: z.number().positive(),
+  landUtilizationPercent: z.number().min(0).max(100)
+});
 
-  // Generated plan
-  planJson: string; // JSON-serialized SubdivisionPlan
+export const SubdivisionPlanSchema = z.object({
+  lotLayout: z.array(LotSchema),
+  roadConfiguration: RoadConfigurationSchema,
+  amenityAreas: z.array(AmenityAreaSchema),
+  metrics: SubdivisionMetricsSchema
+});
 
-  // Validation
-  validationStatus: ValidationStatus;
-  validationErrors?: string; // JSON array
-  validationWarnings?: string; // JSON array
+// ============================================================================
+// AI SUBDIVISION PLAN (Full Entity)
+// ============================================================================
 
-  // User actions
-  approvedByUser: boolean;
-  approvedAt?: string; // ISO 8601
-  rejectionReason?: string;
-}
-
-// Zod schema
 export const AISubdivisionPlanSchema = z.object({
   id: z.string().uuid(),
   projectId: z.string().uuid(),
   landParcelId: z.string().uuid(),
+
   generatedAt: z.string().datetime(),
   generationStatus: z.enum(['pending', 'completed', 'failed', 'rejected']),
-  generationTimeMs: z.number().positive().optional(),
-  retryCount: z.number().int().nonnegative().default(0),
+  generationTimeMs: z.number().int().positive().optional(),
+  retryCount: z.number().int().nonnegative(),
+
   inputLandWidth: z.number().positive(),
   inputLandLength: z.number().positive(),
   inputLandArea: z.number().positive(),
   inputSocialClubPercent: z.number().int().min(10).max(30),
   inputTargetLotCount: z.number().int().positive().optional(),
-  aiModel: z.string().min(1),
+
+  aiModel: z.string(),
   aiModelVersion: z.string().optional(),
   promptTokens: z.number().int().nonnegative().optional(),
   completionTokens: z.number().int().nonnegative().optional(),
   totalTokens: z.number().int().nonnegative().optional(),
-  planJson: z.string().min(1),
+
+  plan: SubdivisionPlanSchema,
+
   validationStatus: z.enum(['valid', 'invalid', 'warnings']),
-  validationErrors: z.string().optional(),
-  validationWarnings: z.string().optional(),
-  approvedByUser: z.boolean().default(false),
+  validationErrors: z.array(z.string()).optional(),
+  validationWarnings: z.array(z.string()).optional(),
+
+  approvedByUser: z.boolean(),
   approvedAt: z.string().datetime().optional(),
-  rejectionReason: z.string().max(500).optional()
+  rejectionReason: z.string().optional()
 });
-```
 
----
+export type AISubdivisionPlan = z.infer<typeof AISubdivisionPlanSchema>;
+export type SubdivisionPlan = z.infer<typeof SubdivisionPlanSchema>;
+export type Lot = z.infer<typeof LotSchema>;
+export type RoadConfiguration = z.infer<typeof RoadConfigurationSchema>;
+export type AmenityArea = z.infer<typeof AmenityAreaSchema>;
+export type SubdivisionMetrics = z.infer<typeof SubdivisionMetricsSchema>;
 
-## 2. AIGenerationRequest
-
-**Purpose**: Audit trail for all AI API calls (text and image generation). Tracks requests, responses, errors, costs, and retry chains.
-
-**Lifecycle**: `pending` → `success` OR `failed` (may spawn retried requests)
-
-**Relationships**:
-- Belongs to **Project** (N:1)
-- Links to retry parent via `retryOfRequestId` (optional self-reference)
-
-### Fields
-
-| Field | Type | Required | Validation Rules | Description |
-|-------|------|----------|------------------|-------------|
-| `id` | string (UUID) | Yes | UUID v4 format | Unique identifier |
-| `projectId` | string (UUID) | Yes | Must reference existing project | Foreign key to projects table |
-| `requestType` | enum | Yes | `subdivision-plan` \| `site-plan-image` \| `aerial-image` \| `context-image` | Type of generation |
-| `requestedAt` | string (ISO 8601) | Yes | Valid ISO 8601 timestamp | When request was initiated |
-| `completedAt` | string (ISO 8601) | No | Valid ISO 8601 timestamp | When request finished |
-| `durationMs` | number | No | Positive integer | Execution time |
-| `apiService` | string | Yes | Non-empty string | Service name (e.g., 'gemini', 'dalle-3') |
-| `apiEndpoint` | string | Yes | Valid URL | API endpoint called |
-| `apiModel` | string | Yes | Non-empty string | Model identifier |
-| `requestParams` | string (JSON) | Yes | Valid JSON object | Input parameters |
-| `responseData` | string (JSON) | No | Valid JSON object | API response |
-| `status` | enum | Yes | `pending` \| `success` \| `failed` \| `retried` | Request outcome |
-| `errorCode` | string | No | Max 50 characters | Error code (e.g., '429', 'ETIMEDOUT') |
-| `errorMessage` | string | No | Max 1000 characters | Error details |
-| `retryOfRequestId` | string (UUID) | No | Must reference existing request | Original request if this is a retry |
-| `tokensUsed` | number | No | Non-negative integer | Total tokens consumed |
-| `estimatedCostUsd` | number | No | Non-negative number | Estimated cost in USD |
-
-### Validation Rules
-
-1. **Duration Calculation**:
-   - If `completedAt` exists, `durationMs = completedAt - requestedAt` (in milliseconds)
-
-2. **Retry Chain**:
-   - If `retryOfRequestId` is set, that request's status should be 'failed' or 'retried'
-   - Retry depth should not exceed 3 levels (prevent infinite retry loops)
-
-3. **Status Consistency**:
-   - `status = 'success'` requires `completedAt` and `responseData`
-   - `status = 'failed'` requires `errorCode` or `errorMessage`
-   - `status = 'retried'` requires `completedAt` (indicates original request was superseded)
-
-4. **Request Type Validation**:
-   - `subdivision-plan` uses Gemini API, should have `tokensUsed`
-   - Image types use image generation APIs, may not have token counts
-
-### TypeScript Interface
-
-```typescript
-import { z } from 'zod';
-
-export type RequestType = 'subdivision-plan' | 'site-plan-image' | 'aerial-image' | 'context-image';
-export type RequestStatus = 'pending' | 'success' | 'failed' | 'retried';
-
-export interface AIGenerationRequest {
-  id: string;
-  projectId: string;
-
-  // Request metadata
-  requestType: RequestType;
-  requestedAt: string; // ISO 8601
-  completedAt?: string; // ISO 8601
-  durationMs?: number;
-
-  // API details
-  apiService: string;
-  apiEndpoint: string;
-  apiModel: string;
-
-  // Request/response
-  requestParams: string; // JSON blob
-  responseData?: string; // JSON blob
-
-  // Status
-  status: RequestStatus;
-  errorCode?: string;
-  errorMessage?: string;
-  retryOfRequestId?: string;
-
-  // Cost tracking
-  tokensUsed?: number;
-  estimatedCostUsd?: number;
-}
-
-export const AIGenerationRequestSchema = z.object({
-  id: z.string().uuid(),
-  projectId: z.string().uuid(),
-  requestType: z.enum(['subdivision-plan', 'site-plan-image', 'aerial-image', 'context-image']),
-  requestedAt: z.string().datetime(),
-  completedAt: z.string().datetime().optional(),
-  durationMs: z.number().int().positive().optional(),
-  apiService: z.string().min(1),
-  apiEndpoint: z.string().url(),
-  apiModel: z.string().min(1),
-  requestParams: z.string().min(1),
-  responseData: z.string().optional(),
-  status: z.enum(['pending', 'success', 'failed', 'retried']),
-  errorCode: z.string().max(50).optional(),
-  errorMessage: z.string().max(1000).optional(),
-  retryOfRequestId: z.string().uuid().optional(),
-  tokensUsed: z.number().int().nonnegative().optional(),
-  estimatedCostUsd: z.number().nonnegative().optional()
-});
-```
-
----
-
-## 3. ProjectVisualization
-
-**Purpose**: Stores AI-generated images for subdivision plans. Supports multiple view types (site plan, aerial, context) with full metadata for reproducibility and user management.
-
-**Lifecycle**: Created → Approved → Final (for export)
-
-**Relationships**:
-- Belongs to **Project** (N:1)
-- Optionally links to **AISubdivisionPlan** (N:1)
-- References **AIGenerationRequest** for audit trail (N:1)
-
-### Fields
-
-| Field | Type | Required | Validation Rules | Description |
-|-------|------|----------|------------------|-------------|
-| `id` | string (UUID) | Yes | UUID v4 format | Unique identifier |
-| `projectId` | string (UUID) | Yes | Must reference existing project | Foreign key to projects table |
-| `aiSubdivisionPlanId` | string (UUID) | No | Must reference existing plan | Source subdivision plan |
-| `viewType` | enum | Yes | `site-plan` \| `aerial` \| `context` \| `custom` | Image perspective |
-| `filename` | string | Yes | Valid filename with extension | Image file name |
-| `format` | enum | Yes | `jpeg` \| `png` \| `webp` | Image format |
-| `sizeBytes` | number | Yes | Positive integer | File size |
-| `widthPixels` | number | Yes | Positive integer | Image width |
-| `heightPixels` | number | Yes | Positive integer | Image height |
-| `localPath` | string | Yes | Valid absolute path | Full path to image file |
-| `thumbnailPath` | string | No | Valid absolute path | Path to thumbnail (if generated) |
-| `generatedAt` | string (ISO 8601) | Yes | Valid ISO 8601 timestamp | When image was generated |
-| `aiModel` | string | Yes | Non-empty string | AI model used (e.g., 'dall-e-3') |
-| `generationRequestId` | string (UUID) | No | Must reference existing request | Audit trail link |
-| `promptText` | string | Yes | Max 4000 characters | Prompt used for generation |
-| `negativePromptText` | string | No | Max 2000 characters | Negative prompt (if supported) |
-| `generationSeed` | number | No | Integer | Seed for reproducibility |
-| `caption` | string | No | Max 500 characters | User-added caption |
-| `isApproved` | boolean | Yes | Default: false | User approval flag |
-| `isFinal` | boolean | Yes | Default: false | Marked for export |
-
-### Validation Rules
-
-1. **View Type Constraints**:
-   - `site-plan`: 2D top-down architectural drawing
-   - `aerial`: 3D perspective or drone-style view
-   - `context`: Wide-angle showing surroundings
-   - `custom`: User-requested custom view
-
-2. **File Integrity**:
-   - `localPath` must point to existing file
-   - File size on disk should match `sizeBytes` (±1%)
-   - Image dimensions should match `widthPixels x heightPixels`
-
-3. **Approval Flow**:
-   - `isFinal = true` requires `isApproved = true`
-   - Only approved images can be exported
-
-4. **Reproducibility**:
-   - If `generationSeed` is set, same prompt + seed should regenerate similar image
-
-### TypeScript Interface
-
-```typescript
-import { z } from 'zod';
-
-export type ViewType = 'site-plan' | 'aerial' | 'context' | 'custom';
-export type ImageFormat = 'jpeg' | 'png' | 'webp';
-
-export interface ProjectVisualization {
-  id: string;
-  projectId: string;
-  aiSubdivisionPlanId?: string;
-
-  // Image metadata
-  viewType: ViewType;
-  filename: string;
-  format: ImageFormat;
-  sizeBytes: number;
-  widthPixels: number;
-  heightPixels: number;
-  localPath: string;
-  thumbnailPath?: string;
-
-  // Generation metadata
-  generatedAt: string; // ISO 8601
-  aiModel: string;
-  generationRequestId?: string;
-
-  // Prompt details
-  promptText: string;
-  negativePromptText?: string;
-  generationSeed?: number;
-
-  // User annotations
-  caption?: string;
-  isApproved: boolean;
-  isFinal: boolean;
-}
+// ============================================================================
+// PROJECT VISUALIZATION
+// ============================================================================
 
 export const ProjectVisualizationSchema = z.object({
   id: z.string().uuid(),
   projectId: z.string().uuid(),
   aiSubdivisionPlanId: z.string().uuid().optional(),
+
   viewType: z.enum(['site-plan', 'aerial', 'context', 'custom']),
-  filename: z.string().min(1),
+  filename: z.string(),
   format: z.enum(['jpeg', 'png', 'webp']),
   sizeBytes: z.number().int().positive(),
   widthPixels: z.number().int().positive(),
   heightPixels: z.number().int().positive(),
-  localPath: z.string().min(1),
+  localPath: z.string(),
   thumbnailPath: z.string().optional(),
+
   generatedAt: z.string().datetime(),
-  aiModel: z.string().min(1),
+  aiModel: z.string(),
   generationRequestId: z.string().uuid().optional(),
-  promptText: z.string().max(4000),
-  negativePromptText: z.string().max(2000).optional(),
+
+  promptText: z.string(),
+  negativePromptText: z.string().optional(),
   generationSeed: z.number().int().optional(),
-  caption: z.string().max(500).optional(),
-  isApproved: z.boolean().default(false),
-  isFinal: z.boolean().default(false)
+
+  caption: z.string().optional(),
+  isApproved: z.boolean(),
+  isFinal: z.boolean()
 });
-```
 
----
+export type ProjectVisualization = z.infer<typeof ProjectVisualizationSchema>;
 
-## 4. AISettings
+// ============================================================================
+// AI GENERATION REQUEST
+// ============================================================================
 
-**Purpose**: User preferences for AI generation, both global and per-project. Stores API configurations, model preferences, and cost controls.
-
-**Lifecycle**: Created on first use → Updated as needed
-
-**Relationships**:
-- Optionally belongs to **Project** (N:1)
-- `projectId = null` indicates global settings
-
-### Fields
-
-| Field | Type | Required | Validation Rules | Description |
-|-------|------|----------|------------------|-------------|
-| `id` | string (UUID) | Yes | UUID v4 format | Unique identifier |
-| `projectId` | string (UUID) | No | Must reference existing project or be null | Foreign key (null = global) |
-| `subdivisionModel` | string | Yes | Non-empty string, default: 'gemini-2.5-flash' | Preferred text generation model |
-| `imageModel` | string | Yes | Non-empty string, default: 'dall-e-3' | Preferred image generation model |
-| `autoApproveValidPlans` | boolean | Yes | Default: false | Auto-approve plans with no validation errors |
-| `maxAutoRetries` | number | Yes | Integer 0-5, default: 3 | Max automatic retry attempts |
-| `preferredLotAspectRatio` | number | No | Positive number 0.5-2.0 | Target lot width/length ratio |
-| `preferredRoadLayout` | enum | No | `grid` \| `perimeter` \| `central-spine` \| `loop` \| `auto` | Preferred road pattern |
-| `imageStyle` | string | No | Max 100 characters | Style preference (e.g., 'photorealistic', 'sketch') |
-| `includeContextLandmarks` | boolean | Yes | Default: true | Include nearby landmarks in context images |
-| `enableCostWarnings` | boolean | Yes | Default: true | Show cost warnings before expensive operations |
-| `maxCostPerSessionUsd` | number | No | Positive number | Maximum allowed cost per session (null = unlimited) |
-| `geminiApiKeyEncrypted` | string | No | Encrypted string | Encrypted Gemini API key |
-| `imageApiKeyEncrypted` | string | No | Encrypted string | Encrypted image API key |
-| `createdAt` | string (ISO 8601) | Yes | Valid ISO 8601 timestamp | When settings were created |
-| `updatedAt` | string (ISO 8601) | Yes | Valid ISO 8601 timestamp | Last modification time |
-
-### Validation Rules
-
-1. **Model Availability**:
-   - `subdivisionModel` must be a supported Gemini model (e.g., 'gemini-2.5-flash', 'gemini-2.5-pro')
-   - `imageModel` must be a supported image model (e.g., 'dall-e-3', 'stable-diffusion-xl')
-
-2. **Retry Limits**:
-   - `maxAutoRetries` capped at 5 to prevent excessive API usage
-
-3. **Aspect Ratio**:
-   - `preferredLotAspectRatio` of 1.0 = square lots, 0.75 = rectangular (3:4), 1.25 = rectangular (5:4)
-
-4. **Cost Controls**:
-   - If `maxCostPerSessionUsd` is set, system should track session costs and block operations exceeding limit
-
-5. **Project vs Global**:
-   - Only one global settings entry (`projectId = null`)
-   - Only one settings entry per project (`UNIQUE(projectId)` constraint)
-   - Project settings override global settings
-
-### TypeScript Interface
-
-```typescript
-import { z } from 'zod';
-
-export type RoadLayout = 'grid' | 'perimeter' | 'central-spine' | 'loop' | 'auto';
-
-export interface AISettings {
-  id: string;
-  projectId?: string; // null = global settings
-
-  // Model preferences
-  subdivisionModel: string;
-  imageModel: string;
-
-  // Generation preferences
-  autoApproveValidPlans: boolean;
-  maxAutoRetries: number;
-  preferredLotAspectRatio?: number;
-  preferredRoadLayout?: RoadLayout;
-
-  // Image preferences
-  imageStyle?: string;
-  includeContextLandmarks: boolean;
-
-  // Cost controls
-  enableCostWarnings: boolean;
-  maxCostPerSessionUsd?: number;
-
-  // API keys (encrypted)
-  geminiApiKeyEncrypted?: string;
-  imageApiKeyEncrypted?: string;
-
-  // Timestamps
-  createdAt: string; // ISO 8601
-  updatedAt: string; // ISO 8601
-}
-
-export const AISettingsSchema = z.object({
+export const AIGenerationRequestSchema = z.object({
   id: z.string().uuid(),
-  projectId: z.string().uuid().optional(),
-  subdivisionModel: z.string().min(1).default('gemini-2.5-flash'),
-  imageModel: z.string().min(1).default('dall-e-3'),
-  autoApproveValidPlans: z.boolean().default(false),
-  maxAutoRetries: z.number().int().min(0).max(5).default(3),
-  preferredLotAspectRatio: z.number().positive().min(0.5).max(2.0).optional(),
-  preferredRoadLayout: z.enum(['grid', 'perimeter', 'central-spine', 'loop', 'auto']).optional(),
-  imageStyle: z.string().max(100).optional(),
-  includeContextLandmarks: z.boolean().default(true),
-  enableCostWarnings: z.boolean().default(true),
-  maxCostPerSessionUsd: z.number().positive().optional(),
-  geminiApiKeyEncrypted: z.string().optional(),
-  imageApiKeyEncrypted: z.string().optional(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime()
+  projectId: z.string().uuid(),
+
+  requestType: z.enum(['subdivision-plan', 'site-plan-image', 'aerial-image', 'context-image']),
+  requestedAt: z.string().datetime(),
+  completedAt: z.string().datetime().optional(),
+  durationMs: z.number().int().positive().optional(),
+
+  apiService: z.string(),
+  apiEndpoint: z.string().url(),
+  apiModel: z.string(),
+
+  requestParams: z.record(z.unknown()),
+  responseData: z.record(z.unknown()).optional(),
+
+  status: z.enum(['pending', 'success', 'failed', 'retried']),
+  errorCode: z.string().optional(),
+  errorMessage: z.string().optional(),
+  retryOfRequestId: z.string().uuid().optional(),
+
+  tokensUsed: z.number().int().nonnegative().optional(),
+  estimatedCostUsd: z.number().nonnegative().optional()
 });
+
+export type AIGenerationRequest = z.infer<typeof AIGenerationRequestSchema>;
 ```
 
 ---
 
-## 5. SubdivisionLot (Extended)
+## Relationships and Foreign Keys
 
-**Purpose**: Individual lot within an AI-generated subdivision plan. This extends the existing `MicroVillaLot` entity with AI-specific attributes.
+### Entity Relationship Diagram
 
-**Note**: This may be a new entity or an extension of existing `MicroVillaLot` model. For AI plans, we store lots as part of the `planJson` blob in `AISubdivisionPlan`, but once approved, they should be converted to persistent `SubdivisionLot` records.
+```
+projects (1) ─────┬──── (N) ai_subdivision_plans
+                  │
+                  ├──── (N) project_visualizations
+                  │
+                  └──── (N) ai_generation_requests
 
-### Fields
+land_parcels (1) ─────── (N) ai_subdivision_plans
 
-All fields from existing `MicroVillaLot` plus:
+ai_subdivision_plans (1) ─── (N) project_visualizations
+                        (optional relationship)
 
-| Field | Type | Required | Validation Rules | Description |
-|-------|------|----------|------------------|-------------|
-| `aiSubdivisionPlanId` | string (UUID) | No | Must reference existing AI plan | Source AI plan (if generated by AI) |
-| `aiGenerated` | boolean | Yes | Default: false | Whether lot was AI-generated |
-| `complianceStatus` | enum | Yes | `compliant` \| `non-compliant` \| `pending-review` | Compliance with 90 sqm minimum |
-| `nonComplianceReason` | string | No | Max 200 characters | Why lot is non-compliant |
+ai_generation_requests (1) ─── (N) project_visualizations
+                          (optional relationship)
 
-### Validation Rules
-
-1. **Size Compliance** (FR-003):
-   - If `area < 90`, `complianceStatus = 'non-compliant'`
-   - `complianceStatus = 'compliant'` requires `area >= 90`
-
-2. **AI Conversion**:
-   - When AI plan is approved, lots from `planJson.lotLayout` are converted to `SubdivisionLot` records
-   - `aiSubdivisionPlanId` links back to source plan
-
-### TypeScript Interface
-
-```typescript
-import { z } from 'zod';
-import { MicroVillaLot } from './MicroVillaLot';
-
-export type ComplianceStatus = 'compliant' | 'non-compliant' | 'pending-review';
-
-export interface SubdivisionLot extends MicroVillaLot {
-  aiSubdivisionPlanId?: string;
-  aiGenerated: boolean;
-  complianceStatus: ComplianceStatus;
-  nonComplianceReason?: string;
-}
-
-export const SubdivisionLotSchema = z.object({
-  // ... existing MicroVillaLot fields ...
-  aiSubdivisionPlanId: z.string().uuid().optional(),
-  aiGenerated: z.boolean().default(false),
-  complianceStatus: z.enum(['compliant', 'non-compliant', 'pending-review']),
-  nonComplianceReason: z.string().max(200).optional()
-});
+ai_generation_requests (1) ─── (N) ai_generation_requests
+                          (retry chain)
 ```
 
----
+### Foreign Key Cascade Behavior
 
-## Cross-Entity Validation Rules
+| Foreign Key | ON DELETE | Rationale |
+|-------------|-----------|-----------|
+| `ai_subdivision_plans.project_id → projects.id` | CASCADE | Delete all plans when project deleted |
+| `ai_subdivision_plans.land_parcel_id → land_parcels.id` | CASCADE | Delete plans when land parcel deleted |
+| `project_visualizations.project_id → projects.id` | CASCADE | Delete images when project deleted |
+| `project_visualizations.ai_subdivision_plan_id → ai_subdivision_plans.id` | SET NULL | Preserve images even if plan deleted (archival) |
+| `project_visualizations.generation_request_id → ai_generation_requests.id` | SET NULL | Preserve images even if request audit deleted |
+| `ai_generation_requests.retry_of_request_id → ai_generation_requests.id` | SET NULL | Break retry chain gracefully |
 
-### 1. Plan Approval Workflow
+### Single Active Plan Enforcement
 
-```typescript
-/**
- * Validates that a subdivision plan can be approved
- */
-function canApprovePlan(plan: AISubdivisionPlan): { canApprove: boolean; reason?: string } {
-  // Must be successfully generated
-  if (plan.generationStatus !== 'completed') {
-    return { canApprove: false, reason: 'Plan generation not completed' };
-  }
-
-  // Must pass validation
-  if (plan.validationStatus === 'invalid') {
-    return { canApprove: false, reason: 'Plan has validation errors' };
-  }
-
-  // Parse plan JSON
-  const subdivisionPlan: SubdivisionPlan = JSON.parse(plan.planJson);
-
-  // Must have at least one viable lot
-  if (subdivisionPlan.metrics.viableLots === 0) {
-    return { canApprove: false, reason: 'No viable lots (all below 90 sqm minimum)' };
-  }
-
-  return { canApprove: true };
-}
-```
-
-### 2. Image Generation Prerequisites
+Only one plan per project can have `approved_by_user = 1` at any time. This is enforced via transaction-based logic:
 
 ```typescript
-/**
- * Validates that images can be generated for a plan
- */
-function canGenerateImages(plan: AISubdivisionPlan): { canGenerate: boolean; reason?: string } {
-  // Plan must be approved
-  if (!plan.approvedByUser) {
-    return { canGenerate: false, reason: 'Plan must be approved before generating images' };
-  }
+// In src/main/storage.ts
+export async function activateAISubdivisionPlan(planId: string, projectId: string): Promise<void> {
+  const db = getDatabase();
 
-  // Plan must be valid
-  if (plan.validationStatus === 'invalid') {
-    return { canGenerate: false, reason: 'Cannot generate images for invalid plan' };
-  }
+  const transaction = db.transaction(() => {
+    // Deactivate all other plans
+    db.prepare(`
+      UPDATE ai_subdivision_plans
+      SET approved_by_user = 0, approved_at = NULL
+      WHERE project_id = ? AND approved_by_user = 1 AND id != ?
+    `).run(projectId, planId);
 
-  return { canGenerate: true };
-}
-```
+    // Activate selected plan
+    db.prepare(`
+      UPDATE ai_subdivision_plans
+      SET approved_by_user = 1, approved_at = ?
+      WHERE id = ?
+    `).run(new Date().toISOString(), planId);
+  });
 
-### 3. Cost Limit Enforcement
-
-```typescript
-/**
- * Checks if operation would exceed cost limits
- */
-async function checkCostLimit(
-  projectId: string,
-  estimatedCostUsd: number,
-  db: Database
-): Promise<{ allowed: boolean; reason?: string }> {
-  // Get project settings
-  const settings = await getAISettings(projectId, db);
-
-  if (!settings?.maxCostPerSessionUsd) {
-    return { allowed: true }; // No limit set
-  }
-
-  // Calculate session costs
-  const sessionStart = new Date();
-  sessionStart.setHours(0, 0, 0, 0); // Start of day
-
-  const sessionCosts = db.prepare(`
-    SELECT SUM(estimated_cost_usd) as total
-    FROM ai_generation_requests
-    WHERE project_id = ? AND requested_at >= ?
-  `).get(projectId, sessionStart.toISOString()) as { total: number };
-
-  const currentTotal = sessionCosts?.total || 0;
-
-  if (currentTotal + estimatedCostUsd > settings.maxCostPerSessionUsd) {
-    return {
-      allowed: false,
-      reason: `Would exceed session limit ($${settings.maxCostPerSessionUsd}). Current: $${currentTotal.toFixed(4)}`
-    };
-  }
-
-  return { allowed: true };
+  transaction();
 }
 ```
 
 ---
 
-## Database Migration Strategy
+## Data Flow
 
-### Migration 002: Add AI Tables
+### Subdivision Plan Generation Flow
 
-```sql
--- See SQLite schema in research.md for complete DDL
--- Key migration steps:
-
--- 1. Create new tables
-CREATE TABLE IF NOT EXISTS ai_subdivision_plans (...);
-CREATE TABLE IF NOT EXISTS ai_generation_requests (...);
-CREATE TABLE IF NOT EXISTS project_visualizations (...);
-CREATE TABLE IF NOT EXISTS ai_settings (...);
-
--- 2. Create indexes
-CREATE INDEX idx_ai_plans_project ON ai_subdivision_plans(project_id);
-CREATE INDEX idx_ai_plans_approved ON ai_subdivision_plans(approved_by_user, project_id);
--- ... (see research.md for complete index list)
-
--- 3. Update schema version
-UPDATE app_metadata SET value = '1.1.0' WHERE key = 'schema_version';
 ```
+1. User Input (Renderer)
+   ↓
+2. IPC Request: ai:generate-subdivision-plan
+   ↓
+3. Main Process: Validate request (Zod)
+   ↓
+4. Create AIGenerationRequest (status: pending)
+   ↓
+5. Call Gemini API with retry logic
+   ↓
+6. Receive structured JSON response
+   ↓
+7. Validate plan (90 sqm minimum, coverage)
+   ↓
+8. Create AISubdivisionPlan (status: completed)
+   ↓
+9. Update AIGenerationRequest (status: success)
+   ↓
+10. Return IPC Response with plan
+    ↓
+11. Renderer displays plan for approval
+```
+
+### Image Generation Flow
+
+```
+1. User Approves Plan (Renderer)
+   ↓
+2. IPC Request: ai:approve-plan
+   ↓
+3. Main Process: activateAISubdivisionPlan()
+   ↓
+4. User Clicks "Generate Images" (Renderer)
+   ↓
+5. IPC Request: ai:generate-site-plan-image
+   ↓
+6. Main Process: Validate approved plan exists
+   ↓
+7. Create AIGenerationRequest (status: pending)
+   ↓
+8. Call Image API (Gemini/DALL-E)
+   ↓
+9. Save image to userData/project-images/{projectId}/
+   ↓
+10. Create ProjectVisualization record
+    ↓
+11. Update AIGenerationRequest (status: success)
+    ↓
+12. Return IPC Response with image path
+    ↓
+13. Renderer displays generated image
+```
+
+### Session Persistence Flow
+
+```
+App Launch:
+1. initializeDatabase() runs migration if needed
+2. Load active project from last session
+3. Query: SELECT * FROM ai_subdivision_plans WHERE project_id = ? AND approved_by_user = 1
+4. If approved plan exists:
+   a. Load plan JSON
+   b. Query: SELECT * FROM project_visualizations WHERE ai_subdivision_plan_id = ?
+   c. Load images from local_path
+   d. Display plan + images without regeneration
+```
+
+---
+
+## Versioning and Migration
+
+### Schema Version: 1.1.0
+
+- **Base Schema (1.0.0)**: Core tables (projects, land_parcels)
+- **Migration 002 (1.1.0)**: Added AI tables (ai_subdivision_plans, project_visualizations, ai_generation_requests, ai_settings)
+
+### Future Migrations
+
+When schema changes are needed:
+
+1. Create new SQL file: `src/main/migrations/003-{description}.sql`
+2. Update schema version in migration
+3. Add conditional logic to `initializeDatabase()` in `src/main/storage.ts`
+4. Run migration automatically on first launch after update
 
 ---
 
 ## Summary
 
-This data model supports the complete AI subdivision planning workflow:
+This data model provides:
 
-1. **Generation**: `AIGenerationRequest` tracks API calls
-2. **Planning**: `AISubdivisionPlan` stores generated layouts with full metadata
-3. **Validation**: Built-in validation rules ensure 90 sqm minimum compliance
-4. **Approval**: State machine tracks plan approval workflow
-5. **Visualization**: `ProjectVisualization` stores generated images
-6. **Configuration**: `AISettings` manages user preferences and API keys
-7. **Conversion**: Approved plans convert to persistent `SubdivisionLot` records
+- **Type Safety**: Zod schemas validate all data at runtime
+- **Data Integrity**: Foreign keys with CASCADE/SET NULL ensure consistency
+- **Audit Trail**: All AI calls logged for cost tracking and debugging
+- **State Management**: Clear state transitions with validation rules
+- **Single Active Plan**: Transaction-based enforcement
+- **Offline Persistence**: 100% data fidelity across sessions
 
-All entities use Zod schemas for runtime validation, UUID primary keys, and ISO 8601 timestamps. Foreign key relationships enforce data integrity with appropriate CASCADE/SET NULL behavior.
+All entities are fully implemented in `src/main/storage.ts`, `src/shared/ai-contracts.ts`, and `src/renderer/models/`.
+
+---
+
+**Document Version**: 1.0.0
+**Reviewed By**: Claude Sonnet 4.5
+**Implementation Status**: Complete

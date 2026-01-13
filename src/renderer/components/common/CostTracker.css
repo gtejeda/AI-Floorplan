@@ -1,0 +1,166 @@
+.cost-tracker {
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cost-tracker__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.cost-tracker__toggle:hover {
+  background-color: #f9fafb;
+}
+
+.cost-tracker__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.cost-tracker__arrow {
+  font-size: 0.75rem;
+  color: #6b7280;
+  transition: transform 0.2s;
+}
+
+.cost-tracker__arrow--open {
+  transform: rotate(180deg);
+}
+
+.cost-tracker__content {
+  padding: 0 1rem 1rem 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cost-tracker__warning {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.cost-tracker__warning--warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.cost-tracker__warning--error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.cost-tracker__breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cost-tracker__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cost-tracker__section-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+}
+
+.cost-tracker__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.cost-tracker__row--total {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+  font-weight: 600;
+}
+
+.cost-tracker__label {
+  color: #6b7280;
+}
+
+.cost-tracker__value {
+  color: #111827;
+  font-weight: 500;
+}
+
+.cost-tracker__free-tier {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background-color: #d1fae5;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #065f46;
+  font-weight: 500;
+}
+
+.cost-tracker--collapsed .cost-tracker__content {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cost-tracker {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+
+  .cost-tracker__toggle:hover {
+    background-color: #111827;
+  }
+
+  .cost-tracker__title {
+    color: #f9fafb;
+  }
+
+  .cost-tracker__arrow {
+    color: #9ca3af;
+  }
+
+  .cost-tracker__content {
+    border-top-color: #374151;
+  }
+
+  .cost-tracker__section-title {
+    color: #9ca3af;
+  }
+
+  .cost-tracker__label {
+    color: #9ca3af;
+  }
+
+  .cost-tracker__value {
+    color: #f9fafb;
+  }
+
+  .cost-tracker__row--total {
+    border-top-color: #374151;
+  }
+
+  .cost-tracker__free-tier {
+    background-color: #064e3b;
+    color: #d1fae5;
+  }
+}

@@ -16,11 +16,7 @@ interface AIIntegrationProps {
   onError?: (error: string) => void;
 }
 
-export const AIIntegration: React.FC<AIIntegrationProps> = ({
-  project,
-  onSuccess,
-  onError,
-}) => {
+export const AIIntegration: React.FC<AIIntegrationProps> = ({ project, onSuccess, onError }) => {
   const [isGeneratingSubdivision, setIsGeneratingSubdivision] = useState(false);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -36,10 +32,7 @@ export const AIIntegration: React.FC<AIIntegrationProps> = ({
   );
 
   // Check if project has a selected scenario for image prompts
-  const canGenerateImagePrompts = !!(
-    project.landParcel &&
-    project.selectedScenarioId
-  );
+  const canGenerateImagePrompts = !!(project.landParcel && project.selectedScenarioId);
 
   /**
    * Handle Generate AI Subdivision Description
@@ -58,7 +51,10 @@ export const AIIntegration: React.FC<AIIntegrationProps> = ({
     setIsGeneratingSubdivision(true);
 
     try {
-      const result = await window.electronAPI.generateSubdivisionPrompt(project.id, targetDirectory);
+      const result = await window.electronAPI.generateSubdivisionPrompt(
+        project.id,
+        targetDirectory
+      );
 
       if (result.success) {
         setLastSubdivisionPromptPath(result.filePath);
@@ -169,23 +165,37 @@ export const AIIntegration: React.FC<AIIntegrationProps> = ({
   };
 
   return (
-    <div className="ai-integration-container" style={{
-      padding: '24px',
-      backgroundColor: '#f8f9fa',
-      borderRadius: '8px',
-      border: '1px solid #dee2e6'
-    }}>
+    <div
+      className="ai-integration-container"
+      style={{
+        padding: '24px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px',
+        border: '1px solid #dee2e6',
+      }}
+    >
       <h2 style={{ marginBottom: '16px', fontSize: '24px', fontWeight: '600' }}>AI Integration</h2>
 
       <p style={{ marginBottom: '24px', color: '#6c757d' }}>
-        Generate AI-ready prompts and import optimization results. All AI operations are triggered manually - nothing happens automatically.
+        Generate AI-ready prompts and import optimization results. All AI operations are triggered
+        manually - nothing happens automatically.
       </p>
 
       {/* Target Directory Selection */}
-      <div style={{ marginBottom: '32px', padding: '16px', backgroundColor: '#fff', borderRadius: '6px' }}>
-        <h3 style={{ marginBottom: '12px', fontSize: '18px', fontWeight: '500' }}>Target Directory</h3>
+      <div
+        style={{
+          marginBottom: '32px',
+          padding: '16px',
+          backgroundColor: '#fff',
+          borderRadius: '6px',
+        }}
+      >
+        <h3 style={{ marginBottom: '12px', fontSize: '18px', fontWeight: '500' }}>
+          Target Directory
+        </h3>
         <p style={{ marginBottom: '12px', fontSize: '14px', color: '#6c757d' }}>
-          Select a directory where AI prompts will be saved. This directory will be used for all AI-related file operations.
+          Select a directory where AI prompts will be saved. This directory will be used for all
+          AI-related file operations.
         </p>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -199,7 +209,7 @@ export const AIIntegration: React.FC<AIIntegrationProps> = ({
               borderRadius: '4px',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '500'
+              fontWeight: '500',
             }}
           >
             Select Directory
@@ -214,24 +224,34 @@ export const AIIntegration: React.FC<AIIntegrationProps> = ({
       </div>
 
       {/* Claude Code Subdivision Optimization */}
-      <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#fff', borderRadius: '6px' }}>
+      <div
+        style={{
+          marginBottom: '24px',
+          padding: '16px',
+          backgroundColor: '#fff',
+          borderRadius: '6px',
+        }}
+      >
         <h3 style={{ marginBottom: '8px', fontSize: '18px', fontWeight: '500' }}>
           1. Generate AI Subdivision Description (Claude Code)
         </h3>
         <p style={{ marginBottom: '12px', fontSize: '14px', color: '#6c757d' }}>
-          Create a JSON file with your project constraints for Claude Code to optimize the subdivision layout.
+          Create a JSON file with your project constraints for Claude Code to optimize the
+          subdivision layout.
         </p>
 
         {!canGenerateSubdivisionPrompt && (
-          <div style={{
-            padding: '12px',
-            backgroundColor: '#fff3cd',
-            border: '1px solid #ffc107',
-            borderRadius: '4px',
-            marginBottom: '12px',
-            fontSize: '14px',
-            color: '#856404'
-          }}>
+          <div
+            style={{
+              padding: '12px',
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffc107',
+              borderRadius: '4px',
+              marginBottom: '12px',
+              fontSize: '14px',
+              color: '#856404',
+            }}
+          >
             ⚠️ Project must have land parcel and at least one subdivision scenario
           </div>
         )}
@@ -241,36 +261,54 @@ export const AIIntegration: React.FC<AIIntegrationProps> = ({
           disabled={!canGenerateSubdivisionPrompt || !targetDirectory || isGeneratingSubdivision}
           style={{
             padding: '10px 20px',
-            backgroundColor: canGenerateSubdivisionPrompt && targetDirectory && !isGeneratingSubdivision ? '#28a745' : '#6c757d',
+            backgroundColor:
+              canGenerateSubdivisionPrompt && targetDirectory && !isGeneratingSubdivision
+                ? '#28a745'
+                : '#6c757d',
             color: '#fff',
             border: 'none',
             borderRadius: '4px',
-            cursor: canGenerateSubdivisionPrompt && targetDirectory && !isGeneratingSubdivision ? 'pointer' : 'not-allowed',
+            cursor:
+              canGenerateSubdivisionPrompt && targetDirectory && !isGeneratingSubdivision
+                ? 'pointer'
+                : 'not-allowed',
             fontSize: '14px',
             fontWeight: '500',
-            opacity: !canGenerateSubdivisionPrompt || !targetDirectory || isGeneratingSubdivision ? 0.6 : 1
+            opacity:
+              !canGenerateSubdivisionPrompt || !targetDirectory || isGeneratingSubdivision
+                ? 0.6
+                : 1,
           }}
         >
           {isGeneratingSubdivision ? 'Generating...' : 'Generate AI Subdivision Description'}
         </button>
 
         {lastSubdivisionPromptPath && (
-          <div style={{
-            marginTop: '12px',
-            padding: '12px',
-            backgroundColor: '#d4edda',
-            border: '1px solid #c3e6cb',
-            borderRadius: '4px',
-            fontSize: '14px',
-            color: '#155724'
-          }}>
+          <div
+            style={{
+              marginTop: '12px',
+              padding: '12px',
+              backgroundColor: '#d4edda',
+              border: '1px solid #c3e6cb',
+              borderRadius: '4px',
+              fontSize: '14px',
+              color: '#155724',
+            }}
+          >
             ✓ Last generated: {lastSubdivisionPromptPath}
           </div>
         )}
       </div>
 
       {/* Google Nano Image Generation */}
-      <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#fff', borderRadius: '6px' }}>
+      <div
+        style={{
+          marginBottom: '24px',
+          padding: '16px',
+          backgroundColor: '#fff',
+          borderRadius: '6px',
+        }}
+      >
         <h3 style={{ marginBottom: '8px', fontSize: '18px', fontWeight: '500' }}>
           2. Generate AI Image Prompts (Google Nano Banana Pro)
         </h3>
@@ -279,15 +317,17 @@ export const AIIntegration: React.FC<AIIntegrationProps> = ({
         </p>
 
         {!canGenerateImagePrompts && (
-          <div style={{
-            padding: '12px',
-            backgroundColor: '#fff3cd',
-            border: '1px solid #ffc107',
-            borderRadius: '4px',
-            marginBottom: '12px',
-            fontSize: '14px',
-            color: '#856404'
-          }}>
+          <div
+            style={{
+              padding: '12px',
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffc107',
+              borderRadius: '4px',
+              marginBottom: '12px',
+              fontSize: '14px',
+              color: '#856404',
+            }}
+          >
             ⚠️ Project must have a selected subdivision scenario
           </div>
         )}
@@ -297,29 +337,37 @@ export const AIIntegration: React.FC<AIIntegrationProps> = ({
           disabled={!canGenerateImagePrompts || !targetDirectory || isGeneratingImages}
           style={{
             padding: '10px 20px',
-            backgroundColor: canGenerateImagePrompts && targetDirectory && !isGeneratingImages ? '#17a2b8' : '#6c757d',
+            backgroundColor:
+              canGenerateImagePrompts && targetDirectory && !isGeneratingImages
+                ? '#17a2b8'
+                : '#6c757d',
             color: '#fff',
             border: 'none',
             borderRadius: '4px',
-            cursor: canGenerateImagePrompts && targetDirectory && !isGeneratingImages ? 'pointer' : 'not-allowed',
+            cursor:
+              canGenerateImagePrompts && targetDirectory && !isGeneratingImages
+                ? 'pointer'
+                : 'not-allowed',
             fontSize: '14px',
             fontWeight: '500',
-            opacity: !canGenerateImagePrompts || !targetDirectory || isGeneratingImages ? 0.6 : 1
+            opacity: !canGenerateImagePrompts || !targetDirectory || isGeneratingImages ? 0.6 : 1,
           }}
         >
           {isGeneratingImages ? 'Generating...' : 'Generate AI Image Prompts'}
         </button>
 
         {lastImagePromptsPath && (
-          <div style={{
-            marginTop: '12px',
-            padding: '12px',
-            backgroundColor: '#d4edda',
-            border: '1px solid #c3e6cb',
-            borderRadius: '4px',
-            fontSize: '14px',
-            color: '#155724'
-          }}>
+          <div
+            style={{
+              marginTop: '12px',
+              padding: '12px',
+              backgroundColor: '#d4edda',
+              border: '1px solid #c3e6cb',
+              borderRadius: '4px',
+              fontSize: '14px',
+              color: '#155724',
+            }}
+          >
             ✓ Last generated: {lastImagePromptsPath}
           </div>
         )}
@@ -346,7 +394,7 @@ export const AIIntegration: React.FC<AIIntegrationProps> = ({
             cursor: isImporting ? 'not-allowed' : 'pointer',
             fontSize: '14px',
             fontWeight: '500',
-            opacity: isImporting ? 0.6 : 1
+            opacity: isImporting ? 0.6 : 1,
           }}
         >
           {isImporting ? 'Importing...' : 'Import Optimized Subdivision from Claude Code'}
@@ -354,23 +402,28 @@ export const AIIntegration: React.FC<AIIntegrationProps> = ({
       </div>
 
       {/* Manual Workflow Note */}
-      <div style={{
-        marginTop: '24px',
-        padding: '16px',
-        backgroundColor: '#d1ecf1',
-        border: '1px solid #bee5eb',
-        borderRadius: '4px',
-        fontSize: '14px',
-        color: '#0c5460'
-      }}>
+      <div
+        style={{
+          marginTop: '24px',
+          padding: '16px',
+          backgroundColor: '#d1ecf1',
+          border: '1px solid #bee5eb',
+          borderRadius: '4px',
+          fontSize: '14px',
+          color: '#0c5460',
+        }}
+      >
         <strong>📋 Manual Workflow:</strong>
         <ol style={{ marginTop: '8px', marginBottom: '0', paddingLeft: '20px' }}>
           <li>Generate AI prompts using the buttons above</li>
-          <li>Use the generated files with external AI tools (Claude Code, Google Nano Banana Pro)</li>
+          <li>
+            Use the generated files with external AI tools (Claude Code, Google Nano Banana Pro)
+          </li>
           <li>Import the results back into the application when ready</li>
         </ol>
         <p style={{ marginTop: '8px', marginBottom: '0' }}>
-          <strong>Note:</strong> No automatic AI generation occurs on save or export. You have full control over when AI tools are invoked.
+          <strong>Note:</strong> No automatic AI generation occurs on save or export. You have full
+          control over when AI tools are invoked.
         </p>
       </div>
     </div>

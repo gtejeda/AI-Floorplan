@@ -14,7 +14,7 @@ export type AreaUnit = 'sqm' | 'sqft';
  */
 export const CONVERSION_FACTORS = {
   SQM_TO_SQFT: 10.763910417,
-  SQFT_TO_SQM: 0.09290304
+  SQFT_TO_SQM: 0.09290304,
 } as const;
 
 /**
@@ -23,7 +23,7 @@ export const CONVERSION_FACTORS = {
 export const PRECISION = {
   AREA: 2,
   DIMENSIONS: 2,
-  LEGAL_DOCS: 4
+  LEGAL_DOCS: 4,
 } as const;
 
 /**
@@ -65,10 +65,14 @@ export function convertArea(
 /**
  * Format area with unit label
  */
-export function formatArea(value: number, unit: AreaUnit, precision: number = PRECISION.AREA): string {
+export function formatArea(
+  value: number,
+  unit: AreaUnit,
+  precision: number = PRECISION.AREA
+): string {
   const formattedValue = value.toLocaleString('en-US', {
     minimumFractionDigits: precision,
-    maximumFractionDigits: precision
+    maximumFractionDigits: precision,
   });
   const unitLabel = unit === 'sqm' ? 'm²' : 'ft²';
   return `${formattedValue} ${unitLabel}`;
@@ -100,15 +104,18 @@ export function convertDimensions(
     return {
       width: Number(dimensions.width.toFixed(precision)),
       length: Number(dimensions.length.toFixed(precision)),
-      area: Number(dimensions.area.toFixed(precision))
+      area: Number(dimensions.area.toFixed(precision)),
     };
   }
 
-  const factor = fromUnit === 'sqm' ? Math.sqrt(CONVERSION_FACTORS.SQM_TO_SQFT) : Math.sqrt(CONVERSION_FACTORS.SQFT_TO_SQM);
-  
+  const factor =
+    fromUnit === 'sqm'
+      ? Math.sqrt(CONVERSION_FACTORS.SQM_TO_SQFT)
+      : Math.sqrt(CONVERSION_FACTORS.SQFT_TO_SQM);
+
   return {
     width: Number((dimensions.width * factor).toFixed(precision)),
     length: Number((dimensions.length * factor).toFixed(precision)),
-    area: convertArea(dimensions.area, fromUnit, toUnit, precision)
+    area: convertArea(dimensions.area, fromUnit, toUnit, precision),
   };
 }
